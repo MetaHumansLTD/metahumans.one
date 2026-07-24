@@ -1,0 +1,17 @@
+*
+!Dockerfile
+!.dockerignore
+!.gitignore
+!public_html/
+!public_html/**
+
+# Exclude very large or mutable content from the deployment repo.
+public_html/.env
+public_html/.trae/
+public_html/.backup_agent_*/
+public_html/videos/
+public_html/information/videos/
+public_html/uploads/
+public_html/gear/dev/
+public_html/**/node_modules/
+public_html/**/*.bak*

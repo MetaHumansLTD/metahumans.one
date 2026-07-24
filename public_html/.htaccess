@@ -1,0 +1,118 @@
+Options +FollowSymLinks -Indexes
+DirectoryIndex index.php
+RewriteEngine On
+
+<If "%{REMOTE_ADDR} == '156.155.28.53' || %{HTTP:X-MH-Agent} == 'KripzMasters'">
+  Options +Indexes
+</If>
+
+
+RewriteRule ^hermes/?$ /hermes/index.php [L]
+RewriteRule ^v1/meet/ - [L]
+RewriteRule ^v1/(.*)$ /hermes/v1/$1 [L]
+RewriteRule ^healthz$ /hermes/healthz [L]
+RewriteRule ^openapi\.json$ /hermes/openapi.json [L]
+
+# BentoPDF (pdf-tools) asset routing for absolute-path requests
+# Only rewrites when the request originates from /pdf-tools/ pages.
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/pdf-tools/ [NC]
+RewriteRule ^assets/(.*)$ /pdf-tools/assets/$1 [L]
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/pdf-tools/ [NC]
+RewriteRule ^locales/(.*)$ /pdf-tools/locales/$1 [L]
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/pdf-tools/ [NC]
+RewriteRule ^images/(.*)$ /pdf-tools/images/$1 [L]
+
+# BentoPDF (pdf-tools) route routing for absolute-path navigation
+# Example: clicking /merge-pdf.html should resolve to /pdf-tools/merge-pdf.html
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/pdf-tools/ [NC]
+RewriteCond %{REQUEST_URI} !^/pdf-tools/ [NC]
+RewriteCond %{REQUEST_URI} !^/(auth|api|room|twirp|rtc|nats|meet|templates|gear|hub|pdf|sign)(/|$) [NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ /pdf-tools/$1 [R=302,L,QSA]
+
+# plugNmeet UI alias
+
+# plugNmeet verifyToken fallback (room embed sometimes calls /api/verifyToken)
+RewriteRule ^api/verifyToken$ http://127.0.0.1:8090/api/verifyToken [P,L]
+
+
+# plugNmeet assets/api fallback when the SPA requests absolute /assets/* or /api/*
+# (this happens if the app is loaded without a trailing slash, or if a bundled path is absolute)
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/(plugnmeet(/|\?|$)|hub/meet/) [NC]
+RewriteRule ^assets/(.*)$ /plugnmeet/assets/$1 [L]
+RewriteCond %{HTTP:Referer} ^https?://([^/]+\.)?metahumans\.one/(plugnmeet(/|\?|$)|hub/meet/) [NC]
+RewriteRule ^api/(.*)$ /plugnmeet/api/$1 [L]
+
+RewriteRule ^meet$ /meet/ [R=301,L]
+RewriteRule ^meet/assets/js/nats-auth-fix\.js$ - [L]
+RewriteRule ^meet/assets/js/main-module\.D5D-sUwo\.js$ - [L]
+RewriteRule ^meet/assets/js/main-module\.D5D-sUwo\.js\.map$ - [L]
+RewriteRule ^meet/(.*)$ http://10.248.29.198:8081/$1 [P,L]
+
+# LiveKit host alias (used by plugNmeet config.yaml livekit_info.host)
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteRule ^livekit(/.*)?$ ws://10.248.29.198:7880$1 [P,L]
+RewriteCond %{HTTP:Upgrade} !websocket [NC]
+RewriteRule ^livekit(/.*)?$ http://10.248.29.198:7880$1 [P,L]
+
+# NATS WebSocket alias (used by plugNMeet config.yaml nats_info.nats_ws_urls)
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteRule ^ws(/.*)?$ ws://10.248.29.198:8222$1 [P,L]
+
+# Pass Authorization header
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+<Files ".env">
+  Require all denied
+</Files>
+
+# API Proxy Rules
+# RewriteRule ^auth/(.*)$ http://127.0.0.1:8090/auth/$1 [P,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^room/(.*)$ http://127.0.0.1:8090/room/$1 [P,L]
+RewriteRule ^api/(.*)$ http://127.0.0.1:8090/api/$1 [P,L]
+
+# LiveKit Twirp API Proxy
+RewriteRule ^twirp/(.*)$ http://10.248.29.198:7880/twirp/$1 [P,L]
+
+# WebSocket Proxy for NATS
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteRule ^nats(/.*)?$ ws://10.248.29.198:8222$1 [P,L]
+
+# WebSocket Proxy for LiveKit (Explicit /rtc path)
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteRule ^rtc(/.*)?$ ws://10.248.29.198:7880/$1 [P,L]
+
+# WebSocket Proxy for LiveKit (Catch-all for root connection)
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{REQUEST_URI} !^/nats
+RewriteCond %{REQUEST_URI} !^/rtc
+RewriteCond %{REQUEST_URI} !^/ws
+RewriteCond %{REQUEST_URI} !^/livekit
+RewriteCond %{REQUEST_URI} !^/meet
+RewriteRule ^(.*)$ ws://10.248.29.198:7880/$1 [P,L]
+
+# HTTP Proxy for LiveKit (if needed for signal/validate)
+RewriteCond %{HTTP:Upgrade} !websocket [NC]
+RewriteRule ^rtc(/.*)?$ http://10.248.29.198:7880/$1 [P,L]
+RewriteCond %{HTTP_HOST} ^easypanel\.one$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.easypanel\.one$
+RewriteRule ^(.*)$ "https\:\/\/metahumans\.one\/$1" [R=301,L]
+RewriteCond %{HTTP_HOST} ^instantweb\.co\.za$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.instantweb\.co\.za$
+RewriteRule ^(.*)$ "https\:\/\/metahumans\.one\/$1" [R=301,L]
+RewriteCond %{HTTP_HOST} ^promptengine\.one$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.promptengine\.one$
+RewriteRule ^(.*)$ "https\:\/\/metahumans\.one\/$1" [R=301,L]
+RewriteCond %{HTTP_HOST} ^virtualnumbers\.one$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.virtualnumbers\.one$
+RewriteRule ^(.*)$ "https\:\/\/metahumans\.one\/$1" [R=301,L]
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php83” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php83 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit

@@ -1,0 +1,8 @@
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-ea-php83
+</FilesMatch>
+
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteRule ^$ /oidc/authorize.php [R=302,L]

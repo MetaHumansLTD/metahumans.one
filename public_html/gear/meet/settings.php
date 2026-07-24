@@ -1,0 +1,317 @@
+<?php
+require_once __DIR__ . "/../../.cue/cue.php";
+
+function mh_cfg_path(): string
+{
+    $base = "/data";
+    if (function_exists("getDataPath")) {
+        $base = (string)getDataPath();
+        if ($base === "") {
+            $base = "/data";
+        }
+    }
+    return rtrim($base, "/") . "/config/plugnmeet.json";
+}
+
+function mh_read_cfg(): array
+{
+    $p = mh_cfg_path();
+    if (!is_file($p)) {
+        return [];
+    }
+    $raw = file_get_contents($p);
+    if ($raw === false) {
+        return [];
+    }
+    $cfg = json_decode($raw, true);
+    return is_array($cfg) ? $cfg : [];
+}
+
+function mh_write_cfg(array $cfg): void
+{
+    $p = mh_cfg_path();
+    $dir = dirname($p);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    $json = json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($json === false) {
+        throw new RuntimeException("Failed to encode config");
+    }
+    if (file_put_contents($p, $json . "\n") === false) {
+        throw new RuntimeException("Failed to write config");
+    }
+    @chmod($p, 0600);
+}
+
+function mh_bool(string $v): bool
+{
+    return $v === "1" || strtolower($v) === "true" || strtolower($v) === "on" || strtolower($v) === "yes";
+}
+
+function mh_split_csv(string $s): array
+{
+    $parts = array_filter(array_map("trim", explode(",", $s)), function ($x) { return $x !== ""; });
+    return array_values(array_unique($parts));
+}
+
+function mh_join_csv(mixed $v): string
+{
+    if (!is_array($v)) {
+        return "";
+    }
+    $vals = array_values(array_unique(array_filter($v, "is_string")));
+    return implode(", ", $vals);
+}
+
+function mh_encrypt_for_cfg(string $plain): string
+{
+    if ($plain === "") {
+        return "";
+    }
+    if (function_exists("cue_autoload")) {
+        cue_autoload("paths");
+        cue_autoload("security");
+    }
+    $keyPath = function_exists("paths_getEncryptionKeyPath") ? paths_getEncryptionKeyPath() : "/data/security/app.key";
+    $keyRaw = @file_get_contents($keyPath);
+    $key = is_string($keyRaw) ? trim($keyRaw) : "";
+    if ($key === "") {
+        throw new RuntimeException("Missing encryption key");
+    }
+    if (!function_exists("security_encryptValue")) {
+        throw new RuntimeException("Missing encryption function");
+    }
+    return (string)security_encryptValue($plain, $key);
+}
+
+function h(mixed $v): string { return htmlspecialchars((string) $v, ENT_QUOTES); }
+
+$cfg = mh_read_cfg();
+$message = "";
+$error = "";
+
+if (($_SERVER["REQUEST_METHOD"] ?? "GET") === "POST") {
+    try {
+        $cfg["url"] = trim((string) ($_POST["url"] ?? ""));
+        $cfg["public_url"] = trim((string) ($_POST["public_url"] ?? ""));
+        $cfg["api_key"] = trim((string) ($_POST["api_key"] ?? ""));
+        $cfg["secret"] = trim((string) ($_POST["secret"] ?? ""));
+        $encKey = mh_encrypt_for_cfg($cfg["api_key"]);
+        $encSecret = mh_encrypt_for_cfg($cfg["secret"]);
+        if ($encKey !== "") {
+            $cfg["plugnmeet_api_key"] = $encKey;
+        }
+        if ($encSecret !== "") {
+            $cfg["plugnmeet_api_secret"] = $encSecret;
+        }
+
+        $cfg["features"] = [
+            "enable_transcription_translation" => mh_bool((string) ($_POST["enable_transcription_translation"] ?? "0")),
+            "enable_insights" => mh_bool((string) ($_POST["enable_insights"] ?? "0")),
+            "enable_ai" => mh_bool((string) ($_POST["enable_ai"] ?? "0")),
+        ];
+
+        $cfg["languages"] = [
+            "allowed_spoken_langs" => mh_split_csv((string) ($_POST["allowed_spoken_langs"] ?? "")),
+            "allowed_trans_langs" => mh_split_csv((string) ($_POST["allowed_trans_langs"] ?? "")),
+            "default_subtitle_lang" => trim((string) ($_POST["default_subtitle_lang"] ?? "en")),
+            "default_chat_lang" => trim((string) ($_POST["default_chat_lang"] ?? "en")),
+        ];
+
+        $cfg["ai"] = [
+            "provider" => trim((string) ($_POST["ai_provider"] ?? "hermes")),
+            "base_url" => trim((string) ($_POST["ai_base_url"] ?? "")),
+            "model" => trim((string) ($_POST["ai_model"] ?? "")),
+            "api_key" => (string) ($_POST["ai_api_key"] ?? ""),
+        ];
+
+        $cfg["paths"] = [
+            "modelstore_weights" => trim((string) ($_POST["modelstore_weights"] ?? "")),
+            "modelstore_cache" => trim((string) ($_POST["modelstore_cache"] ?? "")),
+        ];
+
+        $branding = is_array($cfg["branding"] ?? null) ? $cfg["branding"] : [];
+        $branding["favicon_url"] = trim((string) ($_POST["favicon_url"] ?? ""));
+        $cfg["branding"] = $branding;
+
+        $clientCfg = is_array($cfg["client_config"] ?? null) ? $cfg["client_config"] : [];
+        $clientCfg["faviconUrl"] = $branding["favicon_url"];
+        $clientCfg["enableDynacast"] = mh_bool((string) ($_POST["enableDynacast"] ?? "1"));
+        $clientCfg["enableSimulcast"] = mh_bool((string) ($_POST["enableSimulcast"] ?? "1"));
+        $clientCfg["videoCodec"] = trim((string) ($_POST["videoCodec"] ?? "vp8"));
+        $clientCfg["defaultWebcamResolution"] = trim((string) ($_POST["defaultWebcamResolution"] ?? "h720"));
+        $clientCfg["defaultScreenShareResolution"] = trim((string) ($_POST["defaultScreenShareResolution"] ?? "h1080fps15"));
+        $clientCfg["defaultAudioPreset"] = trim((string) ($_POST["defaultAudioPreset"] ?? "music"));
+
+        $logoLight = trim((string) ($_POST["logo_light_url"] ?? ""));
+        $logoDark = trim((string) ($_POST["logo_dark_url"] ?? ""));
+        if ($logoLight !== "" || $logoDark !== "") {
+            $clientCfg["customLogo"] = [];
+            if ($logoLight !== "") {
+                $clientCfg["customLogo"]["main_logo_light"] = $logoLight;
+            }
+            if ($logoDark !== "") {
+                $clientCfg["customLogo"]["main_logo_dark"] = $logoDark;
+            }
+        } else {
+            unset($clientCfg["customLogo"]);
+        }
+
+        $design = is_array($clientCfg["designCustomization"] ?? null) ? $clientCfg["designCustomization"] : [];
+        foreach ([
+            "primary_color",
+            "primary_btn_bg_color",
+            "primary_btn_text_color",
+            "secondary_color",
+            "secondary_btn_bg_color",
+            "secondary_btn_text_color",
+            "header_bg_color",
+            "footer_bg_color",
+            "footer_icon_bg_color",
+            "footer_icon_color",
+            "side_panel_bg_color",
+            "background_color",
+        ] as $k) {
+            $v = trim((string) ($_POST[$k] ?? ""));
+            if ($v === "") {
+                unset($design[$k]);
+            } else {
+                $design[$k] = $v;
+            }
+        }
+
+        $bg = trim((string) ($_POST["background_image_url"] ?? ""));
+        if ($bg === "") {
+            unset($design["background_image"]);
+        } else {
+            $design["background_image"] = $bg;
+        }
+
+        $css = trim((string) ($_POST["custom_css_url"] ?? ""));
+        if ($css === "") {
+            unset($design["custom_css_url"]);
+        } else {
+            $design["custom_css_url"] = $css;
+        }
+
+          if (!empty($design["background_image"]) && empty($design["custom_css_url"])) {
+              $design["custom_css_url"] = "/gear/meet/design.css.php";
+          }
+
+        if ($design === []) {
+            unset($clientCfg["designCustomization"]);
+        } else {
+            $clientCfg["designCustomization"] = $design;
+        }
+
+        $clientCfg["virtualBackgroundImages"] = mh_split_csv((string) ($_POST["virtualBackgroundImages"] ?? ""));
+        $clientCfg["whiteboardPreloadedLibraryItems"] = mh_split_csv((string) ($_POST["whiteboardPreloadedLibraryItems"] ?? ""));
+
+        $cfg["client_config"] = $clientCfg;
+
+        mh_write_cfg($cfg);
+        $message = "Saved.";
+    } catch (Throwable $e) {
+        $error = $e->getMessage();
+    }
+}
+
+$features = is_array($cfg["features"] ?? null) ? $cfg["features"] : [];
+$languages = is_array($cfg["languages"] ?? null) ? $cfg["languages"] : [];
+$ai = is_array($cfg["ai"] ?? null) ? $cfg["ai"] : [];
+$paths = is_array($cfg["paths"] ?? null) ? $cfg["paths"] : [];
+$branding = is_array($cfg["branding"] ?? null) ? $cfg["branding"] : [];
+$clientCfg = is_array($cfg["client_config"] ?? null) ? $cfg["client_config"] : [];
+$design = is_array($clientCfg["designCustomization"] ?? null) ? $clientCfg["designCustomization"] : [];
+$customLogo = is_array($clientCfg["customLogo"] ?? null) ? $clientCfg["customLogo"] : [];
+
+$url = $cfg["url"] ?? "http://10.248.29.198:8081";
+$publicUrl = $cfg["public_url"] ?? "https://metahumans.one/meet";
+
+$templatesPath = function_exists('getTemplatesPath') ? getTemplatesPath() : (dirname(dirname(__DIR__)) . '/templates');
+
+?><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Settings</title>
+<?php
+if (is_file($templatesPath . '/global-ui/includes/complete-head.php')) {
+    include_once $templatesPath . '/global-ui/includes/complete-head.php';
+}
+?>
+<style>
+html,body{background-color:var(--background-color,#0a0a1a) !important;color:var(--text-color,#ffffff) !important;}
+main{max-width:1100px;margin:0 auto;padding:18px 20px}
+main.main-content .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+main.main-content .field{display:grid;gap:6px;margin-bottom:10px}
+main.main-content .label{font-size:12px;color:#bcd3f1}
+main.main-content .input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e6f0ff}
+main.main-content .row{display:flex;gap:10px;align-items:center}
+main.main-content .btn{border-radius:10px;border:1px solid rgba(42,167,255,.55);background:rgba(42,167,255,.18);color:#e6f0ff;padding:10px 12px;font-weight:700;cursor:pointer}
+main.main-content .msg{padding:10px 12px;border-radius:10px;margin:12px 0;border:1px solid rgba(33,208,122,.35);background:rgba(33,208,122,.12)}
+main.main-content .err{padding:10px 12px;border-radius:10px;margin:12px 0;border:1px solid rgba(255,91,91,.35);background:rgba(255,91,91,.12)}
+</style>
+</head>
+<body>
+<?php
+if (is_file($templatesPath . '/global-ui/includes/complete-body-start.php')) {
+    include_once $templatesPath . '/global-ui/includes/complete-body-start.php';
+}
+?>
+<main class="main-content">
+<h1 style="margin:0 0 10px 0">Meeting Settings</h1>
+<?php if ($message !== ""): ?><div class="msg"><?php echo h($message); ?></div><?php endif; ?>
+<?php if ($error !== ""): ?><div class="err"><?php echo h($error); ?></div><?php endif; ?>
+<form method="post" action="">
+<div class="grid">
+<div class="card">
+<h2>plugNmeet API</h2>
+<label class="field"><span class="label">API Base URL</span><input class="input" name="url" value="<?php echo h($url); ?>"></label>
+<label class="field"><span class="label">Public Join URL</span><input class="input" name="public_url" value="<?php echo h($publicUrl); ?>"></label>
+<label class="field"><span class="label">API Key</span><input class="input" name="api_key" value="<?php echo h($cfg['api_key'] ?? ''); ?>"></label>
+<label class="field"><span class="label">API Secret</span><input class="input" name="secret" value="<?php echo h($cfg['secret'] ?? ''); ?>"></label>
+</div>
+<div class="card">
+<h2>Room Features</h2>
+<label class="row"><input type="checkbox" name="enable_transcription_translation" value="1" <?php echo !empty($features['enable_transcription_translation']) ? 'checked' : ''; ?>> <span>Enable Transcribe/Translate UI</span></label>
+<br>
+<label class="row"><input type="checkbox" name="enable_insights" value="1" <?php echo !empty($features['enable_insights']) ? 'checked' : ''; ?>> <span>Enable Insights UI</span></label>
+<br>
+<label class="row"><input type="checkbox" name="enable_ai" value="1" <?php echo !empty($features['enable_ai']) ? 'checked' : ''; ?>> <span>Enable AI Tools UI</span></label>
+</div>
+<div class="card">
+<h2>Languages</h2>
+<label class="field"><span class="label">Allowed spoken languages (CSV, e.g. en-US, fr-FR)</span><input class="input" name="allowed_spoken_langs" value="<?php echo h(mh_join_csv($languages['allowed_spoken_langs'] ?? [])); ?>"></label>
+<label class="field"><span class="label">Allowed translation languages (CSV, e.g. en, fr, zh-Hans)</span><input class="input" name="allowed_trans_langs" value="<?php echo h(mh_join_csv($languages['allowed_trans_langs'] ?? [])); ?>"></label>
+<label class="field"><span class="label">Default subtitle language</span><input class="input" name="default_subtitle_lang" value="<?php echo h($languages['default_subtitle_lang'] ?? 'en'); ?>"></label>
+<label class="field"><span class="label">Default chat language</span><input class="input" name="default_chat_lang" value="<?php echo h($languages['default_chat_lang'] ?? 'en'); ?>"></label>
+</div>
+<div class="card">
+<h2>Hermes / AI</h2>
+<label class="field"><span class="label">Provider</span><input class="input" name="ai_provider" value="<?php echo h($ai['provider'] ?? 'hermes'); ?>"></label>
+<label class="field"><span class="label">Base URL</span><input class="input" name="ai_base_url" value="<?php echo h($ai['base_url'] ?? ''); ?>"></label>
+<label class="field"><span class="label">Model</span><input class="input" name="ai_model" value="<?php echo h($ai['model'] ?? ''); ?>"></label>
+<label class="field"><span class="label">API Key (optional)</span><input class="input" name="ai_api_key" value="<?php echo h($ai['api_key'] ?? ''); ?>"></label>
+</div>
+<div class="card">
+<h2>Model Store</h2>
+<label class="field"><span class="label">Weights path</span><input class="input" name="modelstore_weights" value="<?php echo h($paths['modelstore_weights'] ?? ''); ?>"></label>
+<label class="field"><span class="label">Cache path</span><input class="input" name="modelstore_cache" value="<?php echo h($paths['modelstore_cache'] ?? ''); ?>"></label>
+</div>
+<div class="card">
+<h2>Client UI</h2>
+<label class="row"><input type="checkbox" name="enableDynacast" value="1" <?php echo (!array_key_exists('enableDynacast',$clientCfg) || !empty($clientCfg['enableDynacast'])) ? 'checked' : ''; ?>> <span>Enable Dynacast</span></label>
+<br>
+<label class="row"><input type="checkbox" name="enableSimulcast" value="1" <?php echo (!array_key_exists('enableSimulcast',$clientCfg) || !empty($clientCfg['enableSimulcast'])) ? 'checked' : ''; ?>> <span>Enable Simulcast</span></label>
+<label class="field" style="margin-top:10px"><span class="label">Video Codec</span><input class="input" name="videoCodec" value="<?php echo h($clientCfg['videoCodec'] ?? 'vp8'); ?>"></label>
+<label class="field"><span class="label">Default Webcam Resolution</span><input class="input" name="defaultWebcamResolution" value="<?php echo h($clientCfg['defaultWebcamResolution'] ?? 'h720'); ?>"></label>
+<label class="field"><span class="label">Default Screen Share Resolution</span><input class="input" name="defaultScreenShareResolution" value="<?php echo h($clientCfg['defaultScreenShareResolution'] ?? 'h1080fps15'); ?>"></label>
+<label class="field"><span class="label">Default Audio Preset</span><input class="input" name="defaultAudioPreset" value="<?php echo h($clientCfg['defaultAudioPreset'] ?? 'music'); ?>"></label>
+</div>
+<div class="card">
+<h2>Branding</h2>
+<label class="field"><span class="label">Favicon URL</span><input class="input" name="favicon_url" value="<?php echo h($branding['favicon_url'] ?? ''); ?>"></label>

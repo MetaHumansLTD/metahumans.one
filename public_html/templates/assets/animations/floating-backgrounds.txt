@@ -1,0 +1,98 @@
+<script src="three.r134.min.js"></script>
+<script src="vanta.net.min.js"></script>
+<script>
+VANTA.NET({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00,
+  color: 0x936500,
+  backgroundColor: 0x5c,
+  points: 12.00,
+  maxDistance: 33.00,
+  spacing: 17.00,
+  showDots: false
+})
+</script>
+
+<script src="three.r134.min.js"></script>
+<script src="vanta.birds.min.js"></script>
+<script>
+VANTA.BIRDS({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00
+})
+</script>
+
+<script src="three.r134.min.js"></script>
+<script src="vanta.clouds2.min.js"></script>
+<script>
+VANTA.CLOUDS2({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  texturePath: "./gallery/noise.png"
+})
+</script>
+
+<script src="three.r134.min.js"></script>
+<script src="vanta.dots.min.js"></script>
+<script>
+VANTA.DOTS({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00,
+  color: 0x7bff20,
+  color2: 0xd7860f,
+  backgroundColor: 0x35439d
+})
+</script>
+
+<script src="three.r134.min.js"></script>
+<script src="vanta.rings.min.js"></script>
+<script>
+VANTA.RINGS({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00
+})
+</script>
+
+<script src="three.r134.min.js"></script>
+<script src="vanta.halo.min.js"></script>
+<script>
+VANTA.HALO({
+  el: "#your-element-selector",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: false,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  baseColor: 0xb6cd0e,
+  backgroundColor: 0x8609d
+})
+</script>

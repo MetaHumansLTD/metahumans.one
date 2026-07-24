@@ -1,0 +1,17 @@
+vendor/
+node_modules/
+dist/
+build/
+.git/
+.venv/
+__pycache__/
+.next/
+.cache/
+.data/
+/data/
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.env

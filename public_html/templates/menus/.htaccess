@@ -1,0 +1,11 @@
+# Template Access Override
+# Allow access to navigation templates for authenticated users
+
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
+# Security: Block sensitive files
+<FilesMatch "\.(json|env|ini|log|conf|sql|bak)$">
+    Require all denied
+</FilesMatch>

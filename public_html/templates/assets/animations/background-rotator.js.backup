@@ -1,0 +1,35 @@
+let vantaEffect;
+const vantaEl = "#vanta-bg";
+
+// List of Vanta effects to cycle
+const effects = [
+  () => VANTA.BIRDS({ el: vantaEl, backgroundColor: 0x0369a1 }),
+  () => VANTA.CLOUDS2({ el: vantaEl }),
+  () => VANTA.CLOUDS({ el: vantaEl }),
+  () => VANTA.CELLS({ el: vantaEl, color1: 0x047ECB, color2: 0xd7ae54 }),
+  () => VANTA.DOTS({ el: vantaEl, color: 0x7bff20, color2: 0xd7860f, backgroundColor: 0x35439d }),
+  () => VANTA.RINGS({ el: vantaEl }),
+  () => VANTA.HALO({ el: vantaEl, baseColor: 0xb6cd0e, backgroundColor: 0x8609d }),
+  () => VANTA.FOG({ el: vantaEl, highlightColor: 0xd7ae54, midtoneColor: 0x047ECB }),
+  () => VANTA.RIPPLE({ el: vantaEl }),
+  () => VANTA.WAVES({ el: vantaEl, shininess: 50, waveHeight: 20, waveSpeed: 0.8 }),
+  () => VANTA.TOPOLOGY({ el: vantaEl, color: 0x047ECB, backgroundColor: 0xf8fafc }),
+  () => VANTA.GLOBE({ el: vantaEl, color: 0xd7ae54, backgroundColor: 0x180047 }),  
+  () => VANTA.NET({ el: vantaEl, color: 0xd7ae54, backgroundColor: 0x180047 }),
+  () => VANTA.TRUNK({ el: vantaEl, color: 0xd7ae54, backgroundColor: 0x180047 })
+];
+
+let current = 0;
+const interval = 5000; // 5 seconds per background
+
+function setEffect(index) {
+  if (vantaEffect) vantaEffect.destroy(); // clean up old one
+  vantaEffect = effects[index % effects.length]();
+}
+
+// Start rotation
+setEffect(current);
+setInterval(() => {
+  current++;
+  setEffect(current);
+}, interval);

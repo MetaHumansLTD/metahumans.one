@@ -1,0 +1,371 @@
+{
+    "host": "rke-cp-1.superhumans.one",
+    "observed_at": "2026-07-09T15:21:33Z",
+    "os": {
+        "pretty": "Ubuntu 24.04.4 LTS",
+        "kernel": "6.8.0-117-generic",
+        "hostname": "rke-cp-1.superhumans.one",
+        "uptime_sec": 4151643
+    },
+    "cpu": {
+        "vendor": "AuthenticAMD",
+        "model": "AMD EPYC 7313 16-Core Processor",
+        "sockets": 4,
+        "cores_per_socket": 1,
+        "threads_total": 4
+    },
+    "ram_gb": 8,
+    "gpu": {
+        "vendor": null,
+        "model": null,
+        "count": 0,
+        "vram_gb_per_gpu": null,
+        "gpus": []
+    },
+    "storage": [
+        {
+            "mountpoint": "/run",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 1,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/",
+            "fstype": "ext4",
+            "device": "/dev/vda3",
+            "size_gb": 234,
+            "used_gb": 16
+        },
+        {
+            "mountpoint": "/dev/shm",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 4,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/run/lock",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 0,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/run/user/0",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 1,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/run/user/1001",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 1,
+            "used_gb": 0
+        }
+    ],
+    "network": {
+        "addresses": [
+            {
+                "family": 4,
+                "interface": "lo",
+                "cidr": "127.0.0.1/8"
+            },
+            {
+                "family": 4,
+                "interface": "eth0",
+                "cidr": "64.91.238.113/24"
+            },
+            {
+                "family": 4,
+                "interface": "eth1",
+                "cidr": "10.39.138.172/21"
+            },
+            {
+                "family": 4,
+                "interface": "netWXQ",
+                "cidr": "10.248.138.157/24"
+            },
+            {
+                "family": 4,
+                "interface": "netYMQ",
+                "cidr": "10.248.29.34/24"
+            },
+            {
+                "family": 4,
+                "interface": "flannel.1",
+                "cidr": "10.42.0.0/32"
+            },
+            {
+                "family": 6,
+                "interface": "lo",
+                "cidr": "::1/128"
+            },
+            {
+                "family": 6,
+                "interface": "eth0",
+                "cidr": "fe80::5054:ff:feaa:7d3a/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth1",
+                "cidr": "fe80::5054:ff:fe55:839e/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth2",
+                "cidr": "fc00:5aa9:7160:d9eb:ffff:ff00:6c:40/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth2",
+                "cidr": "fe80::5054:ff:fe2f:bf48/64"
+            },
+            {
+                "family": 6,
+                "interface": "calic8107d0b996",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali657f79a79d6",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali58bbea4fc98",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali981a7f36c85",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calic2b8f4c4f58",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali3538c212028",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calibb955a411d2",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali619c30f1af7",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali7042b5cd5a6",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "flannel.1",
+                "cidr": "fe80::c8ca:ffff:fe09:bf84/64"
+            }
+        ],
+        "routes_v4": [
+            "default via 64.91.238.1 dev eth0 proto static",
+            "10.14.48.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.21.20.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.21.22.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.21.24.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.30.193.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.30.194.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.30.200.0/21 via 10.39.136.1 dev eth1 proto static",
+            "10.31.79.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.33.79.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.39.136.0/21 dev eth1 proto kernel scope link src 10.39.138.172",
+            "10.40.24.0/21 via 10.39.136.1 dev eth1 proto static",
+            "10.40.104.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.42.0.40 dev calic8107d0b996 scope link",
+            "10.42.0.41 dev cali657f79a79d6 scope link",
+            "10.42.0.42 dev cali58bbea4fc98 scope link",
+            "10.42.0.43 dev cali981a7f36c85 scope link",
+            "10.42.0.44 dev calic2b8f4c4f58 scope link",
+            "10.42.0.46 dev cali3538c212028 scope link",
+            "10.42.0.47 dev calibb955a411d2 scope link",
+            "10.42.0.48 dev cali619c30f1af7 scope link",
+            "10.42.0.49 dev cali7042b5cd5a6 scope link",
+            "10.42.1.0/24 via 10.42.1.0 dev flannel.1 onlink",
+            "10.42.2.0/24 via 10.42.2.0 dev flannel.1 onlink",
+            "10.42.3.0/24 via 10.42.3.0 dev flannel.1 onlink",
+            "10.50.100.0/22 via 10.39.136.1 dev eth1 proto static",
+            "10.50.200.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.111.48.0/23 via 10.39.136.1 dev eth1 proto static",
+            "10.220.40.0/24 via 10.39.136.1 dev eth1 proto static",
+            "10.230.48.0/23 via 10.39.136.1 dev eth1 proto static",
+            "10.248.29.0/24 dev netYMQ proto kernel scope link src 10.248.29.34",
+            "10.248.138.0/24 dev netWXQ proto kernel scope link src 10.248.138.157",
+            "10.255.61.0/24 via 10.39.136.1 dev eth1 proto static",
+            "64.91.238.0/24 dev eth0 proto kernel scope link src 64.91.238.113"
+        ],
+        "routes_v6": [
+            "fc00:5aa9:7160:d9eb::1 via fc00:5aa9:7160:d9eb::252 dev eth2 proto static metric 250 pref medium",
+            "fc00:5aa9:7160:d9eb::/64 dev eth2 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth2 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calic8107d0b996 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali657f79a79d6 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali58bbea4fc98 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali981a7f36c85 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calic2b8f4c4f58 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali3538c212028 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calibb955a411d2 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali619c30f1af7 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali7042b5cd5a6 proto kernel metric 256 pref medium",
+            "fe80::/64 dev flannel.1 proto kernel metric 256 pref medium"
+        ]
+    },
+    "ports": {
+        "listening": [
+            {
+                "proto": "udp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.54:53"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.53%lo:53"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:8472"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:4789"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:9099"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.53%lo:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.34:2379"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.34:2380"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10010"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10248"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10249"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10258"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10259"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10256"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10257"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:2379"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:2382"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:2380"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:2381"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:4317"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8080"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.54:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:9345"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:9091"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:10260"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:10250"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:4789"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:6443"
+            }
+        ]
+    }
+}

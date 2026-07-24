@@ -1,0 +1,834 @@
+{
+    "host": "local",
+    "observed_at": "2026-07-09T15:24:42Z",
+    "os": {
+        "pretty": "AlmaLinux 9.8 (Olive Jaguar)",
+        "kernel": "5.14.0-687.20.1.el9_8.x86_64",
+        "hostname": "usa.metahumans.one",
+        "uptime_sec": 162204
+    },
+    "cpu": {
+        "vendor": "GenuineIntel",
+        "model": "INTEL(R) XEON(R) GOLD 6526Y",
+        "sockets": 64,
+        "cores_per_socket": 1,
+        "threads_total": 64
+    },
+    "ram_gb": 118,
+    "gpu": {
+        "vendor": null,
+        "model": null,
+        "count": 0,
+        "vram_gb_per_gpu": null,
+        "gpus": []
+    },
+    "storage": [
+        {
+            "mountpoint": "/dev",
+            "fstype": "devtmpfs",
+            "device": "devtmpfs",
+            "size_gb": 59,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/dev/shm",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 59,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/run",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 24,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/",
+            "fstype": "ext4",
+            "device": "/dev/vda3",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/backup",
+            "fstype": "ext4",
+            "device": "/dev/vdc",
+            "size_gb": 787,
+            "used_gb": 557
+        },
+        {
+            "mountpoint": "/mh-modelstore",
+            "fstype": "ext4",
+            "device": "/dev/vdg",
+            "size_gb": 983,
+            "used_gb": 782
+        },
+        {
+            "mountpoint": "/data",
+            "fstype": "ext4",
+            "device": "/dev/vdb",
+            "size_gb": 393,
+            "used_gb": 330
+        },
+        {
+            "mountpoint": "/graph",
+            "fstype": "ext4",
+            "device": "/dev/vdd",
+            "size_gb": 196,
+            "used_gb": 1
+        },
+        {
+            "mountpoint": "/mysql",
+            "fstype": "ext4",
+            "device": "/dev/vde",
+            "size_gb": 98,
+            "used_gb": 1
+        },
+        {
+            "mountpoint": "/vector",
+            "fstype": "ext4",
+            "device": "/dev/vdf",
+            "size_gb": 98,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/tmp",
+            "fstype": "ext4",
+            "device": "/dev/loop0",
+            "size_gb": 4,
+            "used_gb": 1
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay-containers/5fc0eb3e3bcff809d4f3ea9f0e36ed617ba16190efcfc1d5395d7f3a4ac1d2f5/userdata/shm",
+            "fstype": "tmpfs",
+            "device": "shm",
+            "size_gb": 0,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay/2e939f552ff0be59b385f5309249c23529a49d3ed05a2366c14132e50657cedc/merged",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay-containers/0a2938114338fa6daacb898152706c1fdc3e4234cba043a37ad65aeacd0c5bb5/userdata/shm",
+            "fstype": "tmpfs",
+            "device": "shm",
+            "size_gb": 1,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay/59c28e029d43d4d8afe03158065b5e771d88933a01582c1e9d5eef6aac60794f/merged",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay-containers/a880d514f56a933bcf0d5d91a9963714dde18a5a2ad8ce86825be9a89b8e0e94/userdata/shm",
+            "fstype": "tmpfs",
+            "device": "shm",
+            "size_gb": 0,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay/11f2cf2142cbf9f266d35ce8aa4bc6e03aca355457fb4a7a585014af69d1ce8d/merged",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay-containers/ec71996d60f4cc7c0150b69c3afdab23d62057b57981c10984aaef2d66aa78fd/userdata/shm",
+            "fstype": "tmpfs",
+            "device": "shm",
+            "size_gb": 0,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay/53b9529b37c1ca9eb7b689ecd221aecacbdbb33867dd555b1568251515cdaaf3/merged",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/720715a913dd0b89b400761cae8c1492145dc45e05b91bb41ead2f3171374d9c",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/a13aa704ac1c1e8f27d93592eacbebda6783dcb8125a4a3b4d15ac7534e4be5f",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/be04ea81a847bf75c90be7ba10f1666659799190c9533f1b5b1905d469ad2649",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/c886bc96b8656a80d170b1dad99c408938bc9915b9e9182b041326c8ab0c499a",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/ad5965df9f876b42d8d5c41197b7a841946fb7cddd9a3cfbf8cfda48e78e3548",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/docker/rootfs/overlayfs/804b5749093265e890d5638f508b1572314d8f65398458324742992857f55999",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay-containers/01ccb84534149993665e92f636e3ac03414dcb11774f4b6ef840a4acfe09c767/userdata/shm",
+            "fstype": "tmpfs",
+            "device": "shm",
+            "size_gb": 1,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/var/lib/containers/storage/overlay/3681abe7b8a95da657210575d1632bd6e2774dd6d6819c35c61cec08139eddaf/merged",
+            "fstype": "overlay",
+            "device": "overlay",
+            "size_gb": 1570,
+            "used_gb": 277
+        },
+        {
+            "mountpoint": "/run/user/0",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 12,
+            "used_gb": 0
+        }
+    ],
+    "network": {
+        "addresses": [
+            {
+                "family": 4,
+                "interface": "lo",
+                "cidr": "127.0.0.1/8"
+            },
+            {
+                "family": 4,
+                "interface": "eth0",
+                "cidr": "67.227.249.248/22"
+            },
+            {
+                "family": 4,
+                "interface": "eth0",
+                "cidr": "67.225.132.66/32"
+            },
+            {
+                "family": 4,
+                "interface": "eth1",
+                "cidr": "10.39.136.31/21"
+            },
+            {
+                "family": 4,
+                "interface": "netYMQ",
+                "cidr": "10.248.29.48/24"
+            },
+            {
+                "family": 4,
+                "interface": "netWXQ",
+                "cidr": "10.248.138.109/24"
+            },
+            {
+                "family": 4,
+                "interface": "podman0",
+                "cidr": "10.88.0.1/16"
+            },
+            {
+                "family": 4,
+                "interface": "docker0",
+                "cidr": "172.17.0.1/16"
+            },
+            {
+                "family": 4,
+                "interface": "br-d036f3ca02f4",
+                "cidr": "172.18.0.1/16"
+            },
+            {
+                "family": 4,
+                "interface": "br-df0ef4988d84",
+                "cidr": "172.19.0.1/16"
+            },
+            {
+                "family": 6,
+                "interface": "lo",
+                "cidr": "::1/128"
+            },
+            {
+                "family": 6,
+                "interface": "eth0",
+                "cidr": "fe80::6ac7:5b7a:754d:7904/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth1",
+                "cidr": "fe80::d95e:40e9:7f4b:5b27/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth2",
+                "cidr": "fc00:5aa9:7160:d9eb:ffff:ff00:2820:200/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth2",
+                "cidr": "fe80::6334:ef79:1ea2:20c4/64"
+            },
+            {
+                "family": 6,
+                "interface": "podman0",
+                "cidr": "fe80::3026:49ff:fef6:3ca9/64"
+            },
+            {
+                "family": 6,
+                "interface": "veth0",
+                "cidr": "fe80::8c14:5bff:fe92:cbe0/64"
+            },
+            {
+                "family": 6,
+                "interface": "veth1",
+                "cidr": "fe80::3c13:51ff:fedf:6a38/64"
+            },
+            {
+                "family": 6,
+                "interface": "veth2",
+                "cidr": "fe80::a4c3:83ff:fed2:f42c/64"
+            },
+            {
+                "family": 6,
+                "interface": "veth3",
+                "cidr": "fe80::4cd7:37ff:fefc:b8dd/64"
+            },
+            {
+                "family": 6,
+                "interface": "br-d036f3ca02f4",
+                "cidr": "fe80::d8b6:7ff:fec8:cbd/64"
+            },
+            {
+                "family": 6,
+                "interface": "vethd88ee53",
+                "cidr": "fe80::58b9:ffff:fe37:98ac/64"
+            },
+            {
+                "family": 6,
+                "interface": "veth68595d0",
+                "cidr": "fe80::b81b:4eff:fee1:ae89/64"
+            }
+        ],
+        "routes_v4": [
+            "default via 67.227.248.1 dev eth0 proto static metric 100",
+            "10.39.136.0/21 dev eth1 proto kernel scope link src 10.39.136.31 metric 101",
+            "10.88.0.0/16 dev podman0 proto kernel scope link src 10.88.0.1",
+            "10.248.29.0/24 dev netYMQ proto kernel scope link src 10.248.29.48",
+            "10.248.138.0/24 dev netWXQ proto kernel scope link src 10.248.138.109",
+            "67.225.132.66 dev eth0 scope link src 67.225.132.66",
+            "67.227.248.0/22 dev eth0 proto kernel scope link src 67.227.249.248 metric 100",
+            "172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown",
+            "172.18.0.0/16 dev br-d036f3ca02f4 proto kernel scope link src 172.18.0.1",
+            "172.19.0.0/16 dev br-df0ef4988d84 proto kernel scope link src 172.19.0.1 linkdown"
+        ],
+        "routes_v6": [
+            "::1 dev lo proto kernel metric 256 pref medium",
+            "fc00:5aa9:7160:d9eb::1 via fc00:5aa9:7160:d9eb::252 dev eth2 proto static metric 102 pref medium",
+            "fc00:5aa9:7160:d9eb::/64 dev eth2 proto kernel metric 102 pref medium",
+            "fe80::/64 dev podman0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev veth0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev veth1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev veth2 proto kernel metric 256 pref medium",
+            "fe80::/64 dev veth3 proto kernel metric 256 pref medium",
+            "fe80::/64 dev vethd88ee53 proto kernel metric 256 pref medium",
+            "fe80::/64 dev br-d036f3ca02f4 proto kernel metric 256 pref medium",
+            "fe80::/64 dev veth68595d0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth0 proto kernel metric 1024 pref medium",
+            "fe80::/64 dev eth1 proto kernel metric 1024 pref medium",
+            "fe80::/64 dev eth2 proto kernel metric 1024 pref medium"
+        ]
+    },
+    "ports": {
+        "listening": [
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:48836"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:53"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:111"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.1:323"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.1:964"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:20048"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:43380"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:53"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:111"
+            },
+            {
+                "proto": "udp",
+                "local": "[::1]:323"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:4789"
+            },
+            {
+                "proto": "udp",
+                "local": "[::1]:8125"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:20048"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:35766"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:37607"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:51000"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:59645"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:37681"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:39911"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:33101"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:33193"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:36265"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:45505"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:45451"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:41859"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:43743"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:17493"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:17655"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:20048"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:19100"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:19091"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:4317"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:4190"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8090"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6379"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6334"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6333"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8012"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8011"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8082"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8081"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:783"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:579"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:587"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:993"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:995"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:143"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:80"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:111"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:110"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:25"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:465"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:443"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:3000"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:3010"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:3307"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:3306"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:4052"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:4050"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2049"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2077"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2079"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2078"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2080"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2083"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2082"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2087"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2086"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2091"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2095"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:2096"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:13000"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:9010"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8787"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8445"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:9980"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:11234"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:38177"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:6379"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:42421"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:783"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:20048"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:4789"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:4190"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:4222"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:7881"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:7880"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::ffff:127.0.0.1]:7474"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::ffff:127.0.0.1]:7687"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:587"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:993"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:995"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:143"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:80"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:111"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:110"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:21"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:25"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:465"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:443"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:3010"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:2049"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:8445"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:8223"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:8222"
+            }
+        ]
+    }
+}

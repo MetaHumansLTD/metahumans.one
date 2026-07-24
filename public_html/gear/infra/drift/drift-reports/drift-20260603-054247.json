@@ -1,0 +1,299 @@
+{
+    "generated_at": "2026-06-03T05:42:47Z",
+    "reports_dir": "/home/onemeta/public_html/gear/infra/drift/reports",
+    "hosts": {
+        "api.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:26Z",
+                "to": "2026-06-03T05:42:36Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/api.superhumans.one/20260603-052828.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/api.superhumans.one/20260603-054237.json"
+            }
+        },
+        "ingress.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:28Z",
+                "to": "2026-06-03T05:42:37Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/ingress.superhumans.one/20260603-052830.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/ingress.superhumans.one/20260603-054239.json"
+            }
+        },
+        "local": {
+            "observed_at": {
+                "from": "2026-06-03T05:25:19Z",
+                "to": "2026-06-03T05:26:41Z"
+            },
+            "changes": {
+                "cpu.sockets": {
+                    "from": 0,
+                    "to": 64
+                },
+                "cpu.cores_per_socket": {
+                    "from": 0,
+                    "to": 1
+                },
+                "cpu.threads_total": {
+                    "from": 0,
+                    "to": 64
+                }
+            },
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 3,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/local/20260603-052519.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/local/20260603-052641.json"
+            }
+        },
+        "metahumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:20Z",
+                "to": "2026-06-03T05:42:29Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/metahumans.one/20260603-052822.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/metahumans.one/20260603-054231.json"
+            }
+        },
+        "rke-cp-1.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:30Z",
+                "to": "2026-06-03T05:42:39Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-1.superhumans.one/20260603-052832.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-1.superhumans.one/20260603-054241.json"
+            }
+        },
+        "rke-cp-2.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:32Z",
+                "to": "2026-06-03T05:42:41Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-2.superhumans.one/20260603-052834.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-2.superhumans.one/20260603-054243.json"
+            }
+        },
+        "superbrains.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:24Z",
+                "to": "2026-06-03T05:42:33Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/superbrains.one/20260603-052826.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/superbrains.one/20260603-054236.json"
+            }
+        },
+        "superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:22Z",
+                "to": "2026-06-03T05:42:31Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/superhumans.one/20260603-052824.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/superhumans.one/20260603-054233.json"
+            }
+        }
+    }
+}

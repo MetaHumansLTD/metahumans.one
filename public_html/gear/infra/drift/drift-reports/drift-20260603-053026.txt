@@ -1,0 +1,40 @@
+Drift Report
+generated_at=2026-06-03T05:30:26Z
+hosts=8
+
+Host: api.superhumans.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: ingress.superhumans.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: local
+  from=2026-06-03T05:25:19Z
+  to=2026-06-03T05:26:41Z
+  changes=3 ports(+/-)=0/0 addrs(+/-)=0/0 mounts(+/-)=0/0
+  field cpu.sockets {"from":0,"to":64}
+  field cpu.cores_per_socket {"from":0,"to":1}
+  field cpu.threads_total {"from":0,"to":64}
+
+Host: metahumans.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: rke-cp-1.superhumans.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: rke-cp-2.superhumans.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: superbrains.one
+  status=ERROR
+  error=need_two_snapshots
+
+Host: superhumans.one
+  status=ERROR
+  error=need_two_snapshots
+

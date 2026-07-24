@@ -1,0 +1,4 @@
+RewriteEngine On
+RewriteRule ^files/([a-f0-9]{32})/contents$ files_contents.php?id=$1 [L,QSA]
+RewriteRule ^files/([a-f0-9]{32})$ files.php?id=$1 [L,QSA]
+

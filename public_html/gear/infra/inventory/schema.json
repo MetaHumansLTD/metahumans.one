@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Meta Humans SSH Inventory Snapshot",
+  "type": "object",
+  "required": ["host", "observed_at", "os", "cpu", "ram_gb", "gpu", "storage", "network", "ports"],
+  "properties": {
+    "host": { "type": "string", "minLength": 1 },
+    "observed_at": { "type": "string", "minLength": 1 },
+    "os": {
+      "type": "object",
+      "required": ["pretty", "kernel", "hostname", "uptime_sec"],
+      "properties": {
+        "pretty": { "type": ["string", "null"] },
+        "kernel": { "type": ["string", "null"] },
+        "hostname": { "type": ["string", "null"] },
+        "uptime_sec": { "type": ["integer", "null"] }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "required": ["vendor", "model", "sockets", "cores_per_socket", "threads_total"],
+      "properties": {
+        "vendor": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "sockets": { "type": ["integer", "null"] },
+        "cores_per_socket": { "type": ["integer", "null"] },
+        "threads_total": { "type": ["integer", "null"] }
+      }
+    },
+    "ram_gb": { "type": ["integer", "null"] },
+    "gpu": {
+      "type": "object",
+      "required": ["vendor", "model", "count", "vram_gb_per_gpu", "gpus"],
+      "properties": {
+        "vendor": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "count": { "type": "integer", "minimum": 0 },
+        "vram_gb_per_gpu": { "type": ["integer", "null"] },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["index", "name", "vram_mb"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 0 },
+              "name": { "type": "string" },
+              "vram_mb": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mountpoint", "fstype", "device", "size_gb", "used_gb"],
+        "properties": {
+          "mountpoint": { "type": "string" },
+          "fstype": { "type": "string" },
+          "device": { "type": "string" },
+          "size_gb": { "type": ["integer", "null"] },
+          "used_gb": { "type": ["integer", "null"] }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "required": ["addresses", "routes_v4", "routes_v6"],
+      "properties": {
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["family", "interface", "cidr"],
+            "properties": {
+              "family": { "type": "integer", "enum": [4, 6] },
+              "interface": { "type": "string" },
+              "cidr": { "type": "string" }
+            }
+          }
+        },
+        "routes_v4": { "type": "array", "items": { "type": "string" } },
+        "routes_v6": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "required": ["listening"],
+      "properties": {
+        "listening": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["proto", "local"],
+            "properties": {
+              "proto": { "type": "string" },
+              "local": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

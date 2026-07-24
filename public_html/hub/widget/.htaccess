@@ -1,0 +1,14 @@
+Options +FollowSymLinks
+RewriteEngine On
+
+RewriteRule ^bootstrap$ bootstrap/index.php [L]
+RewriteRule ^personas$ personas/index.php [L]
+RewriteRule ^personas/([^/]+)/?$ personas/show.php?persona_id=$1 [L,QSA]
+RewriteRule ^session/start$ session/start.php [L]
+RewriteRule ^session/agent_join$ session/agent_join.php [L]
+RewriteRule ^session/stop$ session/stop.php [L]
+RewriteRule ^chat$ chat.php [L]
+RewriteRule ^events$ events.php [L]
+RewriteRule ^events/ingest$ events/ingest.php [L]
+RewriteRule ^uploads$ uploads.php [L]
+RewriteRule ^media/([^/]+)/?$ media.php?media_id=$1 [L,QSA]

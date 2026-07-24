@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tenant_id="${1:-}"
+repo_path="${2:-}"
+shift 2 || true
+
+if [ "${tenant_id}" = "" ] || [ "${repo_path}" = "" ]; then
+  echo "usage: mh-graphify <tenant_id> <repo_path> [graphify_command] [args...]" >&2
+  exit 2
+fi
+
+if [ ! -d "${repo_path}" ]; then
+  echo "repo_path_not_found: ${repo_path}" >&2
+  exit 2
+fi
+
+safe_tenant="$(echo "${tenant_id}" | sed -E 's/[^a-zA-Z0-9:_-]+/_/g')"
+repo_base="$(basename "${repo_path}")"
+repo_hash="$(python3 - "${repo_path}" <<'PY'
+import hashlib, sys
+p = sys.argv[1].encode("utf-8")
+print(hashlib.sha256(p).hexdigest()[:12])
+PY
+)"
+safe_repo="$(echo "${repo_base}" | sed -E 's/[^a-zA-Z0-9._-]+/_/g')"
+
+out_root="/data/tenants/${safe_tenant}/graphify/${safe_repo}_${repo_hash}"
+mkdir -p "${out_root}"
+
+cmd="${1:-update}"
+shift || true
+
+work_root="${out_root}/work"
+
+rsync_into_work_root() {
+  mkdir -p "${work_root}"
+  rsync_args=(
+    -a
+    --delete
+    --exclude "graphify-out"
+    --exclude ".git"
+    --exclude "node_modules"
+    --exclude "vendor"
+    --exclude "dist"
+    --exclude "build"
+    --exclude ".next"
+    --exclude ".cache"
+    --exclude "coverage"
+    --exclude ".venv"
+    --exclude "__pycache__"
+  )
+  if [ -f "${repo_path}/.graphifyignore" ]; then
+    rsync_args+=(--exclude-from "${repo_path}/.graphifyignore")
+  fi
+  rsync "${rsync_args[@]}" "${repo_path}/" "${work_root}/"
+}
+
+sync_graph_out() {
+  if [ -d "${work_root}/graphify-out" ]; then
+    mkdir -p "${out_root}/graphify-out"
+    rsync -a --delete "${work_root}/graphify-out/" "${out_root}/graphify-out/"
+  fi
+}
+
+case "${cmd}" in
+  update|cluster-only)
+    rsync_into_work_root
+    /usr/local/bin/graphify "${cmd}" "${work_root}" "$@"
+    sync_graph_out
+    ;;
+  watch)
+    rsync_into_work_root
+    cd "${out_root}"
+    exec /usr/local/bin/graphify "${cmd}" "${work_root}" "$@"
+    ;;
+  query|path|explain|save-result|benchmark)
+    cd "${out_root}"
+    exec /usr/local/bin/graphify "${cmd}" "$@"
+    ;;
+  *)
+    cd "${out_root}"
+    exec /usr/local/bin/graphify "${cmd}" "$@"
+    ;;
+esac

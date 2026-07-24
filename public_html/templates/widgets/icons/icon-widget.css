@@ -1,0 +1,111 @@
+/* Icon Widget Styles */
+.icon-widget {
+    background: #111827;
+    border-radius: 8px;
+    padding: 16px;
+    color: #e5e7eb;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.icon-widget h3 {
+    margin: 0 0 16px 0;
+    color: #00ffff;
+    font-size: 1.2rem;
+}
+
+.icon-widget .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.icon-widget input[type="text"] {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #e5e7eb;
+    padding: 8px 12px;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.icon-widget select {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #e5e7eb;
+    padding: 8px 12px;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.icon-widget button {
+    background: #00ffff;
+    color: #000000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.icon-widget button:hover {
+    background: #00cccc;
+    transform: translateY(-1px);
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #0f1419;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #374151;
+}
+
+.icon-grid > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #1f2937;
+    border: 1px solid transparent;
+}
+
+.icon-grid > div:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+.icon-grid > div.selected {
+    background: #667eea;
+    color: white;
+}
+
+.icon-grid > div i,
+.icon-grid > div svg {
+    color: #00ffff;
+    font-size: 16px;
+}
+
+.icon-grid > div.selected i,
+.icon-grid > div.selected svg {
+    color: white;
+}
+
+.icon-widget .stats {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #1f2937;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #9ca3af;
+}

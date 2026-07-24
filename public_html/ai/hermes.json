@@ -1,0 +1,6 @@
+{
+  "api_key": "",
+  "base_url": "https://metahumans.one/hermes",
+  "model": "hermes4-405b-api",
+  "timeout_sec": 6
+}

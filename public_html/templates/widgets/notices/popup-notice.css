@@ -1,0 +1,263 @@
+/**
+ * Popup Notice Widget - Enhanced Styles
+ * Additional themes and animations
+ */
+
+/* Theme Variations */
+.popup-notice-container.theme-minimal .popup-notice {
+    backdrop-filter: none;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.popup-notice-container.theme-modern .popup-notice {
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.popup-notice-container.theme-glass .popup-notice {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #333;
+}
+
+.popup-notice-container.theme-dark .popup-notice {
+    background: rgba(30,30,30,0.95);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Animation Variants */
+.popup-notice-container.anim-bounce .popup-notice {
+    transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.popup-notice-container.anim-fade .popup-notice {
+    transform: none;
+    transition: opacity 0.3s ease;
+}
+
+.popup-notice-container.anim-fade .popup-notice.hiding {
+    transform: none;
+}
+
+.popup-notice-container.anim-slide-up .popup-notice {
+    transform: translateY(100%);
+}
+
+.popup-notice-container.anim-slide-up .popup-notice.show {
+    transform: translateY(0);
+}
+
+.popup-notice-container.anim-slide-up .popup-notice.hiding {
+    transform: translateY(100%);
+}
+
+/* Size Variants */
+.popup-notice-container.size-compact .popup-notice {
+    padding: 12px 16px;
+    font-size: 13px;
+    max-width: 300px;
+    min-width: 250px;
+}
+
+.popup-notice-container.size-large .popup-notice {
+    padding: 20px 24px;
+    font-size: 16px;
+    max-width: 500px;
+    min-width: 400px;
+}
+
+/* Priority Levels */
+.popup-notice.priority-high {
+    z-index: 10001;
+    animation: pulse 2s infinite;
+    border-width: 2px;
+}
+
+.popup-notice.priority-urgent {
+    z-index: 10002;
+    animation: shake 0.5s infinite;
+    border-width: 3px;
+}
+
+/* Special Effects */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.popup-notice.glow {
+    box-shadow: 0 0 20px rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* Custom Icons */
+.popup-notice-icon.icon-custom {
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Progress Bar Variants */
+.popup-notice-progress.rainbow {
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+}
+
+.popup-notice-progress.success {
+    background: #4CAF50;
+}
+
+.popup-notice-progress.error {
+    background: #F44336;
+}
+
+.popup-notice-progress.warning {
+    background: #FF9800;
+}
+
+.popup-notice-progress.info {
+    background: #2196F3;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .popup-notice {
+        transition: opacity 0.2s ease;
+        transform: none !important;
+    }
+    
+    .popup-notice.show {
+        opacity: 1;
+        transform: none !important;
+    }
+    
+    .popup-notice.hiding {
+        opacity: 0;
+        transform: none !important;
+    }
+    
+    .popup-notice.priority-high,
+    .popup-notice.priority-urgent {
+        animation: none;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .popup-notice {
+        border-width: 2px;
+        border-color: currentColor;
+    }
+    
+    .popup-notice.success {
+        background: #008000;
+        color: #ffffff;
+    }
+    
+    .popup-notice.error {
+        background: #ff0000;
+        color: #ffffff;
+    }
+    
+    .popup-notice.warning {
+        background: #ffff00;
+        color: #000000;
+    }
+    
+    .popup-notice.info {
+        background: #0000ff;
+        color: #ffffff;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .popup-notice-container {
+        display: none;
+    }
+}
+
+/* Subtle visual indicator when auto-position adjustment occurs */
+.popup-notice-container.position-adjusted {
+    animation: positionNudge 0.3s ease;
+}
+
+@keyframes positionNudge {
+    0% { box-shadow: 0 0 0 rgba(0,0,0,0); transform: translate3d(0,0,0); }
+    50% { box-shadow: 0 6px 18px rgba(0,0,0,0.25); transform: translate3d(0,-2px,0); }
+    100% { box-shadow: 0 0 0 rgba(0,0,0,0); transform: translate3d(0,0,0); }
+}
+.popup-notice-container.theme-light .popup-notice {
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.popup-notice-container.theme-material .popup-notice {
+    background: #fff;
+    color: #333;
+    border-radius: 4px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+}
+
+.popup-notice-container.theme-pastel .popup-notice {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: #333;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.popup-notice-container.theme-neon .popup-notice {
+    background: rgba(0,0,0,0.8);
+    color: #00ffff;
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 15px #00ffff, 0 0 20px rgba(0,255,255,0.5);
+}
+
+.popup-notice-container.theme-ocean .popup-notice {
+    background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
+    color: #eaf6ff;
+    border: 1px solid rgba(255,255,255,0.25);
+}
+
+.popup-notice-container.theme-forest .popup-notice {
+    background: linear-gradient(135deg, #2c7744 0%, #1b5e20 100%);
+    color: #e8f5e9;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.popup-notice-container.theme-sunset .popup-notice {
+    background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+    color: #fff5f0;
+    border: 1px solid rgba(255,255,255,0.25);
+}
+
+.popup-notice-container.theme-mono .popup-notice {
+    background: #f0f0f0;
+    color: #222;
+    border: 1px solid #ccc;
+}
+.popup-notice-container.theme-cyberpunk .popup-notice {
+    background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+    color: #00ff9d;
+    border: 2px solid #ff00e6;
+    box-shadow: 0 0 12px #ff00e6, 0 0 18px rgba(255,0,230,0.5);
+}
+
+.popup-notice-container.theme-earth .popup-notice {
+    background: linear-gradient(135deg, #8D8741 0%, #659DBD 100%);
+    color: #2f2f2f;
+    border: 1px solid rgba(0,0,0,0.2);
+}

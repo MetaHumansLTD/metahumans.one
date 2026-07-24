@@ -1,0 +1,66 @@
+{
+    "1": {
+        "animation": "birds",
+        "enabled": true
+    },
+    "\/gear\/settings\/classes\/DatabaseContextManager.php": {
+        "page_id": "3",
+        "page_path": "\/gear\/settings\/classes\/DatabaseContextManager.php",
+        "animation": "topology",
+        "enabled": false
+    },
+    "\/gear\/settings\/dbmanager.php": {
+        "page_id": "5",
+        "page_path": "\/gear\/settings\/dbmanager.php",
+        "animation": "none",
+        "enabled": false
+    },
+    "\/gear\/meet\/index.php": {
+        "page_id": "2",
+        "page_path": "\/gear\/meet\/index.php",
+        "animation": "birds",
+        "enabled": false
+    },
+    "\/gear\/appointments\/index.php": {
+        "page_id": "1",
+        "page_path": "\/gear\/appointments\/index.php",
+        "animation": "birds",
+        "enabled": false
+    },
+    "\/gear\/sync\/index.php": {
+        "page_id": "15",
+        "page_path": "\/gear\/sync\/index.php",
+        "animation": "waves",
+        "enabled": false
+    },
+    "\/index.php": {
+        "page_id": "16",
+        "page_path": "\/index.php",
+        "animation": "birds",
+        "enabled": true
+    },
+    "\/templates\/assets\/fonts\/index.php": {
+        "page_id": "30",
+        "page_path": "\/templates\/assets\/fonts\/index.php",
+        "animation": "waves",
+        "enabled": false
+    },
+    "\/templates\/menus\/navigator.php": {
+        "page_id": "40",
+        "page_path": "\/templates\/menus\/navigator.php",
+        "animation": "birds",
+        "enabled": false
+    },
+    "\/templates\/widgets\/animations\/index.php": {
+        "page_id": "47",
+        "page_path": "\/templates\/widgets\/animations\/index.php",
+        "animation": "waves",
+        "enabled": false
+    },
+    "\/gear\/settings\/layout-manager.php": {
+        "page_id": "17",
+        "page_path": "\/gear\/settings\/layout-manager.php",
+        "animation": "clouds",
+        "enabled": true
+    }
+}

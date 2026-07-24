@@ -1,0 +1,6 @@
+[10-Jul-2026 01:30:49 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/grid/passkey.php?debug=1&sandbox_otp_shortcut=1 -> /auth/login.php?redirect=%2Fhub%2Fgrid%2Fpasskey.php%3Fdebug%3D1%26sandbox_otp_shortcut%3D1
+[10-Jul-2026 01:32:42 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/grid/passkey.php?debug=1&sandbox_otp_shortcut=1 -> /auth/login.php?redirect=%2Fhub%2Fgrid%2Fpasskey.php%3Fdebug%3D1%26sandbox_otp_shortcut%3D1
+[10-Jul-2026 01:39:56 UTC] Decryption failed: error:03000082:digital envelope routines::invalid key length
+[10-Jul-2026 01:39:56 UTC] Invalid base64 encoded data
+[10-Jul-2026 01:48:34 UTC] Decryption failed: error:03000082:digital envelope routines::invalid key length
+[10-Jul-2026 01:48:34 UTC] Invalid base64 encoded data

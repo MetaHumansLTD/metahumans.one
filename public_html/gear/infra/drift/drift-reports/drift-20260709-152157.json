@@ -1,0 +1,437 @@
+{
+    "generated_at": "2026-07-09T15:21:57Z",
+    "reports_dir": "/home/onemeta/public_html/gear/infra/drift/reports",
+    "mapping_file": "/home/onemeta/public_html/gear/infra/drift/../netbox/mapping.php",
+    "netbox_sot": {
+        "enabled": false
+    },
+    "hosts": {
+        "api.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:36Z",
+                "to": "2026-07-09T15:21:30Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/api.superhumans.one/20260603-054237.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/api.superhumans.one/20260709-152131.json"
+            }
+        },
+        "ingress.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:37Z",
+                "to": "2026-07-09T15:21:31Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [
+                        "tcp|67.227.194.133:3478",
+                        "tcp|67.227.194.133:5349",
+                        "udp|67.227.194.133:3478",
+                        "udp|67.227.194.133:5349"
+                    ],
+                    "removed": [
+                        "tcp|50.28.60.7:3478",
+                        "udp|50.28.60.7:3478"
+                    ]
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 4,
+                "ports_removed": 2
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/ingress.superhumans.one/20260603-054239.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/ingress.superhumans.one/20260709-152133.json"
+            }
+        },
+        "local": {
+            "observed_at": {
+                "from": "2026-06-03T05:25:19Z",
+                "to": "2026-06-03T05:26:41Z"
+            },
+            "changes": {
+                "cpu.sockets": {
+                    "from": 0,
+                    "to": 64
+                },
+                "cpu.cores_per_socket": {
+                    "from": 0,
+                    "to": 1
+                },
+                "cpu.threads_total": {
+                    "from": 0,
+                    "to": 64
+                }
+            },
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 3,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/local/20260603-052519.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/local/20260603-052641.json"
+            }
+        },
+        "metahumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:29Z",
+                "to": "2026-07-09T15:21:20Z"
+            },
+            "changes": {
+                "os.kernel": {
+                    "from": "5.14.0-687.5.3.el9_8.x86_64",
+                    "to": "5.14.0-687.20.1.el9_8.x86_64"
+                }
+            },
+            "diff": {
+                "addresses": {
+                    "added": [
+                        "6|br-d036f3ca02f4|fe80::d8b6:7ff:fec8:cbd/64",
+                        "6|podman0|fe80::3026:49ff:fef6:3ca9/64",
+                        "6|veth0|fe80::8c14:5bff:fe92:cbe0/64",
+                        "6|veth1|fe80::3c13:51ff:fedf:6a38/64",
+                        "6|veth2|fe80::a4c3:83ff:fed2:f42c/64",
+                        "6|veth3|fe80::4cd7:37ff:fefc:b8dd/64",
+                        "6|veth68595d0|fe80::b81b:4eff:fee1:ae89/64",
+                        "6|vethd88ee53|fe80::58b9:ffff:fe37:98ac/64"
+                    ],
+                    "removed": [
+                        "6|br-d036f3ca02f4|fe80::1461:a0ff:fec4:f8b4/64",
+                        "6|docker0|fe80::488:71ff:fe3c:e8c/64",
+                        "6|podman0|fe80::7cf5:c6ff:feaf:b4f3/64",
+                        "6|veth0|fe80::c8fe:ccff:fe74:bc64/64",
+                        "6|veth1|fe80::8cf1:d4ff:fe9a:c251/64",
+                        "6|veth2|fe80::641a:f1ff:fe30:539c/64",
+                        "6|veth3|fe80::282f:e6ff:fee7:a3e/64",
+                        "6|vethbb67558|fe80::74af:42ff:fe55:9d90/64",
+                        "6|vethbc84cf3|fe80::bc9b:79ff:fe39:4b5a/64",
+                        "6|vethc9f1932|fe80::540a:d1ff:fee0:33e8/64"
+                    ]
+                },
+                "mounts": {
+                    "added": [
+                        "/var/lib/containers/storage/overlay-containers/01ccb84534149993665e92f636e3ac03414dcb11774f4b6ef840a4acfe09c767/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/0a2938114338fa6daacb898152706c1fdc3e4234cba043a37ad65aeacd0c5bb5/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/5fc0eb3e3bcff809d4f3ea9f0e36ed617ba16190efcfc1d5395d7f3a4ac1d2f5/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/a880d514f56a933bcf0d5d91a9963714dde18a5a2ad8ce86825be9a89b8e0e94/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/ec71996d60f4cc7c0150b69c3afdab23d62057b57981c10984aaef2d66aa78fd/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay/11f2cf2142cbf9f266d35ce8aa4bc6e03aca355457fb4a7a585014af69d1ce8d/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/2e939f552ff0be59b385f5309249c23529a49d3ed05a2366c14132e50657cedc/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/3681abe7b8a95da657210575d1632bd6e2774dd6d6819c35c61cec08139eddaf/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/53b9529b37c1ca9eb7b689ecd221aecacbdbb33867dd555b1568251515cdaaf3/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/59c28e029d43d4d8afe03158065b5e771d88933a01582c1e9d5eef6aac60794f/merged|overlay|overlay"
+                    ],
+                    "removed": [
+                        "/var/lib/containers/storage/overlay-containers/296c6ddca0014fbad0c7ebfa97e7b303afb3b567eab1b621b92faaa8139bade7/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/42d61588c138a757d84bad30077969870c77ad530fd61c5c6330037ec85e6a7e/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/7cb6c5f56258ab2d04cd9dd0e839c81b8732f5bab4e8ccb6f8d7d58161f3cdb2/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/c9f035a7fbbdaeb1a5d5a828d4284af490513b8d8c0a21a0b34799bb701ee496/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay-containers/dea6050bb295c8febf98ed928f07edbb053bb3e48d74d8b26b0bf7caf6331870/userdata/shm|tmpfs|shm",
+                        "/var/lib/containers/storage/overlay/044ca9aedebd9285c62b1a4731b1909f64bd98e4161b05eb8d6d448edcb30aad/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/301bce83848d0bab273db1449f3c1a4c375ec4735bbaf33c8fc16f493b55c0cc/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/3ab565b740c969679f083e37d0d66a338e274f3d4c8569fb9951bac32dcbb65e/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/59797734f0ed717ade9912e8306b54b0b763fe178717d7e351f9cc852e20b91d/merged|overlay|overlay",
+                        "/var/lib/containers/storage/overlay/f8cf368f94fa2154b0aa7bb065781b275c91f4a44dde4443229da3ca7e394ac7/merged|overlay|overlay",
+                        "/var/lib/docker/rootfs/overlayfs/4e96c841ee2523f1946f187647a852390082617a847d2b9d532e0e143e8a9eeb|overlay|overlay"
+                    ]
+                },
+                "ports": {
+                    "added": [
+                        "tcp|0.0.0.0:19091",
+                        "tcp|0.0.0.0:45451",
+                        "tcp|0.0.0.0:59645",
+                        "tcp|127.0.0.1:33101",
+                        "tcp|127.0.0.1:33193",
+                        "tcp|127.0.0.1:36265",
+                        "tcp|127.0.0.1:37681",
+                        "tcp|127.0.0.1:39911",
+                        "tcp|127.0.0.1:41859",
+                        "tcp|127.0.0.1:43743",
+                        "tcp|127.0.0.1:45505",
+                        "tcp|127.0.0.1:8012",
+                        "tcp|[::]:38177",
+                        "tcp|[::]:42421",
+                        "udp|0.0.0.0:43380",
+                        "udp|0.0.0.0:48836",
+                        "udp|127.0.0.1:964",
+                        "udp|[::]:35766",
+                        "udp|[::]:37607"
+                    ],
+                    "removed": [
+                        "tcp|0.0.0.0:34045",
+                        "tcp|0.0.0.0:41297",
+                        "tcp|0.0.0.0:5349",
+                        "tcp|127.0.0.1:18080",
+                        "tcp|127.0.0.1:19514",
+                        "tcp|127.0.0.1:33921",
+                        "tcp|127.0.0.1:36039",
+                        "tcp|127.0.0.1:42145",
+                        "tcp|127.0.0.1:7860",
+                        "tcp|[::]:36601",
+                        "tcp|[::]:58831",
+                        "udp|0.0.0.0:3478",
+                        "udp|0.0.0.0:36031",
+                        "udp|0.0.0.0:54754",
+                        "udp|127.0.0.1:745",
+                        "udp|[::]:43296",
+                        "udp|[::]:48906"
+                    ]
+                }
+            },
+            "counts": {
+                "changes": 1,
+                "addresses_added": 8,
+                "addresses_removed": 10,
+                "mounts_added": 10,
+                "mounts_removed": 11,
+                "ports_added": 19,
+                "ports_removed": 17
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/metahumans.one/20260603-054231.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/metahumans.one/20260709-152122.json"
+            }
+        },
+        "rke-cp-1.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:39Z",
+                "to": "2026-07-09T15:21:33Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-1.superhumans.one/20260603-054241.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-1.superhumans.one/20260709-152135.json"
+            }
+        },
+        "rke-cp-2.superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:41Z",
+                "to": "2026-07-09T15:21:35Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-2.superhumans.one/20260603-054243.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/rke-cp-2.superhumans.one/20260709-152137.json"
+            }
+        },
+        "superbrains.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:28:24Z",
+                "to": "2026-06-03T05:42:33Z"
+            },
+            "changes": [],
+            "diff": {
+                "addresses": {
+                    "added": [],
+                    "removed": []
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [],
+                    "removed": []
+                }
+            },
+            "counts": {
+                "changes": 0,
+                "addresses_added": 0,
+                "addresses_removed": 0,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 0,
+                "ports_removed": 0
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/superbrains.one/20260603-052826.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/superbrains.one/20260603-054236.json"
+            }
+        },
+        "superhumans.one": {
+            "observed_at": {
+                "from": "2026-06-03T05:42:31Z",
+                "to": "2026-07-09T15:21:22Z"
+            },
+            "changes": {
+                "os.kernel": {
+                    "from": "6.8.0-117-generic",
+                    "to": "6.8.0-124-generic"
+                }
+            },
+            "diff": {
+                "addresses": {
+                    "added": [
+                        "6|cali108f3e604c4|fe80::ecee:eeff:feee:eeee/64",
+                        "6|cali33e201647c7|fe80::ecee:eeff:feee:eeee/64",
+                        "6|cali61ab23706d4|fe80::ecee:eeff:feee:eeee/64",
+                        "6|cali6e39e9c3375|fe80::e472:dcff:fe03:9d5a/64",
+                        "6|cali7633422bebe|fe80::ecee:eeff:feee:eeee/64",
+                        "6|cali932a1d74447|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calib45af56ffac|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calib9b8bb708f0|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calie6dcc0e5ebc|fe80::ecee:eeff:feee:eeee/64"
+                    ],
+                    "removed": [
+                        "6|cali3d2a9584c8f|fe80::ecee:eeff:feee:eeee/64",
+                        "6|cali7b44d6d77e1|fe80::a893:39ff:fe84:5c04/64",
+                        "6|caliaf5727f2dd1|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calib83813542c6|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calib9b8bb708f0|fe80::4ca0:5fff:fe2c:dead/64",
+                        "6|calid8a1a7a2bea|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calide145d687b1|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calie1276a63053|fe80::ecee:eeff:feee:eeee/64",
+                        "6|calie47171ff313|fe80::872:ebff:feb4:94bb/64"
+                    ]
+                },
+                "mounts": {
+                    "added": [],
+                    "removed": []
+                },
+                "ports": {
+                    "added": [
+                        "tcp|0.0.0.0:8011",
+                        "tcp|0.0.0.0:8081",
+                        "tcp|0.0.0.0:8089",
+                        "tcp|127.0.0.1:3306",
+                        "tcp|127.0.0.1:4222",
+                        "tcp|127.0.0.1:44047",
+                        "tcp|127.0.0.1:8222",
+                        "tcp|127.0.0.1:9222",
+                        "tcp|[::]:8080"
+                    ],
+                    "removed": [
+                        "tcp|0.0.0.0:8998",
+                        "tcp|127.0.0.1:40587",
+                        "tcp|127.0.0.1:51000",
+                        "tcp|[::]:8998"
+                    ]
+                }
+            },
+            "counts": {
+                "changes": 1,
+                "addresses_added": 9,
+                "addresses_removed": 9,
+                "mounts_added": 0,
+                "mounts_removed": 0,
+                "ports_added": 9,
+                "ports_removed": 4
+            },
+            "ok": true,
+            "paths": {
+                "from": "/home/onemeta/public_html/gear/infra/drift/reports/superhumans.one/20260603-054233.json",
+                "to": "/home/onemeta/public_html/gear/infra/drift/reports/superhumans.one/20260709-152123.json"
+            }
+        }
+    }
+}

@@ -1,0 +1,3530 @@
+{
+    "host": "superhumans.one",
+    "observed_at": "2026-06-03T05:28:22Z",
+    "os": {
+        "pretty": "Ubuntu 24.04.4 LTS",
+        "kernel": "6.8.0-117-generic",
+        "hostname": "meta.superhumans.one",
+        "uptime_sec": 247202
+    },
+    "cpu": {
+        "vendor": "GenuineIntel",
+        "model": "Intel(R) Xeon(R) 6741P",
+        "sockets": 1,
+        "cores_per_socket": 48,
+        "threads_total": 96
+    },
+    "ram_gb": 1007,
+    "gpu": {
+        "vendor": "NVIDIA",
+        "model": "NVIDIA H200 NVL",
+        "count": 2,
+        "vram_gb_per_gpu": 140,
+        "gpus": [
+            {
+                "index": 0,
+                "name": "NVIDIA H200 NVL",
+                "vram_mb": 143771
+            },
+            {
+                "index": 1,
+                "name": "NVIDIA H200 NVL",
+                "vram_mb": 143771
+            }
+        ]
+    },
+    "storage": [
+        {
+            "mountpoint": "/run",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 101,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/sys/firmware/efi/efivars",
+            "fstype": "efivarfs",
+            "device": "efivarfs",
+            "size_gb": 0,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/",
+            "fstype": "ext4",
+            "device": "/dev/mapper/lw-root",
+            "size_gb": 3510,
+            "used_gb": 759
+        },
+        {
+            "mountpoint": "/dev/shm",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 504,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/run/lock",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 0,
+            "used_gb": null
+        },
+        {
+            "mountpoint": "/boot",
+            "fstype": "ext4",
+            "device": "/dev/sda2",
+            "size_gb": 1,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/boot/efi",
+            "fstype": "vfat",
+            "device": "/dev/sda1",
+            "size_gb": 0,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/run/user/0",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 101,
+            "used_gb": 0
+        },
+        {
+            "mountpoint": "/run/user/1000",
+            "fstype": "tmpfs",
+            "device": "tmpfs",
+            "size_gb": 101,
+            "used_gb": 0
+        }
+    ],
+    "network": {
+        "addresses": [
+            {
+                "family": 4,
+                "interface": "lo",
+                "cidr": "127.0.0.1/8"
+            },
+            {
+                "family": 4,
+                "interface": "eth0.1556",
+                "cidr": "50.28.69.66/24"
+            },
+            {
+                "family": 4,
+                "interface": "eth0.1556",
+                "cidr": "50.28.69.123/24"
+            },
+            {
+                "family": 4,
+                "interface": "netYMQ",
+                "cidr": "10.248.29.198/24"
+            },
+            {
+                "family": 4,
+                "interface": "flannel.1",
+                "cidr": "10.42.1.0/32"
+            },
+            {
+                "family": 6,
+                "interface": "lo",
+                "cidr": "::1/128"
+            },
+            {
+                "family": 6,
+                "interface": "eth0",
+                "cidr": "fe80::7ec2:55ff:fe8f:11bc/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth1",
+                "cidr": "fe80::7ec2:55ff:fe8f:11bd/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth0.1556",
+                "cidr": "fe80::7ec2:55ff:fe8f:11bc/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth1.1557",
+                "cidr": "fc00:5aa8:7160:d9eb:1:0:1:116/64"
+            },
+            {
+                "family": 6,
+                "interface": "eth1.1557",
+                "cidr": "fe80::7ec2:55ff:fe8f:11bd/64"
+            },
+            {
+                "family": 6,
+                "interface": "calib9b8bb708f0",
+                "cidr": "fe80::4ca0:5fff:fe2c:dead/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali7b44d6d77e1",
+                "cidr": "fe80::a893:39ff:fe84:5c04/64"
+            },
+            {
+                "family": 6,
+                "interface": "calid8a1a7a2bea",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calidea8f35cb31",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "caliaf5727f2dd1",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calide145d687b1",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calie47171ff313",
+                "cidr": "fe80::872:ebff:feb4:94bb/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali54db6db5d04",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "flannel.1",
+                "cidr": "fe80::4c77:1dff:fe57:18c2/64"
+            },
+            {
+                "family": 6,
+                "interface": "cali3d2a9584c8f",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calie1276a63053",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            },
+            {
+                "family": 6,
+                "interface": "calib83813542c6",
+                "cidr": "fe80::ecee:eeff:feee:eeee/64"
+            }
+        ],
+        "routes_v4": [
+            "default via 50.28.69.1 dev eth0.1556 proto static",
+            "10.42.0.0/24 via 10.42.0.0 dev flannel.1 onlink",
+            "10.42.1.113 dev calib9b8bb708f0 scope link",
+            "10.42.1.114 dev cali7b44d6d77e1 scope link",
+            "10.42.1.116 dev calid8a1a7a2bea scope link",
+            "10.42.1.117 dev calidea8f35cb31 scope link",
+            "10.42.1.119 dev caliaf5727f2dd1 scope link",
+            "10.42.1.120 dev calide145d687b1 scope link",
+            "10.42.1.121 dev calie47171ff313 scope link",
+            "10.42.1.123 dev cali54db6db5d04 scope link",
+            "10.42.1.127 dev cali3d2a9584c8f scope link",
+            "10.42.1.128 dev calie1276a63053 scope link",
+            "10.42.1.129 dev calib83813542c6 scope link",
+            "10.42.2.0/24 via 10.42.2.0 dev flannel.1 onlink",
+            "10.42.3.0/24 via 10.42.3.0 dev flannel.1 onlink",
+            "10.248.29.0/24 dev netYMQ proto kernel scope link src 10.248.29.198",
+            "50.28.69.0/24 dev eth0.1556 proto kernel scope link src 50.28.69.66"
+        ],
+        "routes_v6": [
+            "fc00:5aa8:7160:d9eb::/64 dev eth1.1557 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth0.1556 proto kernel metric 256 pref medium",
+            "fe80::/64 dev eth1.1557 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calib9b8bb708f0 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali7b44d6d77e1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calid8a1a7a2bea proto kernel metric 256 pref medium",
+            "fe80::/64 dev calidea8f35cb31 proto kernel metric 256 pref medium",
+            "fe80::/64 dev caliaf5727f2dd1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calide145d687b1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calie47171ff313 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali54db6db5d04 proto kernel metric 256 pref medium",
+            "fe80::/64 dev flannel.1 proto kernel metric 256 pref medium",
+            "fe80::/64 dev cali3d2a9584c8f proto kernel metric 256 pref medium",
+            "fe80::/64 dev calie1276a63053 proto kernel metric 256 pref medium",
+            "fe80::/64 dev calib83813542c6 proto kernel metric 256 pref medium"
+        ]
+    },
+    "ports": {
+        "listening": [
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.54:53"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.53%lo:53"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:111"
+            },
+            {
+                "proto": "udp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "udp",
+                "local": "0.0.0.0:8472"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:111"
+            },
+            {
+                "proto": "udp",
+                "local": "[::]:4789"
+            },
+            {
+                "proto": "udp",
+                "local": "[::1]:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.53%lo:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:51000"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:40587"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.66:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:9231"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8998"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:9020"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:8080"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.54:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:443"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:21"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:111"
+            },
+            {
+                "proto": "tcp",
+                "local": "0.0.0.0:80"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:18050"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6444"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6443"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:6379"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:4317"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "10.248.29.198:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10256"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10249"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10248"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:10010"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "50.28.69.123:53"
+            },
+            {
+                "proto": "tcp",
+                "local": "127.0.0.1:9099"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:11434"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:10250"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:8998"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:9091"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:7881"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:7880"
+            },
+            {
+                "proto": "tcp",
+                "local": "*:4789"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:443"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:22"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:111"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::]:80"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:19999"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:8125"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:6444"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:6443"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:6379"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            },
+            {
+                "proto": "tcp",
+                "local": "[::1]:953"
+            }
+        ]
+    }
+}

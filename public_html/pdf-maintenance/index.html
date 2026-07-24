@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>MetaHumans PDF</title>
+    <style>
+      :root {
+        --bg0: #050816;
+        --bg1: #020617;
+        --text0: #f8fafc;
+        --text1: #94a3b8;
+        --border: rgba(148, 163, 184, 0.18);
+        --shadow: rgba(2, 6, 23, 0.75);
+        --primary: #00d4ff;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial,
+          sans-serif;
+        color: var(--text0);
+        background: radial-gradient(1200px 800px at 20% 20%, rgba(0, 212, 255, 0.12), transparent 55%),
+          radial-gradient(1200px 800px at 80% 30%, rgba(124, 58, 237, 0.12), transparent 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+      }
+      .wrap {
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        box-sizing: border-box;
+      }
+      .card {
+        width: 100%;
+        max-width: 680px;
+        background: rgba(2, 6, 23, 0.78);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 30px 80px var(--shadow);
+        padding: 28px 26px 22px;
+        backdrop-filter: blur(10px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+      .logo {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+        line-height: 1.15;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 10px 0 0;
+        color: var(--text1);
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+      .status {
+        margin-top: 18px;
+        padding: 14px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .status-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 240px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--primary);
+        box-shadow: 0 0 18px rgba(0, 212, 255, 0.65);
+      }
+      .status-text {
+        font-size: 0.95rem;
+        color: var(--text0);
+      }
+      .btn {
+        appearance: none;
+        border: 1px solid rgba(0, 212, 255, 0.35);
+        background: rgba(0, 212, 255, 0.12);
+        color: var(--text0);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn:hover {
+        background: rgba(0, 212, 255, 0.18);
+      }
+      .fine {
+        margin: 14px 2px 0;
+        font-size: 0.85rem;
+        color: rgba(148, 163, 184, 0.92);
+      }
+      .fine a {
+        color: rgba(148, 163, 184, 0.92);
+        text-decoration: none;
+      }
+      .list {
+        margin: 10px 0 0 16px;
+        color: rgba(148, 163, 184, 0.95);
+        line-height: 1.5;
+        font-size: 0.92rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="brand">
+          <img
+            class="logo"
+            src="https://metahumans.one/templates/assets/images/branding/logo/MHlogoTB64.png"
+            alt="MetaHumans"
+          />
+          <div>
+            <h1>MetaHumans PDF</h1>
+            <p class="sub">
+              This service is being upgraded to a fully open-source PDF suite. The previous backend has been removed.
+            </p>
+          </div>
+        </div>
+
+        <div class="status">
+          <div class="status-left">
+            <div class="dot" aria-hidden="true"></div>
+            <div class="status-text">Maintenance in progress</div>
+          </div>
+          <a class="btn" href="https://metahumans.one">Back to MetaHumans</a>
+        </div>
+
+        <p class="fine">Planned features:</p>
+        <ul class="list">
+          <li>Merge, split, rotate, compress, encrypt/decrypt</li>
+          <li>Convert Office/images ↔ PDF</li>
+          <li>Signing workflow and audit trail</li>
+          <li>Secure access with MetaHumans accounts</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

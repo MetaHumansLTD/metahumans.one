@@ -1,0 +1,50 @@
+schemaVersion: 2.3.0
+metadata:
+  name: metahumans-web
+  displayName: MetaHumans Web
+components:
+  - name: tools
+    container:
+      image: quay.io/devfile/universal-developer-image:ubi9-latest
+      mountSources: true
+      sourceMapping: /projects
+      endpoints:
+        - name: http-8080
+          targetPort: 8080
+          exposure: public
+          protocol: https
+          secure: true
+          attributes:
+            type: main
+            discoverable: true
+            urlRewriteSupported: true
+            cookiesAuthEnabled: true
+        - name: vite-3000
+          targetPort: 3000
+          exposure: public
+          protocol: https
+          secure: true
+          attributes:
+            discoverable: true
+            urlRewriteSupported: true
+            cookiesAuthEnabled: true
+commands:
+  - id: php-serve
+    exec:
+      component: tools
+      commandLine: php -S 0.0.0.0:8080 -t .
+      workingDir: /projects
+      group:
+        kind: run
+        isDefault: true
+  - id: node-install
+    exec:
+      component: tools
+      commandLine: if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install; else echo "no package.json"; fi
+      workingDir: /projects
+  - id: node-dev
+    exec:
+      component: tools
+      commandLine: if [ -f package.json ]; then npm run dev -- --host 0.0.0.0 --port 3000; else echo "no package.json"; fi
+      workingDir: /projects
+      hotReloadCapable: true

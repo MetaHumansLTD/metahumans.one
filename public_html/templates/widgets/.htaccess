@@ -1,0 +1,11 @@
+# Widget Access Override
+# Allow public access to widget PHP files for integration
+
+<FilesMatch "\.php$">
+    Require all granted
+</FilesMatch>
+
+# Security: Block sensitive configuration files
+<FilesMatch "\.(json|env|ini|log|conf|sql|bak)$">
+    Require all denied
+</FilesMatch>

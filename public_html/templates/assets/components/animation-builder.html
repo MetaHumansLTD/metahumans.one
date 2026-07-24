@@ -1,0 +1,453 @@
+<!-- Animation Builder Tab Content for theme-advanced.php -->
+<div class="tab-content" id="animation-builder">
+    <h2 class="section-title">Animation Control System</h2>
+    
+    <!-- Animation Library Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Animation Library</h3>
+        <div class="animation-toolbar">
+            <div class="toolbar-left">
+                <button class="btn btn-primary" onclick="createNewAnimation()">
+                    <i class="fas fa-plus"></i> New Animation
+                </button>
+                <select class="form-control" id="animationSelector" onchange="loadAnimation(this.value)">
+                    <option value="">Select Animation</option>
+                </select>
+            </div>
+            
+            <div class="toolbar-right">
+                <button class="btn btn-success" onclick="saveCurrentAnimation()">
+                    <i class="fas fa-save"></i> Save Animation
+                </button>
+                <button class="btn btn-primary" onclick="exportAnimation()">
+                    <i class="fas fa-download"></i> Export CSS
+                </button>
+            </div>
+        </div>
+        
+        <div class="animation-library-grid" id="animationLibrary">
+            <!-- Animation items will be loaded here -->
+        </div>
+    </div>
+    
+    <!-- Keyframe Editor Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Keyframe Editor</h3>
+        
+        <div class="keyframe-workspace">
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <div class="timeline-controls">
+                        <button class="btn btn-sm" onclick="playAnimation()" id="playBtn">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="pauseAnimation()" id="pauseBtn">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="resetAnimation()" id="resetBtn">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="toggleLoop()" id="loopBtn">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="timeline-info">
+                        <span class="current-time">0.0s</span>
+                        <span class="separator">/</span>
+                        <span class="total-duration">1.0s</span>
+                    </div>
+                    
+                    <div class="timeline-settings">
+                        <label class="form-label">Duration (ms)</label>
+                        <input type="number" class="form-control form-control-sm" id="animationDuration" 
+                               value="1000" min="100" max="10000" onchange="updateAnimationDuration()">
+                    </div>
+                </div>
+                
+                <div class="timeline-canvas" id="timelineCanvas">
+                    <div class="timeline-ruler">
+                        <div class="ruler-marks"></div>
+                        <div class="ruler-numbers"></div>
+                    </div>
+                    
+                    <div class="timeline-tracks" id="timelineTracks">
+                        <!-- Property tracks will be added here -->
+                    </div>
+                    
+                    <div class="timeline-playhead" id="playhead"></div>
+                </div>
+            </div>
+            
+            <div class="keyframe-properties">
+                <h4>Keyframe Properties</h4>
+                <div class="properties-tabs">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" onclick="switchPropertyTab('transform')">Transform</button>
+                        <button class="tab-btn" onclick="switchPropertyTab('appearance')">Appearance</button>
+                        <button class="tab-btn" onclick="switchPropertyTab('layout')">Layout</button>
+                        <button class="tab-btn" onclick="switchPropertyTab('custom')">Custom</button>
+                    </div>
+                    
+                    <div class="tab-content-container">
+                        <!-- Transform Properties -->
+                        <div class="property-tab active" id="transform-tab">
+                            <div class="property-group">
+                                <label class="form-label">Translate X</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="-200" max="200" value="0" 
+                                           onchange="updateProperty('translateX', this.value + 'px')">
+                                    <input type="number" class="form-control number-input" value="0">
+                                    <span class="unit">px</span>
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Translate Y</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="-200" max="200" value="0" 
+                                           onchange="updateProperty('translateY', this.value + 'px')">
+                                    <input type="number" class="form-control number-input" value="0">
+                                    <span class="unit">px</span>
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Scale X</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="2" step="0.1" value="1" 
+                                           onchange="updateProperty('scaleX', this.value)">
+                                    <input type="number" class="form-control number-input" value="1" step="0.1">
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Scale Y</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="2" step="0.1" value="1" 
+                                           onchange="updateProperty('scaleY', this.value)">
+                                    <input type="number" class="form-control number-input" value="1" step="0.1">
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Rotate</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="-180" max="180" value="0" 
+                                           onchange="updateProperty('rotate', this.value + 'deg')">
+                                    <input type="number" class="form-control number-input" value="0">
+                                    <span class="unit">deg</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appearance Properties -->
+                        <div class="property-tab" id="appearance-tab">
+                            <div class="property-group">
+                                <label class="form-label">Opacity</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="1" step="0.1" value="1" 
+                                           onchange="updateProperty('opacity', this.value)">
+                                    <input type="number" class="form-control number-input" value="1" step="0.1" min="0" max="1">
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Background Color</label>
+                                <div class="property-input-group">
+                                    <input type="color" class="form-control color-input" value="#ffffff" 
+                                           onchange="updateProperty('backgroundColor', this.value)">
+                                    <input type="text" class="form-control text-input" value="#ffffff" 
+                                           onchange="updateProperty('backgroundColor', this.value)">
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Border Radius</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="50" value="0" 
+                                           onchange="updateProperty('borderRadius', this.value + 'px')">
+                                    <input type="number" class="form-control number-input" value="0">
+                                    <span class="unit">px</span>
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Box Shadow</label>
+                                <div class="shadow-controls">
+                                    <input type="range" class="range-input" id="shadowX" min="-20" max="20" value="0" 
+                                           onchange="updateBoxShadow()">
+                                    <input type="range" class="range-input" id="shadowY" min="-20" max="20" value="0" 
+                                           onchange="updateBoxShadow()">
+                                    <input type="range" class="range-input" id="shadowBlur" min="0" max="20" value="0" 
+                                           onchange="updateBoxShadow()">
+                                    <input type="color" class="form-control color-input" id="shadowColor" value="#000000" 
+                                           onchange="updateBoxShadow()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Layout Properties -->
+                        <div class="property-tab" id="layout-tab">
+                            <div class="property-group">
+                                <label class="form-label">Width</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="500" value="100" 
+                                           onchange="updateProperty('width', this.value + 'px')">
+                                    <input type="number" class="form-control number-input" value="100">
+                                    <select class="form-control unit-select">
+                                        <option value="px">px</option>
+                                        <option value="%">%</option>
+                                        <option value="em">em</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Height</label>
+                                <div class="property-input-group">
+                                    <input type="range" class="range-input" min="0" max="500" value="100" 
+                                           onchange="updateProperty('height', this.value + 'px')">
+                                    <input type="number" class="form-control number-input" value="100">
+                                    <select class="form-control unit-select">
+                                        <option value="px">px</option>
+                                        <option value="%">%</option>
+                                        <option value="em">em</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Margin</label>
+                                <div class="spacing-controls">
+                                    <input type="number" class="form-control spacing-input" placeholder="Top" 
+                                           onchange="updateSpacing('margin')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Right" 
+                                           onchange="updateSpacing('margin')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Bottom" 
+                                           onchange="updateSpacing('margin')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Left" 
+                                           onchange="updateSpacing('margin')">
+                                </div>
+                            </div>
+                            
+                            <div class="property-group">
+                                <label class="form-label">Padding</label>
+                                <div class="spacing-controls">
+                                    <input type="number" class="form-control spacing-input" placeholder="Top" 
+                                           onchange="updateSpacing('padding')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Right" 
+                                           onchange="updateSpacing('padding')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Bottom" 
+                                           onchange="updateSpacing('padding')">
+                                    <input type="number" class="form-control spacing-input" placeholder="Left" 
+                                           onchange="updateSpacing('padding')">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Properties -->
+                        <div class="property-tab" id="custom-tab">
+                            <div class="custom-properties" id="customProperties">
+                                <div class="property-group">
+                                    <label class="form-label">Custom Property</label>
+                                    <div class="custom-property-input">
+                                        <input type="text" class="form-control" placeholder="Property name" id="customPropertyName">
+                                        <input type="text" class="form-control" placeholder="Property value" id="customPropertyValue">
+                                        <button class="btn btn-primary btn-sm" onclick="addCustomProperty()">Add</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="custom-properties-list" id="customPropertiesList">
+                                    <!-- Custom properties will be listed here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="keyframe-actions">
+                    <button class="btn btn-primary" onclick="addKeyframe()">
+                        <i class="fas fa-plus"></i> Add Keyframe
+                    </button>
+                    <button class="btn btn-warning" onclick="deleteKeyframe()" id="deleteKeyframeBtn" disabled>
+                        <i class="fas fa-trash"></i> Delete Keyframe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Animation Settings Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Animation Settings</h3>
+        
+        <div class="setting-row">
+            <div class="setting-group">
+                <h4>Basic Settings</h4>
+                <div class="form-group">
+                    <label class="form-label">Animation Name</label>
+                    <input type="text" class="form-control" id="animationName" placeholder="Enter animation name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Target Element</label>
+                    <input type="text" class="form-control" id="targetElement" placeholder=".class or #id">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Animation Type</label>
+                    <select class="form-control" id="animationType">
+                        <option value="entrance">Entrance</option>
+                        <option value="exit">Exit</option>
+                        <option value="emphasis">Emphasis</option>
+                        <option value="motion">Motion Path</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <h4>Timing Settings</h4>
+                <div class="form-group">
+                    <label class="form-label">Easing Function</label>
+                    <select class="form-control" id="easingFunction" onchange="updateEasing()">
+                        <option value="ease">Ease</option>
+                        <option value="ease-in">Ease In</option>
+                        <option value="ease-out">Ease Out</option>
+                        <option value="ease-in-out">Ease In Out</option>
+                        <option value="linear">Linear</option>
+                        <option value="cubic-bezier(0.25, 0.46, 0.45, 0.94)">Custom Bezier</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Delay (ms)</label>
+                    <input type="number" class="form-control" id="animationDelay" value="0" min="0" max="5000">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Iteration Count</label>
+                    <div class="iteration-controls">
+                        <input type="number" class="form-control" id="iterationCount" value="1" min="1" max="100">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="infiniteLoop" onchange="toggleInfiniteLoop()"> Infinite
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Direction</label>
+                    <select class="form-control" id="animationDirection">
+                        <option value="normal">Normal</option>
+                        <option value="reverse">Reverse</option>
+                        <option value="alternate">Alternate</option>
+                        <option value="alternate-reverse">Alternate Reverse</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Fill Mode</label>
+                    <select class="form-control" id="fillMode">
+                        <option value="none">None</option>
+                        <option value="forwards">Forwards</option>
+                        <option value="backwards">Backwards</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trigger Conditions Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Trigger Conditions</h3>
+        
+        <div class="trigger-builder">
+            <div class="trigger-list" id="triggerList">
+                <!-- Triggers will be added here -->
+            </div>
+            
+            <div class="add-trigger">
+                <select class="form-control" id="triggerType">
+                    <option value="">Select Trigger Type</option>
+                    <option value="on_load">Page Load</option>
+                    <option value="on_scroll">Scroll Position</option>
+                    <option value="on_hover">Element Hover</option>
+                    <option value="on_click">Element Click</option>
+                    <option value="on_viewport">Enter Viewport</option>
+                    <option value="on_delay">Time Delay</option>
+                    <option value="on_media_query">Media Query</option>
+                </select>
+                <button class="btn btn-primary" onclick="addTrigger()">
+                    <i class="fas fa-plus"></i> Add Trigger
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Animation Preview</h3>
+        
+        <div class="preview-container">
+            <div class="preview-controls">
+                <button class="btn btn-primary" onclick="previewAnimation()">
+                    <i class="fas fa-play"></i> Preview
+                </button>
+                <button class="btn btn-secondary" onclick="resetPreview()">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+                
+                <div class="preview-settings">
+                    <label class="form-label">Preview Element</label>
+                    <select class="form-control" id="previewElement">
+                        <option value="box">Box</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="button">Button</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="preview-stage" id="previewStage">
+                <div class="preview-element" id="previewBox">
+                    <div class="preview-content">Animation Preview</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Analysis Section -->
+    <div class="animation-section">
+        <h3 class="subsection-title">Performance Analysis</h3>
+        
+        <div class="performance-dashboard" id="performanceDashboard">
+            <div class="performance-score">
+                <div class="score-circle" id="performanceScore">
+                    <span class="score-number">100</span>
+                    <span class="score-label">Score</span>
+                </div>
+            </div>
+            
+            <div class="performance-details">
+                <div class="performance-issues" id="performanceIssues">
+                    <h5>Issues</h5>
+                    <div class="issues-list"></div>
+                </div>
+                
+                <div class="performance-recommendations" id="performanceRecommendations">
+                    <h5>Recommendations</h5>
+                    <div class="recommendations-list"></div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="analyzePerformance()">
+            <i class="fas fa-chart-line"></i> Analyze Performance
+        </button>
+        <button class="btn btn-success" onclick="optimizeAnimation()">
+            <i class="fas fa-magic"></i> Auto-Optimize
+        </button>
+    </div>
+</div>

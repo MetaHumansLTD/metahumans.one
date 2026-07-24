@@ -1,0 +1,5 @@
+{
+  "base_url": "http://10.248.29.198:9020",
+  "generate_path": "/generate",
+  "timeout_seconds": 900
+}

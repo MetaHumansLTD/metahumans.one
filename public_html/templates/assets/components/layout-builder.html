@@ -1,0 +1,1227 @@
+<!-- Layout Management Tab Content for theme-advanced.php -->
+<div class="tab-content" id="layout-builder">
+    <h2 class="section-title">Layout Management System</h2>
+    
+    <!-- Layout Templates Section -->
+    <div class="layout-section">
+        <h3 class="subsection-title">Layout Templates</h3>
+        <div class="template-gallery">
+            <div class="template-item" data-template="single_column">
+                <div class="template-preview">
+                    <div class="template-grid single-column-preview">
+                        <div class="template-block header">Header</div>
+                        <div class="template-block content">Content</div>
+                        <div class="template-block footer">Footer</div>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <h4>Single Column</h4>
+                    <p>Simple single column layout</p>
+                    <button class="btn btn-primary btn-sm" onclick="applyTemplate('single_column')">Apply</button>
+                </div>
+            </div>
+            
+            <div class="template-item" data-template="two_column">
+                <div class="template-preview">
+                    <div class="template-grid two-column-preview">
+                        <div class="template-block header span-2">Header</div>
+                        <div class="template-block sidebar">Sidebar</div>
+                        <div class="template-block content">Content</div>
+                        <div class="template-block footer span-2">Footer</div>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <h4>Two Column</h4>
+                    <p>Two column with sidebar</p>
+                    <button class="btn btn-primary btn-sm" onclick="applyTemplate('two_column')">Apply</button>
+                </div>
+            </div>
+            
+            <div class="template-item" data-template="three_column">
+                <div class="template-preview">
+                    <div class="template-grid three-column-preview">
+                        <div class="template-block header span-3">Header</div>
+                        <div class="template-block sidebar">Left</div>
+                        <div class="template-block content">Content</div>
+                        <div class="template-block sidebar">Right</div>
+                        <div class="template-block footer span-3">Footer</div>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <h4>Three Column</h4>
+                    <p>Three column with sidebars</p>
+                    <button class="btn btn-primary btn-sm" onclick="applyTemplate('three_column')">Apply</button>
+                </div>
+            </div>
+            
+            <div class="template-item" data-template="grid_portfolio">
+                <div class="template-preview">
+                    <div class="template-grid portfolio-preview">
+                        <div class="template-block header span-4">Header</div>
+                        <div class="template-block portfolio large">Featured</div>
+                        <div class="template-block portfolio">Item</div>
+                        <div class="template-block portfolio">Item</div>
+                        <div class="template-block portfolio span-2">Items</div>
+                        <div class="template-block footer span-4">Footer</div>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <h4>Grid Portfolio</h4>
+                    <p>Portfolio grid layout</p>
+                    <button class="btn btn-primary btn-sm" onclick="applyTemplate('grid_portfolio')">Apply</button>
+                </div>
+            </div>
+            
+            <div class="template-item" data-template="magazine">
+                <div class="template-preview">
+                    <div class="template-grid magazine-preview">
+                        <div class="template-block header span-6">Header</div>
+                        <div class="template-block featured large">Featured Article</div>
+                        <div class="template-block sidebar span-2">Sidebar</div>
+                        <div class="template-block content span-6">Content Grid</div>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <h4>Magazine</h4>
+                    <p>Magazine-style layout</p>
+                    <button class="btn btn-primary btn-sm" onclick="applyTemplate('magazine')">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grid System Configuration -->
+    <div class="layout-section">
+        <h3 class="subsection-title">Grid System Configuration</h3>
+        <div class="setting-row">
+            <div class="setting-group">
+                <h4>Grid Type</h4>
+                <div class="form-group">
+                    <label class="form-label">System Type</label>
+                    <select class="form-control" id="gridType" onchange="updateGridSystem()">
+                        <option value="bootstrap">Bootstrap Grid</option>
+                        <option value="css_grid">CSS Grid</option>
+                        <option value="flexbox">Flexbox Layout</option>
+                        <option value="custom">Custom Grid</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Columns</label>
+                    <input type="range" class="range-input" id="gridColumns" min="1" max="24" value="12" onchange="updateGridColumns(this.value)">
+                    <div class="range-display">
+                        <span>1</span>
+                        <span id="gridColumnsDisplay">12</span>
+                        <span>24</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <h4>Responsive Breakpoints</h4>
+                <div class="breakpoint-list" id="breakpointList">
+                    <div class="breakpoint-item">
+                        <input type="text" class="form-control breakpoint-name" value="xs" placeholder="Name">
+                        <input type="text" class="form-control breakpoint-width" value="0px" placeholder="Width">
+                        <button class="btn btn-sm btn-danger" onclick="removeBreakpoint(this)">×</button>
+                    </div>
+                    <div class="breakpoint-item">
+                        <input type="text" class="form-control breakpoint-name" value="sm" placeholder="Name">
+                        <input type="text" class="form-control breakpoint-width" value="576px" placeholder="Width">
+                        <button class="btn btn-sm btn-danger" onclick="removeBreakpoint(this)">×</button>
+                    </div>
+                    <div class="breakpoint-item">
+                        <input type="text" class="form-control breakpoint-name" value="md" placeholder="Name">
+                        <input type="text" class="form-control breakpoint-width" value="768px" placeholder="Width">
+                        <button class="btn btn-sm btn-danger" onclick="removeBreakpoint(this)">×</button>
+                    </div>
+                    <div class="breakpoint-item">
+                        <input type="text" class="form-control breakpoint-name" value="lg" placeholder="Name">
+                        <input type="text" class="form-control breakpoint-width" value="992px" placeholder="Width">
+                        <button class="btn btn-sm btn-danger" onclick="removeBreakpoint(this)">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="addBreakpoint()">
+                    <i class="fas fa-plus"></i> Add Breakpoint
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Visual Layout Builder -->
+    <div class="layout-section">
+        <h3 class="subsection-title">Visual Layout Builder</h3>
+        
+        <div class="builder-toolbar">
+            <div class="toolbar-left">
+                <button class="btn btn-primary" onclick="createNewLayout()">
+                    <i class="fas fa-plus"></i> New Layout
+                </button>
+                <select class="form-control" id="layoutSelector" onchange="loadLayout(this.value)">
+                    <option value="">Select Layout</option>
+                </select>
+            </div>
+            
+            <div class="toolbar-center">
+                <div class="grid-controls">
+                    <button class="btn btn-sm" onclick="showGridLines()" id="gridLinesBtn">
+                        <i class="fas fa-border-all"></i> Grid Lines
+                    </button>
+                    <button class="btn btn-sm" onclick="snapToGrid()" id="snapBtn">
+                        <i class="fas fa-magnet"></i> Snap to Grid
+                    </button>
+                </div>
+            </div>
+            
+            <div class="toolbar-right">
+                <button class="btn btn-success" onclick="saveCurrentLayout()">
+                    <i class="fas fa-save"></i> Save Layout
+                </button>
+                <button class="btn btn-primary" onclick="exportLayout()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </div>
+        
+        <div class="builder-workspace">
+            <div class="component-palette">
+                <h4>Components</h4>
+                <div class="palette-components">
+                    <div class="palette-component" draggable="true" data-component-type="header">
+                        <i class="fas fa-bars"></i> Header
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="footer">
+                        <i class="fas fa-copyright"></i> Footer
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="sidebar">
+                        <i class="fas fa-list"></i> Sidebar
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="content">
+                        <i class="fas fa-file-text"></i> Content
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="featured">
+                        <i class="fas fa-star"></i> Featured
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="portfolio_item">
+                        <i class="fas fa-image"></i> Portfolio
+                    </div>
+                    <div class="palette-component" draggable="true" data-component-type="content_grid">
+                        <i class="fas fa-th"></i> Content Grid
+                    </div>
+                </div>
+            </div>
+            
+            <div class="layout-canvas">
+                <div class="canvas-header">
+                    <span class="canvas-title">Layout Canvas</span>
+                    <div class="canvas-controls">
+                        <button class="btn btn-sm" onclick="zoomOut()">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span class="zoom-level">100%</span>
+                        <button class="btn btn-sm" onclick="zoomIn()">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="canvas-content" id="layoutCanvas">
+                    <div class="layout-builder-grid" id="builderGrid" data-columns="12">
+                        <!-- Dynamic layout components will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="component-properties">
+                <h4>Properties</h4>
+                <div class="properties-content" id="componentProperties">
+                    <p class="text-muted">Select a component to edit its properties</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Layout Management -->
+    <div class="layout-section">
+        <h3 class="subsection-title">Saved Layouts</h3>
+        <div class="saved-layouts" id="savedLayouts">
+            <!-- Saved layouts will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+/* Layout Builder Styles */
+.layout-section {
+    margin-bottom: 40px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.subsection-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Template Gallery */
+.template-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.template-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.template-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+.template-preview {
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.template-grid {
+    display: grid;
+    gap: 2px;
+    min-height: 120px;
+}
+
+.single-column-preview {
+    grid-template-columns: 1fr;
+    grid-template-rows: 30px 1fr 30px;
+}
+
+.two-column-preview {
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: 30px 1fr 30px;
+}
+
+.three-column-preview {
+    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-rows: 30px 1fr 30px;
+}
+
+.portfolio-preview {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 30px 40px 40px 30px;
+}
+
+.magazine-preview {
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: 30px 60px 30px;
+}
+
+.template-block {
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 2px;
+}
+
+.template-block.header {
+    background: #667eea;
+}
+
+.template-block.footer {
+    background: #34495e;
+}
+
+.template-block.sidebar {
+    background: #e74c3c;
+}
+
+.template-block.content {
+    background: #27ae60;
+}
+
+.template-block.featured {
+    background: #f39c12;
+}
+
+.template-block.portfolio {
+    background: #9b59b6;
+}
+
+.template-block.span-2 {
+    grid-column: span 2;
+}
+
+.template-block.span-3 {
+    grid-column: span 3;
+}
+
+.template-block.span-4 {
+    grid-column: span 4;
+}
+
+.template-block.span-6 {
+    grid-column: span 6;
+}
+
+.template-block.large {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+.template-info {
+    padding: 15px;
+}
+
+.template-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.template-info p {
+    margin: 0 0 10px 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Breakpoint Management */
+.breakpoint-list > * + * { margin-top: 10px; }
+
+.breakpoint-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.breakpoint-name {
+    flex: 1;
+}
+
+.breakpoint-width {
+    flex: 2;
+}
+
+/* Builder Workspace */
+.builder-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.grid-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.builder-workspace {
+    display: grid;
+    grid-template-columns: 200px 1fr 250px;
+    gap: 20px;
+    min-height: 500px;
+}
+
+.component-palette {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.component-palette h4 {
+    margin: 0 0 15px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.palette-components {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.palette-component {
+    padding: 10px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    cursor: grab;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.palette-component:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.palette-component:active {
+    cursor: grabbing;
+}
+
+.palette-component i {
+    margin-right: 8px;
+    color: #667eea;
+}
+
+.layout-canvas {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.canvas-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.zoom-level {
+    margin: 0 10px;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.canvas-content {
+    padding: 20px;
+    min-height: 400px;
+    overflow: auto;
+}
+
+.component-properties {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.component-properties h4 {
+    margin: 0 0 15px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.properties-content {
+    font-size: 0.8rem;
+}
+
+/* Saved Layouts */
+.saved-layouts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.saved-layout-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    background: white;
+}
+
+.saved-layout-item h5 {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.saved-layout-item p {
+    margin: 0 0 15px 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.saved-layout-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .builder-workspace {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .component-palette,
+    .component-properties {
+        order: 2;
+    }
+    
+    .layout-canvas {
+        order: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .template-gallery {
+        grid-template-columns: 1fr;
+    }
+    
+    .builder-toolbar {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .toolbar-left,
+    .toolbar-center,
+    .toolbar-right {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// Layout Builder JavaScript functionality
+let currentLayout = null;
+let selectedComponent = null;
+let gridColumns = 12;
+let gridType = 'bootstrap';
+let snapToGridEnabled = true;
+let gridLinesVisible = true;
+let zoomLevel = 100;
+
+// Template management
+function applyTemplate(templateName) {
+    const formData = new FormData();
+    formData.append('action', 'apply_template');
+    formData.append('template_name', templateName);
+    
+    fetch('', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Template applied successfully', 'success');
+            loadLayout(data.layout_id);
+        } else {
+            showToast('Error applying template: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Network error: ' + error.message, 'error');
+    });
+}
+
+// Grid system management
+function updateGridSystem() {
+    gridType = document.getElementById('gridType').value;
+    updateBuilderGrid();
+}
+
+function updateGridColumns(columns) {
+    gridColumns = parseInt(columns);
+    document.getElementById('gridColumnsDisplay').textContent = columns;
+    updateBuilderGrid();
+}
+
+function updateBuilderGrid() {
+    const grid = document.getElementById('builderGrid');
+    grid.setAttribute('data-columns', gridColumns);
+    
+    // Update CSS custom property for grid columns
+    grid.style.setProperty('--columns', gridColumns);
+    
+    // Update grid template based on type
+    switch (gridType) {
+        case 'bootstrap':
+            grid.className = 'layout-builder-grid bootstrap-grid';
+            break;
+        case 'css_grid':
+            grid.className = 'layout-builder-grid css-grid';
+            grid.style.gridTemplateColumns = `repeat(${gridColumns}, 1fr)`;
+            break;
+        case 'flexbox':
+            grid.className = 'layout-builder-grid flex-grid';
+            break;
+        default:
+            grid.className = 'layout-builder-grid custom-grid';
+    }
+    
+    updatePreview();
+}
+
+// Breakpoint management
+function addBreakpoint() {
+    const breakpointList = document.getElementById('breakpointList');
+    const newBreakpoint = document.createElement('div');
+    newBreakpoint.className = 'breakpoint-item';
+    newBreakpoint.innerHTML = `
+        <input type="text" class="form-control breakpoint-name" placeholder="Name">
+        <input type="text" class="form-control breakpoint-width" placeholder="Width">
+        <button class="btn btn-sm btn-danger" onclick="removeBreakpoint(this)">×</button>
+    `;
+    breakpointList.appendChild(newBreakpoint);
+}
+
+function removeBreakpoint(button) {
+    button.parentElement.remove();
+}
+
+// Component management
+function createNewLayout() {
+    const name = prompt('Enter layout name:');
+    if (name) {
+        currentLayout = {
+            name: name,
+            grid_system: {
+                type: gridType,
+                columns: gridColumns,
+                breakpoints: getBreakpoints()
+            },
+            components: []
+        };
+        
+        clearCanvas();
+        showToast('New layout created', 'success');
+    }
+}
+
+function clearCanvas() {
+    const grid = document.getElementById('builderGrid');
+    grid.innerHTML = '';
+}
+
+function loadLayout(layoutId) {
+    if (!layoutId) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'get_layout');
+    formData.append('layout_id', layoutId);
+    
+    fetch('', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentLayout = data.layout;
+            renderLayout(currentLayout);
+            showToast('Layout loaded successfully', 'success');
+        } else {
+            showToast('Error loading layout: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Network error: ' + error.message, 'error');
+    });
+}
+
+function renderLayout(layout) {
+    const grid = document.getElementById('builderGrid');
+    grid.innerHTML = '';
+    
+    // Update grid configuration
+    gridType = layout.grid_system.type;
+    gridColumns = layout.grid_system.columns;
+    
+    document.getElementById('gridType').value = gridType;
+    document.getElementById('gridColumns').value = gridColumns;
+    document.getElementById('gridColumnsDisplay').textContent = gridColumns;
+    
+    updateBuilderGrid();
+    
+    // Render components
+    layout.components.forEach((component, index) => {
+        const componentElement = createComponentElement(component, index);
+        grid.appendChild(componentElement);
+    });
+}
+
+function createComponentElement(component, index) {
+    const element = document.createElement('div');
+    element.className = 'layout-component';
+    element.setAttribute('data-component-id', component.id || 'component-' + index);
+    element.setAttribute('data-component-type', component.type);
+    element.draggable = true;
+    
+    // Apply positioning
+    if (component.position && component.size) {
+        applyComponentPosition(element, component.position, component.size);
+    }
+    
+    // Set content
+    element.innerHTML = getComponentContent(component.type);
+    
+    // Add event listeners
+    element.addEventListener('click', () => selectComponent(element, component));
+    element.addEventListener('dragstart', handleDragStart);
+    element.addEventListener('dragend', handleDragEnd);
+    
+    return element;
+}
+
+function getComponentContent(type) {
+    const contentMap = {
+        'header': '<div class="component-header"><i class="fas fa-bars"></i> Header</div>',
+        'footer': '<div class="component-footer"><i class="fas fa-copyright"></i> Footer</div>',
+        'sidebar': '<div class="component-sidebar"><i class="fas fa-list"></i> Sidebar</div>',
+        'content': '<div class="component-content"><i class="fas fa-file-text"></i> Content</div>',
+        'featured': '<div class="component-featured"><i class="fas fa-star"></i> Featured</div>',
+        'portfolio_item': '<div class="component-portfolio"><i class="fas fa-image"></i> Portfolio</div>',
+        'content_grid': '<div class="component-grid"><i class="fas fa-th"></i> Content Grid</div>'
+    };
+    
+    return contentMap[type] || '<div class="component-generic"><i class="fas fa-cube"></i> ' + type + '</div>';
+}
+
+function applyComponentPosition(element, position, size) {
+    switch (gridType) {
+        case 'bootstrap':
+            element.className += ` col-md-${size.width}`;
+            if (position.x > 0) {
+                element.className += ` offset-md-${position.x}`;
+            }
+            break;
+        case 'css_grid':
+            element.style.gridColumn = `${position.x + 1} / ${position.x + size.width + 1}`;
+            element.style.gridRow = `${position.y + 1} / ${position.y + size.height + 1}`;
+            break;
+        case 'flexbox':
+            const flexBasis = (size.width / gridColumns) * 100;
+            element.style.flexBasis = `${flexBasis}%`;
+            element.style.order = position.y * gridColumns + position.x;
+            break;
+    }
+}
+
+// Drag and drop functionality
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.getAttribute('data-component-type'));
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+// Grid controls
+function showGridLines() {
+    gridLinesVisible = !gridLinesVisible;
+    const grid = document.getElementById('builderGrid');
+    const btn = document.getElementById('gridLinesBtn');
+    
+    if (gridLinesVisible) {
+        grid.classList.add('show-grid-lines');
+        btn.classList.add('active');
+    } else {
+        grid.classList.remove('show-grid-lines');
+        btn.classList.remove('active');
+    }
+}
+
+function snapToGrid() {
+    snapToGridEnabled = !snapToGridEnabled;
+    const btn = document.getElementById('snapBtn');
+    
+    if (snapToGridEnabled) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+}
+
+// Canvas controls
+function zoomIn() {
+    if (zoomLevel < 200) {
+        zoomLevel += 25;
+        updateZoom();
+    }
+}
+
+function zoomOut() {
+    if (zoomLevel > 50) {
+        zoomLevel -= 25;
+        updateZoom();
+    }
+}
+
+function updateZoom() {
+    const canvas = document.querySelector('.canvas-content');
+    const zoomDisplay = document.querySelector('.zoom-level');
+    
+    canvas.style.transform = `scale(${zoomLevel / 100})`;
+    canvas.style.transformOrigin = 'top left';
+    zoomDisplay.textContent = `${zoomLevel}%`;
+}
+
+// Component selection and properties
+function selectComponent(element, component) {
+    // Remove previous selection
+    document.querySelectorAll('.layout-component.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Add selection
+    element.classList.add('selected');
+    selectedComponent = component;
+    
+    // Show properties
+    showComponentProperties(component);
+}
+
+function showComponentProperties(component) {
+    const propertiesContainer = document.getElementById('componentProperties');
+    
+    propertiesContainer.innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Component Type</label>
+            <input type="text" class="form-control" value="${component.type}" readonly>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Width (Columns)</label>
+            <input type="range" class="range-input" min="1" max="${gridColumns}" 
+                   value="${component.size?.width || 1}" 
+                   onchange="updateComponentSize('width', this.value)">
+            <div class="range-display">
+                <span>1</span>
+                <span id="widthDisplay">${component.size?.width || 1}</span>
+                <span>${gridColumns}</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Height (Rows)</label>
+            <input type="range" class="range-input" min="1" max="10" 
+                   value="${component.size?.height || 1}" 
+                   onchange="updateComponentSize('height', this.value)">
+            <div class="range-display">
+                <span>1</span>
+                <span id="heightDisplay">${component.size?.height || 1}</span>
+                <span>10</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">X Position</label>
+            <input type="range" class="range-input" min="0" max="${gridColumns - 1}" 
+                   value="${component.position?.x || 0}" 
+                   onchange="updateComponentPosition('x', this.value)">
+            <div class="range-display">
+                <span>0</span>
+                <span id="xDisplay">${component.position?.x || 0}</span>
+                <span>${gridColumns - 1}</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Y Position</label>
+            <input type="range" class="range-input" min="0" max="10" 
+                   value="${component.position?.y || 0}" 
+                   onchange="updateComponentPosition('y', this.value)">
+            <div class="range-display">
+                <span>0</span>
+                <span id="yDisplay">${component.position?.y || 0}</span>
+                <span>10</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button class="btn btn-danger btn-sm" onclick="deleteComponent()">
+                <i class="fas fa-trash"></i> Delete Component
+            </button>
+        </div>
+    `;
+}
+
+function updateComponentSize(dimension, value) {
+    if (!selectedComponent) return;
+    
+    if (!selectedComponent.size) {
+        selectedComponent.size = { width: 1, height: 1 };
+    }
+    
+    selectedComponent.size[dimension] = parseInt(value);
+    document.getElementById(dimension + 'Display').textContent = value;
+    
+    // Update visual representation
+    updateSelectedComponentVisual();
+}
+
+function updateComponentPosition(axis, value) {
+    if (!selectedComponent) return;
+    
+    if (!selectedComponent.position) {
+        selectedComponent.position = { x: 0, y: 0 };
+    }
+    
+    selectedComponent.position[axis] = parseInt(value);
+    document.getElementById(axis + 'Display').textContent = value;
+    
+    // Update visual representation
+    updateSelectedComponentVisual();
+}
+
+function updateSelectedComponentVisual() {
+    const selectedElement = document.querySelector('.layout-component.selected');
+    if (selectedElement && selectedComponent) {
+        applyComponentPosition(selectedElement, selectedComponent.position, selectedComponent.size);
+    }
+}
+
+function deleteComponent() {
+    if (!selectedComponent) return;
+    
+    const selectedElement = document.querySelector('.layout-component.selected');
+    if (selectedElement) {
+        selectedElement.remove();
+        
+        // Remove from layout data
+        if (currentLayout && currentLayout.components) {
+            const index = currentLayout.components.indexOf(selectedComponent);
+            if (index > -1) {
+                currentLayout.components.splice(index, 1);
+            }
+        }
+        
+        selectedComponent = null;
+        document.getElementById('componentProperties').innerHTML = '<p class="text-muted">Select a component to edit its properties</p>';
+        
+        showToast('Component deleted', 'success');
+    }
+}
+
+// Layout management
+function saveCurrentLayout() {
+    if (!currentLayout) {
+        showToast('No layout to save', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'save_layout');
+    formData.append('layout_data', JSON.stringify(currentLayout));
+    
+    fetch('', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Layout saved successfully', 'success');
+            loadSavedLayouts();
+        } else {
+            showToast('Error saving layout: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Network error: ' + error.message, 'error');
+    });
+}
+
+function exportLayout() {
+    if (!currentLayout) {
+        showToast('No layout to export', 'error');
+        return;
+    }
+    
+    const dataStr = JSON.stringify(currentLayout, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentLayout.name || 'layout'}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    showToast('Layout exported successfully', 'success');
+}
+
+function loadSavedLayouts() {
+    const formData = new FormData();
+    formData.append('action', 'get_layouts');
+    
+    fetch('', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderSavedLayouts(data.layouts);
+            updateLayoutSelector(data.layouts);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading layouts:', error);
+    });
+}
+
+function renderSavedLayouts(layouts) {
+    const container = document.getElementById('savedLayouts');
+    container.innerHTML = '';
+    
+    layouts.forEach(layout => {
+        const layoutElement = document.createElement('div');
+        layoutElement.className = 'saved-layout-item';
+        layoutElement.innerHTML = `
+            <h5>${layout.layout_name}</h5>
+            <p>Type: ${layout.layout_type} | Grid: ${layout.grid_system.type} (${layout.grid_system.columns} columns)</p>
+            <div class="saved-layout-actions">
+                <button class="btn btn-primary btn-sm" onclick="loadLayout(${layout.id})">Load</button>
+                <button class="btn btn-secondary btn-sm" onclick="duplicateLayout(${layout.id})">Duplicate</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteLayout(${layout.id})">Delete</button>
+            </div>
+        `;
+        container.appendChild(layoutElement);
+    });
+}
+
+function updateLayoutSelector(layouts) {
+    const selector = document.getElementById('layoutSelector');
+    selector.innerHTML = '<option value="">Select Layout</option>';
+    
+    layouts.forEach(layout => {
+        const option = document.createElement('option');
+        option.value = layout.id;
+        option.textContent = layout.layout_name;
+        selector.appendChild(option);
+    });
+}
+
+function getBreakpoints() {
+    const breakpoints = {};
+    document.querySelectorAll('.breakpoint-item').forEach(item => {
+        const name = item.querySelector('.breakpoint-name').value;
+        const width = item.querySelector('.breakpoint-width').value;
+        if (name && width) {
+            breakpoints[name] = width;
+        }
+    });
+    return breakpoints;
+}
+
+// Initialize layout builder when tab is activated
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize palette drag and drop
+    initializePaletteDragDrop();
+    
+    // Load saved layouts
+    loadSavedLayouts();
+    
+    // Initialize grid
+    updateBuilderGrid();
+});
+
+function initializePaletteDragDrop() {
+    const paletteComponents = document.querySelectorAll('.palette-component');
+    const canvas = document.getElementById('builderGrid');
+    
+    paletteComponents.forEach(component => {
+        component.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', component.getAttribute('data-component-type'));
+        });
+    });
+    
+    canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        canvas.classList.add('drop-target');
+    });
+    
+    canvas.addEventListener('dragleave', (e) => {
+        if (!canvas.contains(e.relatedTarget)) {
+            canvas.classList.remove('drop-target');
+        }
+    });
+    
+    canvas.addEventListener('drop', (e) => {
+        e.preventDefault();
+        canvas.classList.remove('drop-target');
+        
+        const componentType = e.dataTransfer.getData('text/plain');
+        if (componentType) {
+            addComponentToCanvas(componentType, e);
+        }
+    });
+}
+
+function addComponentToCanvas(componentType, dropEvent) {
+    const canvas = document.getElementById('builderGrid');
+    const rect = canvas.getBoundingClientRect();
+    const x = dropEvent.clientX - rect.left;
+    const y = dropEvent.clientY - rect.top;
+    
+    // Calculate grid position based on drop location
+    const columnWidth = rect.width / gridColumns;
+    const gridX = Math.floor(x / columnWidth);
+    const gridY = Math.floor(y / 50); // Assuming 50px row height
+    
+    const component = {
+        id: 'component-' + Date.now(),
+        type: componentType,
+        position: { x: gridX, y: gridY },
+        size: { width: 1, height: 1 }
+    };
+    
+    // Add to current layout
+    if (!currentLayout) {
+        currentLayout = {
+            name: 'New Layout',
+            grid_system: {
+                type: gridType,
+                columns: gridColumns,
+                breakpoints: getBreakpoints()
+            },
+            components: []
+        };
+    }
+    
+    currentLayout.components.push(component);
+    
+    // Create and add visual element
+    const componentElement = createComponentElement(component, currentLayout.components.length - 1);
+    canvas.appendChild(componentElement);
+    
+    showToast(`Added ${componentType} component`, 'success');
+}
+</script>

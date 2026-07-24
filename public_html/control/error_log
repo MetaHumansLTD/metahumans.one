@@ -1,0 +1,7 @@
+[04-Jun-2026 02:44:11 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-settings.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-settings.php
+[04-Jun-2026 22:07:33 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-webhooks.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-webhooks.php
+[05-Jun-2026 04:01:03 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-settings.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-settings.php
+[05-Jun-2026 04:01:18 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-settings.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-settings.php
+[05-Jun-2026 04:01:33 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-settings.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-settings.php
+[05-Jun-2026 04:01:33 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-webhooks.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-webhooks.php
+[05-Jun-2026 04:01:44 UTC] [CUE AUTH] Redirecting unauthenticated request: /control/grid-webhooks.php -> /auth/login.php?redirect=%2Fcontrol%2Fgrid-webhooks.php

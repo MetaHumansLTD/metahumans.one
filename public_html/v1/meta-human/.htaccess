@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteRule ^respond/?$ respond.php [L,QSA]
+RewriteRule ^translate/?$ translate.php [L,QSA]

@@ -1,0 +1,14 @@
+# Protect /codebase/ directory
+Options -Indexes
+
+# Restrict access to specific IPs
+<RequireAny>
+    # Allow promptengine.one (Remote GPU Server)
+    Require ip 50.28.69.13
+    # Allow localhost
+    Require ip 127.0.0.1
+</RequireAny>
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

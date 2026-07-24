@@ -1,0 +1,9 @@
+{
+    "enabled": true,
+    "theme": "glass",
+    "position": "top-left",
+    "duration": 5000,
+    "stackNotifications": true,
+    "maxStack": 3,
+    "enableAnimation": true
+}

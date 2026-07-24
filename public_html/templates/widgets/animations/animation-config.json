@@ -1,0 +1,80 @@
+{
+    "vanta_enabled": true,
+    "css_animations_enabled": true,
+    "gsap_enabled": true,
+    "background_rotation_enabled": false,
+    "auto_init": true,
+    "debug_mode": false,
+    "default_animations": {
+        "header": {
+            "type": "fade-in",
+            "duration": "1.2s",
+            "delay": "0.2s"
+        },
+        "footer": {
+            "type": "slide-in-left",
+            "duration": "1s",
+            "delay": "0.5s"
+        },
+        "navigation": {
+            "type": "bounce",
+            "duration": "2s",
+            "delay": "0s"
+        },
+        "content": {
+            "type": "fade-in",
+            "duration": "1s",
+            "delay": "0.3s"
+        },
+        "images": {
+            "type": "scale-up",
+            "duration": "0.8s",
+            "delay": "0s"
+        }
+    },
+    "vanta_effects": {
+        "header_background": {
+            "effect": "waves",
+            "enabled": true,
+            "settings": {
+                "color": "0x23153c",
+                "shininess": 30,
+                "waveHeight": 15,
+                "waveSpeed": 1.25,
+                "zoom": 0.65
+            }
+        },
+        "footer_background": {
+            "effect": "birds",
+            "enabled": false,
+            "settings": {
+                "backgroundColor": "0x1a1a2e",
+                "color1": "0xff6b6b",
+                "color2": "0x4ecdc4",
+                "birdSize": 1.2,
+                "quantity": 3
+            }
+        },
+        "content_background": {
+            "effect": "cells",
+            "enabled": false,
+            "settings": {
+                "color1": "0xff6b6b",
+                "color2": "0x4ecdc4",
+                "size": 1.5,
+                "speed": 1
+            }
+        }
+    },
+    "performance": {
+        "reduce_motion_respect": true,
+        "mobile_optimized": true,
+        "fps_limit": 60,
+        "pause_on_inactive": true
+    },
+    "responsive": {
+        "disable_on_mobile": false,
+        "mobile_breakpoint": 768,
+        "tablet_breakpoint": 1024
+    }
+}

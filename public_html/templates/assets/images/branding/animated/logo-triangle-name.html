@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Humans - Animated Logo</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        
+        .logo-container {
+            text-align: center;
+            padding: 50px;
+        }
+        
+        /* Meta Humans Animated Logo Styles */
+        @keyframes logoGoldBlueGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6)) 
+                        drop-shadow(0 0 25px rgba(59, 130, 246, 0.6))
+                        drop-shadow(0 0 35px rgba(245, 158, 11, 0.3))
+                        drop-shadow(0 0 45px rgba(59, 130, 246, 0.3));
+            }
+            25% {
+                filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.8)) 
+                        drop-shadow(0 0 15px rgba(59, 130, 246, 0.4))
+                        drop-shadow(0 0 40px rgba(245, 158, 11, 0.4))
+                        drop-shadow(0 0 25px rgba(59, 130, 246, 0.2));
+            }
+            50% {
+                filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.4)) 
+                        drop-shadow(0 0 25px rgba(59, 130, 246, 0.8))
+                        drop-shadow(0 0 25px rgba(245, 158, 11, 0.2))
+                        drop-shadow(0 0 45px rgba(59, 130, 246, 0.4));
+            }
+            75% {
+                filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.7)) 
+                        drop-shadow(0 0 18px rgba(59, 130, 246, 0.7))
+                        drop-shadow(0 0 30px rgba(245, 158, 11, 0.3))
+                        drop-shadow(0 0 30px rgba(59, 130, 246, 0.3));
+            }
+        }
+
+        @keyframes logoFloat {
+            0%, 100% {
+                transform: translateY(0px) scale(1) rotateZ(0deg);
+            }
+            25% {
+                transform: translateY(-5px) scale(1.01) rotateZ(1deg);
+            }
+            50% {
+                transform: translateY(-8px) scale(1.02) rotateZ(0deg);
+            }
+            75% {
+                transform: translateY(-5px) scale(1.01) rotateZ(-1deg);
+            }
+        }
+
+        @keyframes logoRotate {
+            0% {
+                transform: rotateY(0deg) rotateX(0deg);
+            }
+            25% {
+                transform: rotateY(90deg) rotateX(5deg);
+            }
+            50% {
+                transform: rotateY(180deg) rotateX(0deg);
+            }
+            75% {
+                transform: rotateY(270deg) rotateX(-5deg);
+            }
+            100% {
+                transform: rotateY(360deg) rotateX(0deg);
+            }
+        }
+
+        .meta-humans-logo {
+            position: relative;
+            display: inline-block;
+            animation: logoFloat 6s ease-in-out infinite;
+            margin: 30px 0;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .meta-humans-logo:hover {
+            animation: logoRotate 3s ease-in-out;
+        }
+
+        .meta-humans-logo .logo-image {
+            width: 300px;
+            height: auto;
+            max-width: 100%;
+            transition: all 0.3s ease;
+            animation: logoGoldBlueGlow 4s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        .meta-humans-logo:hover .logo-image {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.8)) 
+                    drop-shadow(0 0 35px rgba(59, 130, 246, 0.8))
+                    drop-shadow(0 0 45px rgba(255, 255, 255, 0.3)) !important;
+        }
+
+        .company-text {
+            color: white;
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 30px 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: logoFloat 4s ease-in-out infinite 0.5s;
+        }
+        
+        .company-tagline {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-top: 10px;
+            animation: logoFloat 5s ease-in-out infinite 1s;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <!-- Animated Meta Humans Logo -->
+        <div class="meta-humans-logo">
+            <img src="../public_html/templates/assets/images/branding/logo/MHlogoTB400.png" 
+                 alt="Meta Humans Logo" 
+                 class="logo-image">
+        </div>
+        
+        <div class="company-text">META HUMANS</div>
+        <div class="company-tagline">Human interaction at infinite scale</div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[10-Jul-2026 01:30:52 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/notices.php?ajax=feed -> /auth/login.php?redirect=%2Fhub%2Fnotices.php%3Fajax%3Dfeed
+[10-Jul-2026 01:30:54 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/index.php -> /auth/login.php?redirect=%2Fhub%2Findex.php
+[10-Jul-2026 01:31:52 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/notices.php?ajax=feed -> /auth/login.php?redirect=%2Fhub%2Fnotices.php%3Fajax%3Dfeed
+[10-Jul-2026 01:32:14 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/index.php -> /auth/login.php?redirect=%2Fhub%2Findex.php
+[10-Jul-2026 01:32:45 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/notices.php?ajax=feed -> /auth/login.php?redirect=%2Fhub%2Fnotices.php%3Fajax%3Dfeed
+[10-Jul-2026 01:32:47 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/index.php -> /auth/login.php?redirect=%2Fhub%2Findex.php
+[10-Jul-2026 01:33:45 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/notices.php?ajax=feed -> /auth/login.php?redirect=%2Fhub%2Fnotices.php%3Fajax%3Dfeed
+[10-Jul-2026 01:34:45 UTC] [CUE AUTH] Redirecting unauthenticated request: /hub/notices.php?ajax=feed -> /auth/login.php?redirect=%2Fhub%2Fnotices.php%3Fajax%3Dfeed

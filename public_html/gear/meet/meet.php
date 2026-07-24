@@ -1,0 +1,7 @@
+<?php
+require_once dirname(__DIR__, 2) . '/.cue/cue.php';
+
+$qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? ('?' . $_SERVER['QUERY_STRING']) : '';
+header('Location: /hub/meet/' . $qs, true, 302);
+exit;
+
