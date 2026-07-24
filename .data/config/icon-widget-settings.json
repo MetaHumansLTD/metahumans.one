@@ -1,0 +1,13 @@
+{
+    "iconSet": "fontawesome",
+    "category": "ALL",
+    "search": "",
+    "size": 36,
+    "color": "#008b8b",
+    "style": "fill",
+    "theme": "dark",
+    "loadSets": [
+        "iconoir",
+        "phosphor"
+    ]
+}

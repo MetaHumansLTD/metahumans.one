@@ -1,6 +1,14 @@
 .git
 .backups
 .data
+!.data/
+!.data/config/
+!.data/config/**
+!.data/security/
+!.data/security/app.key
+.data/config/backups/
+.data/config/**/*.backup
+.data/config/**/*.bak*
 nanobot
 onemeta-2026-07-22
 ops

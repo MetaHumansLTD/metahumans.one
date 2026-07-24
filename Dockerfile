@@ -11,6 +11,8 @@ WORKDIR /var/www/html
 
 # The application expects the cPanel web root to be `public_html`.
 COPY public_html/ /var/www/html/
+COPY .data/config/ /data/config/
+COPY .data/security/app.key /data/security/app.key
 
 # Mirror the session location configured in `.user.ini`.
 RUN mkdir -p /data/sessions \

@@ -1,0 +1,29 @@
+{
+    "models": [
+        {
+            "id": "glm-4.7-flash",
+            "name": "GLM 4.7 Flash (Recommended)",
+            "provider": "ollama",
+            "context_length": 128000
+        },
+        {
+            "id": "qwen2.5-coder:latest",
+            "name": "Qwen 2.5 Coder",
+            "provider": "ollama",
+            "context_length": 32000
+        },
+        {
+            "id": "hermes3:latest",
+            "name": "Hermes 3",
+            "provider": "ollama",
+            "context_length": 128000
+        }
+    ],
+    "mappings": {
+        "glm-4.7-flash": "glm-4.7-flash",
+        "qwen-coder": "qwen2.5-coder:latest",
+        "hermes-3:latest": "hermes3:latest",
+        "hermes3:latest": "hermes3:latest"
+    },
+    "default": "glm-4.7-flash"
+}

@@ -1,0 +1,3976 @@
+{
+    "pages": {
+        "templates\/menus\/navigation-database-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-14 21:25:28",
+            "created_by": "system",
+            "updated_at": "2025-11-14 21:25:28"
+        },
+        "templates\/menus\/navigator.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-14 21:25:28",
+            "created_by": "system",
+            "updated_at": "2025-11-14 21:25:28"
+        },
+        "gear\/settings\/dbmanager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": []
+        },
+        "gear\/settings\/classes\/DatabaseContextManager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/sync\/index.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/sync\/api\/clean-sync-status.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/sync\/api\/clean-sync.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/settings\/functions\/database-context.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/settings\/enterprise_monitor.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "gear\/settings\/classes\/PagePermissionManager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "biometric_auth_log": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "biometric_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "cassessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "lmConfig": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "oidcsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "psessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "samlsessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "security_events": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "theme_presets": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_installations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_activity_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_audit_logs": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "webauthn_credentials": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-11-17 13:10:04",
+            "created_by": "system",
+            "updated_at": "2025-11-17 13:10:04"
+        },
+        "templates\/global-ui\/includes\/complete-body-end.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/complete-body-start.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/complete-head.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/footer-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/footer.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/functions.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/global-ui-status.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/hamburger-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/hamburger.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/header-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/header.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/scripts.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/includes\/styles.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/theme-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        },
+        "templates\/global-ui\/widgets-manager.php": {
+            "database": "db_69178fb8b1d0f2.28781417",
+            "tables": {
+                "ui_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_hamburger_menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_theme_settings": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_layout_configurations": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "page_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "hamburger_menu_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "menus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realm_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "realms": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "sessions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "social_connect": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "submenus": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "ui_navigation_items": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "user_permissions": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                },
+                "users": {
+                    "operations": [
+                        "read",
+                        "write",
+                        "update",
+                        "delete"
+                    ]
+                }
+            },
+            "created_at": "2025-12-19 09:51:58",
+            "created_by": "system",
+            "updated_at": "2025-12-19 09:51:58"
+        }
+    },
+    "default_permissions": {
+        "operations": [
+            "read"
+        ],
+        "auto_grant": false
+    },
+    "updated_at": "2025-12-19 09:51:58",
+    "version": "1.0.0"
+}

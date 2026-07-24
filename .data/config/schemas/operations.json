@@ -1,0 +1,31 @@
+{
+    "name": "Operations Database Schema",
+    "version": "1.0",
+    "description": "Production schema configuration for operations database",
+    "tables": {
+        "tblusers": {
+            "description": "User accounts and authentication",
+            "create_sql": "CREATE TABLE tblusers (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50) UNIQUE NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, first_name VARCHAR(50), last_name VARCHAR(50), status ENUM('active', 'inactive', 'suspended') DEFAULT 'active', role VARCHAR(50) DEFAULT 'user', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"
+        },
+        "sessions": {
+            "description": "User session management",
+            "create_sql": "CREATE TABLE sessions (id VARCHAR(128) PRIMARY KEY, user_id INT, data TEXT, expires_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES tblusers(id) ON DELETE CASCADE)"
+        },
+        "activity_logs": {
+            "description": "System activity logs",
+            "create_sql": "CREATE TABLE activity_logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, action VARCHAR(100) NOT NULL, description TEXT, ip_address VARCHAR(45), user_agent TEXT, request_data JSON, response_data JSON, status ENUM('success', 'error', 'warning') DEFAULT 'success', execution_time DECIMAL(8,3), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_user_id (user_id), INDEX idx_action (action), INDEX idx_status (status), INDEX idx_created_at (created_at), FOREIGN KEY (user_id) REFERENCES tblusers(id) ON DELETE SET NULL)"
+        },
+        "settings": {
+            "description": "Application configuration settings",
+            "create_sql": "CREATE TABLE settings (id INT AUTO_INCREMENT PRIMARY KEY, setting_key VARCHAR(100) UNIQUE NOT NULL, setting_value TEXT, setting_type VARCHAR(50), category VARCHAR(50), description TEXT, is_public BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"
+        },
+        "realms": {
+            "description": "Application realms and access control",
+            "create_sql": "CREATE TABLE realms (id VARCHAR(50) PRIMARY KEY, name VARCHAR(100) NOT NULL, folder_name VARCHAR(100), description TEXT, color VARCHAR(7), icon VARCHAR(50), status ENUM('active', 'inactive') DEFAULT 'active', priority INT DEFAULT 0, auto_detect BOOLEAN DEFAULT FALSE, detection_rules JSON, pages JSON, sub_realms JSON, onboarding_process JSON, immutable BOOLEAN DEFAULT FALSE, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"
+        },
+        "menus": {
+            "description": "Navigation menu structure",
+            "create_sql": "CREATE TABLE menus (id VARCHAR(50) PRIMARY KEY, realm_id VARCHAR(50), name VARCHAR(100) NOT NULL, url VARCHAR(500), icon VARCHAR(50), parent_id VARCHAR(50), order_index INT DEFAULT 0, status ENUM('active', 'inactive') DEFAULT 'active', permissions JSON, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, FOREIGN KEY (realm_id) REFERENCES realms(id) ON DELETE CASCADE)"
+        }
+    }
+}

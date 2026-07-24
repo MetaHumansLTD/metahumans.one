@@ -1,0 +1,12 @@
+{
+    "schema_version": "2.0.0",
+    "page_mappings": {},
+    "directory_mappings": {
+        "/templates/menus": "db_69178fb8b1d0f2.28781417",
+        "/templates/global-ui": "db_69178fb8b1d0f2.28781417"
+    },
+    "auto_switch": true,
+    "fallback_strategy": "session_preference",
+    "updated_at": "2025-12-19 09:52:25",
+    "version": "2.0.0"
+}

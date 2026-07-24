@@ -1,0 +1,5 @@
+{
+    "stirling_base_url": "https://pdf.metahumans.one",
+    "stirling_api_key": "YP7ClA09Mj2QDu3v0hM6Y0GbNDfnK1yQUSXZFfNeygakQ03C",
+    "stirling_html_to_pdf_path": "/api/v1/convert/html/pdf"
+}

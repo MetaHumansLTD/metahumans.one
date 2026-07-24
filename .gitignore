@@ -2,6 +2,14 @@
 !Dockerfile
 !.dockerignore
 !.gitignore
+!.data/
+!.data/config/
+!.data/config/**
+!.data/security/
+!.data/security/app.key
+.data/config/backups/
+.data/config/**/*.backup
+.data/config/**/*.bak*
 !public_html/
 !public_html/**
 
