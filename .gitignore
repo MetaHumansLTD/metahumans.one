@@ -7,6 +7,9 @@
 !.data/config/**
 !.data/security/
 !.data/security/app.key
+!apps/
+!apps/domain-registrars/
+!apps/domain-registrars/**
 .data/config/backups/
 .data/config/**/*.backup
 .data/config/**/*.bak*

@@ -1,0 +1,11 @@
+[
+    {
+        "tld": "co.za",
+        "registration_price": 95.0,
+        "renewal_price": 95.0,
+        "transfer_price": 0.0,
+        "restore_price": null,
+        "currency_code": "ZAR",
+        "source": "local-reference"
+    }
+]
