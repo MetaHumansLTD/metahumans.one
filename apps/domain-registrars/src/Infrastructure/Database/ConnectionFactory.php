@@ -15,19 +15,19 @@ final class ConnectionFactory
     {
         $sharedConfig = self::resolveSharedCueConfiguration($config);
         if ($sharedConfig !== null) {
-            if (function_exists('database_getConnectionFromConfig')) {
-                /** @var callable(array): PDO $resolver */
-                $resolver = 'database_getConnectionFromConfig';
-
-                return self::configurePdo($resolver($sharedConfig));
-            }
-
             $configId = (string) ($sharedConfig['id'] ?? '');
             if ($configId !== '' && function_exists('database_getConnectionById')) {
                 /** @var callable(string): PDO $resolver */
                 $resolver = 'database_getConnectionById';
 
                 return self::configurePdo($resolver($configId));
+            }
+
+            if (function_exists('database_getConnectionFromConfig')) {
+                /** @var callable(array): PDO $resolver */
+                $resolver = 'database_getConnectionFromConfig';
+
+                return self::configurePdo($resolver($sharedConfig));
             }
         }
 
