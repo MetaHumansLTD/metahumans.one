@@ -4,9 +4,304 @@
 
 require_once __DIR__ . '/../.cue/cue.php';
 
+if (!function_exists('mh_passkey_debug_enabled')) {
+    function mh_passkey_debug_enabled(): bool {
+        static $enabled = null;
+        if ($enabled !== null) {
+            return $enabled;
+        }
+        $enabled = trim((string)(getenv('MH_PASSKEY_DEBUG') ?: '')) === '1';
+        return $enabled;
+    }
+}
+
+if (!function_exists('mh_passkey_debug_emit')) {
+    function mh_passkey_debug_emit(string $hypothesisId, string $location, string $msg, array $data = []): void {
+        if (!mh_passkey_debug_enabled()) {
+            return;
+        }
+
+        // #region debug-point C:passkey-debug-emit
+        $envPath = dirname(__DIR__, 2) . '/.dbg/passkey-biometric-login.env';
+        $debugDir = '/data/tmp';
+        $url = '';
+        $sessionId = '';
+        $envRaw = is_file($envPath) ? (string)@file_get_contents($envPath) : '';
+        if ($envRaw !== '') {
+            foreach (preg_split('/\r?\n/', $envRaw) ?: [] as $line) {
+                $line = trim((string)$line);
+                if ($line === '' || strpos($line, '=') === false) {
+                    continue;
+                }
+                [$k, $v] = explode('=', $line, 2);
+                if ($k === 'DEBUG_SERVER_URL' && trim($v) !== '') $url = trim($v);
+                if ($k === 'DEBUG_SESSION_ID' && trim($v) !== '') $sessionId = trim($v);
+            }
+        }
+        if ($sessionId === '') {
+            $sessionId = 'passkey-biometric-login';
+        }
+        $event = [
+            'sessionId' => $sessionId,
+            'runId' => 'pre-fix',
+            'hypothesisId' => $hypothesisId,
+            'location' => $location,
+            'msg' => '[DEBUG] ' . $msg,
+            'data' => $data,
+            'ts' => (int)round(microtime(true) * 1000),
+        ];
+        $payload = json_encode($event, JSON_UNESCAPED_SLASHES);
+        if (is_string($payload) && $payload !== '') {
+            if ($url !== '') {
+                @file_get_contents($url, false, stream_context_create([
+                    'http' => [
+                        'method' => 'POST',
+                        'header' => "Content-Type: application/json\r\n",
+                        'content' => $payload,
+                        'timeout' => 1,
+                        'ignore_errors' => true,
+                    ],
+                ]));
+            }
+            if (!is_dir($debugDir)) {
+                @mkdir($debugDir, 0777, true);
+            }
+            @file_put_contents($debugDir . '/trae-debug-log-tenant-db-passkey.ndjson', $payload . "\n", FILE_APPEND | LOCK_EX);
+        }
+        // #endregion
+    }
+}
+
+function mh_auth_data_root(): string {
+    if (function_exists('cue_autoload')) {
+        try {
+            cue_autoload('paths');
+        } catch (Throwable) {}
+    }
+    if (function_exists('paths_getDataPath')) {
+        $dataPath = trim((string)paths_getDataPath());
+        if ($dataPath !== '') {
+            return rtrim($dataPath, '/\\');
+        }
+    }
+    return '/data';
+}
+
+function mh_auth_security_path(string $relative = ''): string {
+    $base = mh_auth_data_root() . '/security';
+    $relative = ltrim($relative, '/\\');
+    return $relative === '' ? $base : ($base . '/' . $relative);
+}
+
+function mh_auth_bootstrap_database_module(): void {
+    if (function_exists('cue_autoload')) {
+        try {
+            cue_autoload('database');
+        } catch (Throwable) {
+        }
+    }
+}
+
+function mh_auth_extract_pdo(mixed $conn): ?PDO {
+    if ($conn instanceof PDO) {
+        return $conn;
+    }
+    if (is_array($conn)) {
+        $pdo = $conn['pdo'] ?? $conn['connection'] ?? $conn['dbh'] ?? null;
+        return $pdo instanceof PDO ? $pdo : null;
+    }
+    if (is_object($conn)) {
+        $pdo = $conn->pdo ?? $conn->connection ?? $conn->dbh ?? null;
+        return $pdo instanceof PDO ? $pdo : null;
+    }
+    return null;
+}
+
+function mh_auth_build_pdo_from_config(array $config): ?PDO {
+    $driver = strtolower((string)($config['driver'] ?? $config['type'] ?? ''));
+    if ($driver !== 'mysql' && $driver !== 'mariadb') {
+        return null;
+    }
+
+    $host = trim((string)($config['host'] ?? ''));
+    $port = trim((string)($config['port'] ?? '3306'));
+    $database = trim((string)($config['database'] ?? ''));
+    $username = (string)($config['username'] ?? '');
+    $password = (string)($config['password'] ?? '');
+    $charset = trim((string)($config['charset'] ?? 'utf8mb4'));
+
+    if ($host === '' || $database === '' || $username === '' || $password === '') {
+        return null;
+    }
+
+    $dsn = 'mysql:host=' . $host . ';port=' . $port . ';dbname=' . $database . ';charset=' . $charset;
+    return new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+}
+
+function mh_auth_config_root(): string {
+    if (function_exists('cue_autoload')) {
+        try {
+            $paths = cue_autoload('paths');
+            if (is_object($paths) && method_exists($paths, 'getConfigPath')) {
+                $path = trim((string)$paths->getConfigPath());
+                if ($path !== '') {
+                    return rtrim($path, '/\\');
+                }
+            }
+        } catch (Throwable) {
+        }
+    }
+    return mh_auth_data_root() . '/config';
+}
+
+function mh_auth_is_active_config(mixed $value): bool {
+    if ($value === true || $value === 1 || $value === '1') {
+        return true;
+    }
+    if (is_string($value)) {
+        return strtolower(trim($value)) === 'true';
+    }
+    return false;
+}
+
+function mh_auth_find_raw_db_config_by_name_or_id(string $configId): ?array {
+    $configId = trim($configId);
+    if ($configId === '') {
+        return null;
+    }
+
+    if (function_exists('database_findRawConfigurationRecord')) {
+        $raw = database_findRawConfigurationRecord($configId);
+        if (is_array($raw)) {
+            if (!isset($raw['id']) || !is_string($raw['id']) || trim((string)$raw['id']) === '') {
+                $raw['id'] = $configId;
+            }
+            return $raw;
+        }
+    }
+
+    $configFile = mh_auth_config_root() . '/db_configs.json';
+    if (!is_file($configFile)) {
+        return null;
+    }
+
+    try {
+        $decoded = json_decode((string)file_get_contents($configFile), true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        foreach ($decoded as $id => $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+            $name = trim((string)($record['name'] ?? ''));
+            if ((string)$id !== $configId && strcasecmp($name, $configId) !== 0) {
+                continue;
+            }
+            if (!isset($record['id']) || !is_string($record['id']) || trim((string)$record['id']) === '') {
+                $record['id'] = (string)$id;
+            }
+            return $record;
+        }
+    } catch (Throwable) {
+    }
+
+    return null;
+}
+
+function mh_auth_resolve_biometrics_pdo(): ?PDO {
+    mh_auth_bootstrap_database_module();
+
+    if (function_exists('database_getConnectionById')) {
+        try {
+            $pdo = mh_auth_extract_pdo(database_getConnectionById('biometrics'));
+            if ($pdo instanceof PDO) {
+                return $pdo;
+            }
+        } catch (Throwable $e) {
+            mh_passkey_debug_emit('C', 'auth/auth_classes.php:mh_auth_resolve_biometrics_pdo', 'database_getConnectionById biometrics failed', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    if (!function_exists('database_decryptConfiguration')) {
+        return null;
+    }
+
+    try {
+        $raw = mh_auth_find_raw_db_config_by_name_or_id('biometrics');
+        if (!is_array($raw) || !mh_auth_is_active_config($raw['is_active'] ?? false)) {
+            return null;
+        }
+
+        $config = database_decryptConfiguration($raw);
+        if (function_exists('database_applyStorageProfileDefaults')) {
+            $config = database_applyStorageProfileDefaults($config);
+        }
+        $candidates = [];
+        $normalized = $config;
+        try {
+            if (function_exists('database_normalizePortForConfig')) {
+                $normalized = database_normalizePortForConfig($normalized, false);
+            }
+            if (function_exists('database_normalizeHostForConfig')) {
+                $normalized = database_normalizeHostForConfig($normalized, false);
+            }
+            $candidates['normalized'] = $normalized;
+        } catch (Throwable $normalizeError) {
+            mh_passkey_debug_emit('C', 'auth/auth_classes.php:mh_auth_resolve_biometrics_pdo', 'raw biometrics config normalization failed; trying decrypted fallback', [
+                'message' => $normalizeError->getMessage(),
+            ]);
+        }
+        $candidates['decrypted_raw'] = $config;
+
+        foreach ($candidates as $variant => $candidate) {
+            if (function_exists('database_validateConfiguration') && !database_validateConfiguration($candidate)) {
+                continue;
+            }
+            try {
+                $pdo = mh_auth_build_pdo_from_config($candidate);
+                if ($pdo instanceof PDO) {
+                    mh_passkey_debug_emit('C', 'auth/auth_classes.php:mh_auth_resolve_biometrics_pdo', 'resolved biometrics PDO via raw config fallback', [
+                        'config_id' => (string)($raw['id'] ?? ''),
+                        'config_name' => (string)($raw['name'] ?? ''),
+                        'variant' => $variant,
+                        'host' => (string)($candidate['host'] ?? ''),
+                        'port' => (string)($candidate['port'] ?? ''),
+                    ]);
+                    return $pdo;
+                }
+            } catch (Throwable $candidateError) {
+                mh_passkey_debug_emit('C', 'auth/auth_classes.php:mh_auth_resolve_biometrics_pdo', 'raw biometrics config candidate failed', [
+                    'variant' => $variant,
+                    'message' => $candidateError->getMessage(),
+                    'host' => (string)($candidate['host'] ?? ''),
+                    'port' => (string)($candidate['port'] ?? ''),
+                ]);
+            }
+        }
+
+        return null;
+    } catch (Throwable $e) {
+        mh_passkey_debug_emit('C', 'auth/auth_classes.php:mh_auth_resolve_biometrics_pdo', 'raw biometrics config fallback failed', [
+            'message' => $e->getMessage(),
+        ]);
+        return null;
+    }
+}
+
 // Helper to get vault path
 function getVaultPath() {
-    return '/home/onemeta/.vault'; // Adjust as needed
+    $env = trim((string)(getenv('MH_AUTH_VAULT_PATH') ?: ''));
+    if ($env !== '') {
+        return $env;
+    }
+    return mh_auth_security_path('vault');
 }
 
 if (!class_exists('MetaPinBackup')) {
@@ -18,28 +313,8 @@ if (!class_exists('MetaPinBackup')) {
     }
 
     private function connectDatabase(): void {
-        if (function_exists('cue_autoload')) {
-            cue_autoload('database');
-        }
-        
-        $bioConfig = null;
-        if (function_exists('database_getConfiguration')) {
-            $bioConfig = database_getConfiguration('biometrics');
-        }
-        
-        if ($bioConfig) {
-            $conn = database_getConnectionById('biometrics');
-            $pdo = null;
-            if ($conn instanceof PDO) {
-                $pdo = $conn;
-            } elseif (is_array($conn)) {
-                $pdo = ($conn['pdo'] ?? $conn['connection'] ?? $conn['dbh'] ?? null);
-            } elseif (is_object($conn)) {
-                $pdo = ($conn->pdo ?? $conn->connection ?? $conn->dbh ?? null);
-            }
-            if (!$pdo instanceof PDO) {
-                throw new Exception("Biometrics database connection failed.");
-            }
+        $pdo = mh_auth_resolve_biometrics_pdo();
+        if ($pdo instanceof PDO) {
             $this->pdo = $pdo;
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
@@ -191,8 +466,17 @@ if (!class_exists('PasskeyAuth')) {
         private ?PDO $bioPdo = null;
 
         public function __construct() {
-            $dataPath = '/home/onemeta/lldap/deployment/data';
-            $vaultPath = '/home/onemeta/lldap/deployment/.kripz';
+            $dataPath = trim((string)(getenv('MH_PASSKEY_DATA_PATH') ?: ''));
+            $vaultPath = trim((string)(getenv('MH_PASSKEY_VAULT_PATH') ?: ''));
+
+            if ($dataPath === '') {
+                $dataPath = mh_auth_security_path('webauthn');
+            }
+
+            if ($vaultPath === '') {
+                $vaultPath = mh_auth_security_path('kripz');
+            }
+
             $this->credentialStore = $dataPath . '/webauthn-keys.json';
             $this->challengeStore = $dataPath . '/challenges/';
             $this->keyFile = $vaultPath . '/encryption.key';
@@ -204,28 +488,17 @@ if (!class_exists('PasskeyAuth')) {
             if ($this->bioPdo instanceof PDO) {
                 return $this->bioPdo;
             }
-            try {
-                if (function_exists('cue_autoload')) {
-                    cue_autoload('database');
-                }
-            } catch (Throwable) {
-            }
-            if (!function_exists('database_getConnectionById')) {
-                return null;
-            }
-            try {
-                $pdo = database_getConnectionById('biometrics');
-            } catch (Throwable) {
-                return null;
-            }
+            $pdo = mh_auth_resolve_biometrics_pdo();
             if ($pdo instanceof PDO) {
+                // #region debug-point C:passkey-bio-pdo-ok
+                mh_passkey_debug_emit('C', 'auth/auth_classes.php:getBiometricsPdo', 'biometrics PDO resolved', []);
+                // #endregion
                 $this->bioPdo = $pdo;
                 return $this->bioPdo;
             }
-            if (is_object($pdo) && property_exists($pdo, 'pdo') && $pdo->pdo instanceof PDO) {
-                $this->bioPdo = $pdo->pdo;
-                return $this->bioPdo;
-            }
+            // #region debug-point C:passkey-bio-pdo-fail
+            mh_passkey_debug_emit('C', 'auth/auth_classes.php:getBiometricsPdo', 'biometrics PDO lookup failed', []);
+            // #endregion
             return null;
         }
 
@@ -396,6 +669,11 @@ if (!class_exists('PasskeyAuth')) {
         public function verifyAuthentication(string $challengeId, array $assertion): string {
             $storedChallenge = $this->getStoredChallenge($challengeId);
             if (!$storedChallenge) {
+                // #region debug-point C:passkey-verify-no-challenge
+                mh_passkey_debug_emit('C', 'auth/auth_classes.php:verifyAuthentication', 'passkey verify missing stored challenge', [
+                    'challenge_id' => $challengeId,
+                ]);
+                // #endregion
                 throw new Exception('Invalid or expired challenge');
             }
 
@@ -416,6 +694,13 @@ if (!class_exists('PasskeyAuth')) {
             }
             $credential = $this->getCredentialById($credentialId);
             if (!$credential) {
+                // #region debug-point C:passkey-verify-unknown-credential
+                mh_passkey_debug_emit('C', 'auth/auth_classes.php:verifyAuthentication', 'passkey verify unknown credential', [
+                    'challenge_id' => $challengeId,
+                    'credential_id_prefix' => substr((string)$credentialId, 0, 16),
+                    'stored_user_id' => $storedChallenge['userId'] ?? null,
+                ]);
+                // #endregion
                 throw new Exception('Unknown credential');
             }
 
@@ -438,6 +723,13 @@ if (!class_exists('PasskeyAuth')) {
 
             $ok = openssl_verify($signedData, $sigRaw, $pem, OPENSSL_ALGO_SHA256);
             if ($ok !== 1) {
+                // #region debug-point C:passkey-verify-invalid-signature
+                mh_passkey_debug_emit('C', 'auth/auth_classes.php:verifyAuthentication', 'passkey verify invalid signature', [
+                    'challenge_id' => $challengeId,
+                    'credential_user_id' => $credential['userId'] ?? null,
+                    'openssl_result' => $ok,
+                ]);
+                // #endregion
                 throw new Exception('Invalid signature');
             }
 
@@ -448,6 +740,13 @@ if (!class_exists('PasskeyAuth')) {
 
             $this->updateCredentialUsage($credentialId, (int)$parsedAuth['signCount']);
             $this->clearChallenge($challengeId);
+            // #region debug-point C:passkey-verify-success
+            mh_passkey_debug_emit('C', 'auth/auth_classes.php:verifyAuthentication', 'passkey verify succeeded', [
+                'challenge_id' => $challengeId,
+                'credential_user_id' => $credential['userId'] ?? null,
+                'sign_count' => (int)$parsedAuth['signCount'],
+            ]);
+            // #endregion
 
             return $credential['userId'];
         }
@@ -668,6 +967,12 @@ if (!class_exists('PasskeyAuth')) {
                     $stmt->execute([$hexId]);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     if (is_array($row)) {
+                        // #region debug-point C:passkey-credential-db-hit
+                        mh_passkey_debug_emit('C', 'auth/auth_classes.php:getCredentialById', 'credential found in biometrics db', [
+                            'credential_id_hex_prefix' => substr($hexId, 0, 16),
+                            'user_id' => (string)($row['user_id'] ?? ''),
+                        ]);
+                        // #endregion
                         $createdAt = isset($row['created_at']) ? strtotime((string)$row['created_at']) : false;
                         $lastUsedAt = isset($row['last_used_at']) ? strtotime((string)$row['last_used_at']) : false;
                         return [
@@ -687,6 +992,12 @@ if (!class_exists('PasskeyAuth')) {
             $credentials = $this->loadCredentials();
             foreach ($credentials as $cred) {
                 if (($cred['id'] ?? '') === $hexId) {
+                    // #region debug-point C:passkey-credential-file-hit
+                    mh_passkey_debug_emit('C', 'auth/auth_classes.php:getCredentialById', 'credential found in encrypted file store', [
+                        'credential_id_hex_prefix' => substr($hexId, 0, 16),
+                        'user_id' => (string)($cred['userId'] ?? ''),
+                    ]);
+                    // #endregion
                     if ($pdo instanceof PDO) {
                         try {
                             $this->ensureWebauthnSchema($pdo);
@@ -713,6 +1024,11 @@ if (!class_exists('PasskeyAuth')) {
                     return $cred;
                 }
             }
+            // #region debug-point C:passkey-credential-miss
+            mh_passkey_debug_emit('C', 'auth/auth_classes.php:getCredentialById', 'credential not found in db or file store', [
+                'credential_id_hex_prefix' => substr($hexId, 0, 16),
+            ]);
+            // #endregion
             return null;
         }
 
@@ -840,7 +1156,10 @@ if (!class_exists('PasskeyAuth')) {
         private function encrypt(string $data) {
             $key = $this->getEncryptionKey();
             $iv = random_bytes(16);
-            $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
+            $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+            if (!is_string($encrypted) || $encrypted === '') {
+                return '';
+            }
             return base64_encode($iv . $encrypted);
         }
 
@@ -853,6 +1172,10 @@ if (!class_exists('PasskeyAuth')) {
             $iv = substr($raw, 0, 16);
             $encrypted = substr($raw, 16);
             $out = openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+            if (!is_string($out) || $out === '') {
+                // Support older raw-cipher stores that were written before the current helper format.
+                $out = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+            }
             return is_string($out) ? $out : '';
         }
 

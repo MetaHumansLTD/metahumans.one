@@ -23,9 +23,9 @@
  * 
  * 🔥 DATABASE ARCHITECTURE NOTES 🔥
  * ============================================================
- * - Port 3306: Primary MariaDB (Legacy/LDAP) - NOT for tenant data.
- * - Port 3307: Secondary MariaDB (Block Storage) - AUTHORITATIVE for Biometrics & Tenants.
- * - ALWAYS use port 3307 for `biometrics` and `tenant_user_*` databases.
+ * - `mariadb-service:3306`: Northflank MariaDB runtime for `/mysql`-backed databases.
+ * - Historical `127.0.0.1:3307` block-local assumptions are legacy only.
+ * - ALWAYS use the canonical block MariaDB runtime for `biometrics` and `tenant_user_*` databases.
  * - User PINs in Tenant DB are ENCRYPTED. In Biometrics DB are HASHED.
  * - Biometrics boundary (ENFORCED):
  *   - `/auth/*` and `/control/*` may access biometrics (auth/security only).
@@ -52,8 +52,8 @@
  * for loading other modules when they are needed.
  *
  * CUE location and load pattern
- * - On this account CUE lives in: /home/onemeta/public_html/.cue
- * - On all hosting accounts CUE lives in: /home/{username}/public_html/.cue
+ * - CUE lives under the active public root at /.cue
+ * - The public root may be the project root itself, /html, or /public_html
  * - All PHP files that use CUE must load it with:
  *     require_once dirname(dirname(__DIR__)) . '/.cue/cue.php';
  *
@@ -64,17 +64,17 @@
 /*
  * 2. File Structure Analysis
  * - Thoroughly examine the /.cue folder and its files to understand all specified paths including:
- *   - ROOT_PATH/public_html/.cue/cue.php
- *   - ROOT_PATH/public_html/.cue/core.php/
- *   - ROOT_PATH/public_html/.cue/database.php/
- *   - ROOT_PATH/public_html/.cue/error.php/
- *   - ROOT_PATH/public_html/.cue/font.php/
- *   - ROOT_PATH/public_html/.cue/json.php/
- *   - ROOT_PATH/public_html/.cue/paths.php/
- *   - ROOT_PATH/public_html/.cue/security.php/
- *   - ROOT_PATH/public_html/.cue/theme.php/ General styling
+ *   - getCuePath() . '/cue.php'
+ *   - getCuePath() . '/core.php'
+ *   - getCuePath() . '/database.php'
+ *   - getCuePath() . '/error.php'
+ *   - getCuePath() . '/font.php'
+ *   - getCuePath() . '/json.php'
+ *   - getCuePath() . '/paths.php'
+ *   - getCuePath() . '/security.php'
+ *   - getCuePath() . '/theme.php' General styling
  *   - /data files stored outside root
- *   - ROOT_PATH/public_html/ public directory structure
+ *   - getPublicPath() public directory structure
  *   - Template paths: templates/menus/navigator.php, templates/widgets/, templates/assets/, templates/global-ui/
  *   - Settings paths: gear/settings
  *   - Database configuration in gear/settings/dbmanager.php
@@ -92,7 +92,7 @@
  *     - list-media.php
  *
  * Theme and Styling Guidelines
- * - Use ROOT_PATH/public_html/.cue/theme.php/ for styling with glassmorphism buttons and glow elements with cyan color
+ * - Use getCuePath() . '/theme.php' for styling with glassmorphism buttons and glow elements with cyan color
  * - Ensure that the backgrounds of the dropdown selectors will be dark blue and the text cyan
  */
 
@@ -504,11 +504,28 @@ if (!$autoUiDisabled && php_sapi_name() !== 'cli') {
 // SECURITY FIX: Robust root path detection to prevent .data folder misplacement
 // This search-based approach ensures ROOT_PATH is correct regardless of inclusion context
 function findProjectRoot(): string {
-    $currentDir = __DIR__; // Start from .cue directory
+    $currentDir = dirname(__DIR__); // Start from the public root above .cue
     $maxDepth = 5;
 
-    // Pass 1: Strongest indicator (public_html/.cue existence)
-    // This confirms the standard CUE structure: ROOT/public_html/.cue
+    // Pass 0: direct layouts used by modern deployments.
+    for ($i = 0; $i < $maxDepth; $i++) {
+        $testPath = ($i === 0) ? $currentDir : dirname($currentDir, $i + 1);
+
+        if (!$testPath || !is_dir($testPath) || !is_readable($testPath)) {
+            continue;
+        }
+
+        if (is_dir($testPath . '/.cue') && is_dir($testPath . '/templates')) {
+            return $testPath;
+        }
+
+        if (is_dir($testPath . '/html/.cue') && is_dir($testPath . '/html/templates')) {
+            return $testPath . '/html';
+        }
+    }
+
+    // Pass 1: Strongest indicator for the legacy public subdirectory layout.
+    // This confirms the standard split public-root structure.
     for ($i = 0; $i < $maxDepth; $i++) {
         $testPath = ($i === 0) ? $currentDir : dirname($currentDir, $i + 1);
         
@@ -681,7 +698,7 @@ if (!defined('CUE_CLI_MODE') && php_sapi_name() !== 'cli') {
         
         // Auto-login via SSO if not already logged in
         if (!isset($_SESSION['mh_auth_user'])) {
-            $handler = ROOT_PATH . '/public_html/auth/lemonldap-handler.php';
+            $handler = getPublicPath() . '/auth/lemonldap-handler.php';
             if (file_exists($handler)) {
                 require_once $handler;
                 if (function_exists('lemonldap_process_headers')) {
@@ -689,7 +706,7 @@ if (!defined('CUE_CLI_MODE') && php_sapi_name() !== 'cli') {
                     if ($ssoData && isset($ssoData['username'])) {
                         $u = $ssoData['username'];
                         $g = $ssoData['groups'] ?? null;
-                        $authFunctions = ROOT_PATH . '/public_html/auth/auth_functions.php';
+                        $authFunctions = getPublicPath() . '/auth/auth_functions.php';
                         if (file_exists($authFunctions)) {
                             require_once $authFunctions;
                         }
@@ -855,7 +872,23 @@ function getDataPath(): string {
 }
 
 function getPublicPath(): string {
-    return ROOT_PATH . '/public_html';
+    $currentPublic = dirname(__DIR__);
+    if (is_dir($currentPublic . '/.cue') && is_dir($currentPublic . '/templates')) {
+        return $currentPublic;
+    }
+
+    $root = rtrim(ROOT_PATH, '/\\');
+    if ($root === '') {
+        return $currentPublic;
+    }
+
+    foreach ([$root, $root . '/html', $root . '/public_html'] as $candidate) {
+        if (is_dir($candidate . '/.cue') && is_dir($candidate . '/templates')) {
+            return $candidate;
+        }
+    }
+
+    return $currentPublic;
 }
 
 function getTemplatesPath(): string {
@@ -1093,8 +1126,18 @@ function loadContextualModules(): void {
     }
 }
 
+function mh_manual_logout_guard_active(): bool {
+    return isset($_COOKIE['mh_sso_logged_out'])
+        && is_string($_COOKIE['mh_sso_logged_out'])
+        && trim((string)$_COOKIE['mh_sso_logged_out']) === '1';
+}
+
 function mh_remember_me_middleware(): void {
     if (PHP_SAPI === 'cli') {
+        return;
+    }
+
+    if (mh_manual_logout_guard_active()) {
         return;
     }
 
@@ -1392,7 +1435,7 @@ function mh_account_remember_me_try_restore(PDO $pdoBio, string $pepper): bool {
         $_SESSION['mh_auth_user'] = $username;
         $_SESSION['mh_auth_method'] = 'remember_me';
 
-        $authFunctions = ROOT_PATH . '/public_html/auth/auth_functions.php';
+        $authFunctions = getPublicPath() . '/auth/auth_functions.php';
         if (file_exists($authFunctions)) {
             require_once $authFunctions;
         }
