@@ -28,40 +28,71 @@ final class HubController
             ['/', 'GET'] => $this->renderSearchPage($query),
             ['/hub/domains', 'GET'] => $this->renderSearchPage($query),
             ['/hub/domains/', 'GET'] => $this->renderSearchPage($query),
+            ['/hub/companies/domains', 'GET'] => $this->renderSearchPage($query),
+            ['/hub/companies/domains/', 'GET'] => $this->renderSearchPage($query),
             ['/manage', 'GET'] => $this->renderPortfolioPage(),
             ['/manage/', 'GET'] => $this->renderPortfolioPage(),
             ['/hub/domains/manage', 'GET'] => $this->renderPortfolioPage(),
             ['/hub/domains/manage/', 'GET'] => $this->renderPortfolioPage(),
+            ['/hub/companies/domains/manage', 'GET'] => $this->renderPortfolioPage(),
+            ['/hub/companies/domains/manage/', 'GET'] => $this->renderPortfolioPage(),
             ['/register', 'GET'] => $this->renderRegistrationPage($query),
             ['/register/', 'GET'] => $this->renderRegistrationPage($query),
             ['/register/index.php', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register/', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register/index.php', 'GET'] => $this->renderRegistrationPage($query),
+            ['/hub/companies/domains/register', 'GET'] => $this->renderRegistrationPage($query),
+            ['/hub/companies/domains/register/', 'GET'] => $this->renderRegistrationPage($query),
+            ['/hub/companies/domains/register/index.php', 'GET'] => $this->renderRegistrationPage($query),
             ['/renew', 'GET'] => $this->renderRenewalPage($query),
             ['/renew/', 'GET'] => $this->renderRenewalPage($query),
             ['/hub/domains/renew', 'GET'] => $this->renderRenewalPage($query),
             ['/hub/domains/renew/', 'GET'] => $this->renderRenewalPage($query),
+            ['/hub/companies/domains/renew', 'GET'] => $this->renderRenewalPage($query),
+            ['/hub/companies/domains/renew/', 'GET'] => $this->renderRenewalPage($query),
             ['/cancel', 'GET'] => $this->renderCancellationPage($query),
             ['/cancel/', 'GET'] => $this->renderCancellationPage($query),
             ['/hub/domains/cancel', 'GET'] => $this->renderCancellationPage($query),
             ['/hub/domains/cancel/', 'GET'] => $this->renderCancellationPage($query),
+            ['/hub/companies/domains/cancel', 'GET'] => $this->renderCancellationPage($query),
+            ['/hub/companies/domains/cancel/', 'GET'] => $this->renderCancellationPage($query),
+            ['/edit', 'GET'] => $this->renderUpdatePage($query),
+            ['/edit/', 'GET'] => $this->renderUpdatePage($query),
+            ['/hub/domains/edit', 'GET'] => $this->renderUpdatePage($query),
+            ['/hub/domains/edit/', 'GET'] => $this->renderUpdatePage($query),
+            ['/hub/companies/domains/edit', 'GET'] => $this->renderUpdatePage($query),
+            ['/hub/companies/domains/edit/', 'GET'] => $this->renderUpdatePage($query),
             ['/register', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/register/', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/register/index.php', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register/', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register/index.php', 'POST'] => $this->handleRegistrationSubmit($post),
+            ['/hub/companies/domains/register', 'POST'] => $this->handleRegistrationSubmit($post),
+            ['/hub/companies/domains/register/', 'POST'] => $this->handleRegistrationSubmit($post),
+            ['/hub/companies/domains/register/index.php', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/renew', 'POST'] => $this->handleRenewalSubmit($post),
             ['/renew/', 'POST'] => $this->handleRenewalSubmit($post),
             ['/hub/domains/renew', 'POST'] => $this->handleRenewalSubmit($post),
             ['/hub/domains/renew/', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/hub/companies/domains/renew', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/hub/companies/domains/renew/', 'POST'] => $this->handleRenewalSubmit($post),
             ['/cancel', 'POST'] => $this->handleCancellationSubmit($post),
             ['/cancel/', 'POST'] => $this->handleCancellationSubmit($post),
             ['/hub/domains/cancel', 'POST'] => $this->handleCancellationSubmit($post),
             ['/hub/domains/cancel/', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/hub/companies/domains/cancel', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/hub/companies/domains/cancel/', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/edit', 'POST'] => $this->handleUpdateSubmit($post),
+            ['/edit/', 'POST'] => $this->handleUpdateSubmit($post),
+            ['/hub/domains/edit', 'POST'] => $this->handleUpdateSubmit($post),
+            ['/hub/domains/edit/', 'POST'] => $this->handleUpdateSubmit($post),
+            ['/hub/companies/domains/edit', 'POST'] => $this->handleUpdateSubmit($post),
+            ['/hub/companies/domains/edit/', 'POST'] => $this->handleUpdateSubmit($post),
             ['/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
             ['/hub/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
+            ['/hub/companies/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
             default => $this->renderNotFound(),
         };
     }
@@ -185,13 +216,15 @@ HTML;
                 $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
                 $expiresLabel = $expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced';
                 $items[] = sprintf(
-                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside"><a class="button button-primary" href="%s?domain=%s">Renew</a><a class="button button-secondary" href="%s?domain=%s">Cancel</a></div></article>',
+                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside"><a class="button button-primary" href="%s?domain=%s">Renew</a><a class="button button-secondary" href="%s?domain=%s">Edit Settings</a><a class="button button-muted" href="%s?domain=%s">Cancel</a></div></article>',
                     $this->escape($this->statusClassForDomain($status)),
                     $this->escape($this->domainStatusLabel($status)),
                     $this->escape($domainName),
                     $this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? ''))),
                     $this->escape($expiresLabel),
                     $this->escape($this->renewPath()),
+                    $this->escape(rawurlencode($domainName)),
+                    $this->escape($this->editPath()),
                     $this->escape(rawurlencode($domainName)),
                     $this->escape($this->cancelPath()),
                     $this->escape(rawurlencode($domainName)),
@@ -446,6 +479,64 @@ HTML;
         return $this->layout('Cancel Domain', $body);
     }
 
+    private function renderUpdatePage(array $query): string
+    {
+        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
+        }
+
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $defaults = $this->domainUpdateDefaults($domain);
+        $body = <<<HTML
+<section class="checkout">
+  <div class="checkout__main panel">
+    <p class="eyebrow">Domain Update Request</p>
+    <h1>Edit {$this->escape($domainName)}</h1>
+    <p class="lead">Clients can submit nameserver and contact update requests here. These requests are saved in the account flow for registrar processing.</p>
+    <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
+      <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
+
+      <div class="panel panel-subtle">
+        <h2>Registrant and Contact Handles</h2>
+        <div class="field-grid">
+          <label><span>Registrant</span><input type="text" name="registrant" value="{$this->escape($defaults['registrant'])}" placeholder="REG-123"></label>
+          <label><span>Admin Contact</span><input type="text" name="contact_admin" value="{$this->escape($defaults['contact_admin'])}" placeholder="ADM-123"></label>
+          <label><span>Tech Contact</span><input type="text" name="contact_tech" value="{$this->escape($defaults['contact_tech'])}" placeholder="TEC-123"></label>
+          <label><span>Billing Contact</span><input type="text" name="contact_billing" value="{$this->escape($defaults['contact_billing'])}" placeholder="BIL-123"></label>
+        </div>
+      </div>
+
+      <div class="panel panel-subtle">
+        <h2>Nameservers</h2>
+        <div class="field-grid">
+          <label><span>ns1</span><input type="text" name="ns1" value="{$this->escape($defaults['ns1'])}" placeholder="ns1.example.net"></label>
+          <label><span>ns2</span><input type="text" name="ns2" value="{$this->escape($defaults['ns2'])}" placeholder="ns2.example.net"></label>
+          <label><span>ns3</span><input type="text" name="ns3" value="{$this->escape($defaults['ns3'])}" placeholder="Optional"></label>
+          <label><span>ns4</span><input type="text" name="ns4" value="{$this->escape($defaults['ns4'])}" placeholder="Optional"></label>
+        </div>
+      </div>
+
+      <label><span>Notes</span><textarea name="notes" rows="4" placeholder="Optional notes for the registrar team">{$this->escape($defaults['notes'])}</textarea></label>
+      <div class="submit-row">
+        <button type="submit" class="button button-primary">Save Update Request</button>
+        <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
+      </div>
+    </form>
+  </div>
+  <aside class="checkout__summary panel">
+    <p class="eyebrow">Domain Summary</p>
+    <h2>{$this->escape($domainName)}</h2>
+    <div class="summary-row"><span>Provider</span><strong>{$this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? '')))}</strong></div>
+    <div class="summary-row"><span>Status</span><strong>{$this->escape((string) ($domain['registrar_status'] ?? 'active'))}</strong></div>
+    <div class="summary-row"><span>What this covers</span><strong>Registrant, admin, tech, billing, ns1-ns4</strong></div>
+  </aside>
+</section>
+HTML;
+
+        return $this->layout('Edit Domain Settings', $body);
+    }
+
     private function handleRegistrationSubmit(array $post): string
     {
         $basePath = $this->basePath();
@@ -598,6 +689,52 @@ HTML;
         }
 
         return $this->layout('Order Cancelled', '<section class="panel"><h1>Order updated</h1><p class="lead">The selected open order has been cancelled for this tenant account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+    }
+
+    private function handleUpdateSubmit(array $post): string
+    {
+        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
+
+        $tenantContext = $this->app->tenantContext();
+        $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
+        $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
+
+        $nameservers = [];
+        foreach (['ns1', 'ns2', 'ns3', 'ns4'] as $field) {
+            $hostname = trim((string) ($post[$field] ?? ''));
+            if ($hostname !== '') {
+                $nameservers[] = ['hostname' => $hostname];
+            }
+        }
+
+        $contacts = array_filter([
+            'admin' => trim((string) ($post['contact_admin'] ?? '')),
+            'tech' => trim((string) ($post['contact_tech'] ?? '')),
+            'billing' => trim((string) ($post['contact_billing'] ?? '')),
+        ], static fn (string $value): bool => $value !== '');
+
+        $payload = array_replace($tenantContext, [
+            'domain_name' => (string) ($domain['domain_name'] ?? ''),
+            'requested_action' => 'update',
+            'registrant' => trim((string) ($post['registrant'] ?? '')),
+            'contacts' => $contacts,
+            'nameservers' => $nameservers,
+            'notes' => trim((string) ($post['notes'] ?? '')),
+        ]);
+
+        $order = $this->app->orderRepository()->createDomainActionOrder(
+            $domain,
+            $customerEmail,
+            'update',
+            'draft',
+            $payload,
+            1,
+        );
+
+        return $this->layout('Update Saved', '<section class="panel"><p class="eyebrow">Update Saved</p><h1>Domain update request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '. It includes nameserver and contact changes for control review.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Edit</a></div></section>');
     }
 
     /**
@@ -794,7 +931,7 @@ HTML;
 
     private function usesPlatformLayout(): bool
     {
-        if (! str_starts_with($this->basePath(), '/hub/domains')) {
+        if (! str_starts_with($this->basePath(), '/hub/')) {
             return false;
         }
 
@@ -1255,32 +1392,65 @@ CSS;
     {
         $requestPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+        if (str_starts_with($requestPath, '/hub/companies/domains')) {
+            return '/hub/companies/domains';
+        }
+
         return str_starts_with($requestPath, '/hub/domains') ? '/hub/domains' : '/';
     }
 
     private function registerPath(): string
     {
-        return $this->basePath() === '/hub/domains' ? '/hub/domains/register' : '/register';
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/register',
+            '/hub/companies/domains' => '/hub/companies/domains/register',
+            default => '/register',
+        };
     }
 
     private function managePath(): string
     {
-        return $this->basePath() === '/hub/domains' ? '/hub/domains/manage' : '/manage';
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/manage',
+            '/hub/companies/domains' => '/hub/companies/domains/manage',
+            default => '/manage',
+        };
     }
 
     private function renewPath(): string
     {
-        return $this->basePath() === '/hub/domains' ? '/hub/domains/renew' : '/renew';
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/renew',
+            '/hub/companies/domains' => '/hub/companies/domains/renew',
+            default => '/renew',
+        };
     }
 
     private function cancelPath(): string
     {
-        return $this->basePath() === '/hub/domains' ? '/hub/domains/cancel' : '/cancel';
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/cancel',
+            '/hub/companies/domains' => '/hub/companies/domains/cancel',
+            default => '/cancel',
+        };
     }
 
     private function cancelOrderPath(): string
     {
-        return $this->basePath() === '/hub/domains' ? '/hub/domains/orders/cancel' : '/orders/cancel';
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/orders/cancel',
+            '/hub/companies/domains' => '/hub/companies/domains/orders/cancel',
+            default => '/orders/cancel',
+        };
+    }
+
+    private function editPath(): string
+    {
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/edit',
+            '/hub/companies/domains' => '/hub/companies/domains/edit',
+            default => '/edit',
+        };
     }
 
     private function findManagedDomain(string $domainName): ?array
@@ -1341,5 +1511,45 @@ CSS;
             'cancelled' => 'status status-taken',
             default => 'status status-pending',
         };
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     * @return array{registrant: string, contact_admin: string, contact_tech: string, contact_billing: string, ns1: string, ns2: string, ns3: string, ns4: string, notes: string}
+     */
+    private function domainUpdateDefaults(array $domain): array
+    {
+        $defaults = [
+            'registrant' => '',
+            'contact_admin' => '',
+            'contact_tech' => '',
+            'contact_billing' => '',
+            'ns1' => '',
+            'ns2' => '',
+            'ns3' => '',
+            'ns4' => '',
+            'notes' => '',
+        ];
+
+        $metadata = [];
+        if (is_string($domain['metadata_json'] ?? null) && trim((string) $domain['metadata_json']) !== '') {
+            $decoded = json_decode((string) $domain['metadata_json'], true);
+            if (is_array($decoded)) {
+                $metadata = $decoded;
+            }
+        }
+
+        $draftPayload = is_array($metadata['draft_payload'] ?? null) ? $metadata['draft_payload'] : [];
+        $defaults['registrant'] = trim((string) ($draftPayload['registrant'] ?? ($metadata['registrant'] ?? '')));
+        $defaults['contact_admin'] = trim((string) ($draftPayload['contacts']['admin'] ?? ''));
+        $defaults['contact_tech'] = trim((string) ($draftPayload['contacts']['tech'] ?? ''));
+        $defaults['contact_billing'] = trim((string) ($draftPayload['contacts']['billing'] ?? ''));
+
+        $nameservers = $this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? ''));
+        foreach (array_slice($nameservers, 0, 4) as $index => $nameserver) {
+            $defaults['ns' . ($index + 1)] = trim((string) ($nameserver['hostname'] ?? ''));
+        }
+
+        return $defaults;
     }
 }

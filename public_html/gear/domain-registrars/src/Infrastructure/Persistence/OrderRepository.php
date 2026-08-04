@@ -185,7 +185,7 @@ final class OrderRepository
         ?int $periodYears = null,
     ): array {
         $normalizedAction = strtolower(trim($actionType));
-        if (!in_array($normalizedAction, ['renew', 'cancel'], true)) {
+        if (!in_array($normalizedAction, ['renew', 'cancel', 'update'], true)) {
             $normalizedAction = 'renew';
         }
 

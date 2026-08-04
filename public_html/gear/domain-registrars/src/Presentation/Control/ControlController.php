@@ -65,6 +65,11 @@ final class ControlController
         $recentDomains = $this->app->domainRepository()->listRecent(8);
         $recentTasks = $this->app->taskQueueRepository()->listRecent(8);
         $flash = trim((string) ($query['flash'] ?? ''));
+        $basePath = $this->basePath();
+        $ordersPath = $this->ordersPath();
+        $domainsPath = $this->domainsPath();
+        $tasksPath = $this->tasksPath();
+        $cozaSettingsPath = $this->providersCozaPath();
 
         $ordersMarkup = $this->renderTable(
             ['Order', 'Provider', 'Domain', 'Status', 'Mode', 'Created'],
@@ -127,7 +132,7 @@ final class ControlController
       <h1>Operational dashboard</h1>
       <p class="muted">Queue provider work, review recent orders, and keep the registrar service moving.</p>
     </div>
-    <a href="/providers/coza">.co.za settings</a>
+    <a href="{$this->escape($cozaSettingsPath)}">.co.za settings</a>
   </div>
   <div class="action-grid">
     {$this->taskForm('sync_pricing', 'pricing', 'Queue pricing sync')}
@@ -138,17 +143,17 @@ final class ControlController
 </section>
 
 <section class="panel">
-  <div class="panel-head"><h2>Recent Orders</h2><a href="/orders">View all</a></div>
+  <div class="panel-head"><h2>Recent Orders</h2><a href="{$this->escape($ordersPath)}">View all</a></div>
   {$ordersMarkup}
 </section>
 
 <section class="panel">
-  <div class="panel-head"><h2>Recent Domains</h2><a href="/domains">View all</a></div>
+  <div class="panel-head"><h2>Recent Domains</h2><a href="{$this->escape($domainsPath)}">View all</a></div>
   {$domainsMarkup}
 </section>
 
 <section class="panel">
-  <div class="panel-head"><h2>Recent Tasks</h2><a href="/tasks">View all</a></div>
+  <div class="panel-head"><h2>Recent Tasks</h2><a href="{$this->escape($tasksPath)}">View all</a></div>
   {$tasksMarkup}
 </section>
 HTML;
@@ -174,7 +179,7 @@ HTML;
             ),
         );
 
-        return $this->layout('Orders', '<section class="panel"><div class="panel-head"><h1>Orders</h1><a href="/">Back to dashboard</a></div>' . $rows . '</section>');
+        return $this->layout('Orders', '<section class="panel"><div class="panel-head"><h1>Orders</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
     }
 
     private function renderDomains(): string
@@ -194,7 +199,7 @@ HTML;
             ),
         );
 
-        return $this->layout('Domains', '<section class="panel"><div class="panel-head"><h1>Domains</h1><a href="/">Back to dashboard</a></div>' . $rows . '</section>');
+        return $this->layout('Domains', '<section class="panel"><div class="panel-head"><h1>Domains</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
     }
 
     private function renderTasks(): string
@@ -214,7 +219,7 @@ HTML;
             ),
         );
 
-        return $this->layout('Tasks', '<section class="panel"><div class="panel-head"><h1>Tasks</h1><a href="/">Back to dashboard</a></div>' . $rows . '</section>');
+        return $this->layout('Tasks', '<section class="panel"><div class="panel-head"><h1>Tasks</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
     }
 
     private function renderCozaSettings(array $query): string
@@ -277,7 +282,7 @@ HTML;
       <h1>.co.za EPP connection</h1>
       <p class="muted">Complete provider credentials in Northflank secret sets under <code>metahumans</code>. This screen stores only non-sensitive runtime settings and secret references.</p>
     </div>
-    <a href="/">Back to dashboard</a>
+    <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
   <div class="settings-grid">
     <article class="info-card">
@@ -303,7 +308,7 @@ HTML;
       <div class="token-list">{$netearthoneSecretKeyMarkup}</div>
     </article>
   </div>
-  <form method="post" action="/providers/coza" class="settings-form">
+  <form method="post" action="{$this->escape($this->providersCozaPath())}" class="settings-form">
     <div class="form-grid">
       <label>
         <span>Timeout (seconds)</span>
@@ -374,7 +379,7 @@ HTML;
             $config,
         );
 
-        header('Location: /providers/coza?flash=' . rawurlencode('.co.za settings saved.'));
+        header('Location: ' . $this->providersCozaPath() . '?flash=' . rawurlencode('.co.za settings saved.'));
 
         return '';
     }
@@ -393,10 +398,10 @@ HTML;
                 priority: 10,
             );
 
-            header('Location: /?flash=' . rawurlencode(sprintf('%s queued for %s.', $taskType, $providerCode)));
+            header('Location: ' . $this->basePath() . '?flash=' . rawurlencode(sprintf('%s queued for %s.', $taskType, $providerCode)));
             return '';
         } catch (Throwable $exception) {
-            header('Location: /?flash=' . rawurlencode($exception->getMessage()));
+            header('Location: ' . $this->basePath() . '?flash=' . rawurlencode($exception->getMessage()));
             return '';
         }
     }
@@ -425,7 +430,7 @@ HTML;
     private function taskForm(string $taskType, string $queueName, string $label): string
     {
         return <<<HTML
-<form method="post" action="/tasks/enqueue" class="action-card">
+<form method="post" action="{$this->escape($this->taskEnqueuePath())}" class="action-card">
   <input type="hidden" name="task_type" value="{$this->escape($taskType)}">
   <input type="hidden" name="queue_name" value="{$this->escape($queueName)}">
   <p>{$this->escape($label)}</p>
@@ -445,7 +450,7 @@ HTML;
     {
         http_response_code(404);
 
-        return $this->layout('Not Found', '<section class="panel"><h1>Page Not Found</h1><p class="muted">This admin route does not exist.</p><a href="/">Back to dashboard</a></section>');
+        return $this->layout('Not Found', '<section class="panel"><h1>Page Not Found</h1><p class="muted">This admin route does not exist.</p><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></section>');
     }
 
     private function layout(string $title, string $body): string
@@ -516,11 +521,11 @@ HTML;
       <strong>Registrar Control</strong>
     </div>
     <nav>
-      <a href="/">Dashboard</a>
-      <a href="/providers/coza">.co.za Settings</a>
-      <a href="/orders">Orders</a>
-      <a href="/domains">Domains</a>
-      <a href="/tasks">Tasks</a>
+      <a href="{$this->escape($this->basePath())}">Dashboard</a>
+      <a href="{$this->escape($this->providersCozaPath())}">.co.za Settings</a>
+      <a href="{$this->escape($this->ordersPath())}">Orders</a>
+      <a href="{$this->escape($this->domainsPath())}">Domains</a>
+      <a href="{$this->escape($this->tasksPath())}">Tasks</a>
     </nav>
   </header>
   <div class="page">{$body}</div>
@@ -582,6 +587,38 @@ HTML;
         }
 
         return '';
+    }
+
+    private function basePath(): string
+    {
+        $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+        return str_starts_with($path, '/control/domain-registrars') ? '/control/domain-registrars' : '/';
+    }
+
+    private function ordersPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/orders' : '/orders';
+    }
+
+    private function domainsPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/domains' : '/domains';
+    }
+
+    private function tasksPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/tasks' : '/tasks';
+    }
+
+    private function providersCozaPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/providers/coza' : '/providers/coza';
+    }
+
+    private function taskEnqueuePath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/tasks/enqueue' : '/tasks/enqueue';
     }
 
     private function escape(string $value): string

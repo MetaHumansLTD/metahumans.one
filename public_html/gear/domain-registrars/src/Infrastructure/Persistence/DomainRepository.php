@@ -375,6 +375,20 @@ final class DomainRepository
     }
 
     /**
+     * @return list<array{hostname: string, ipv4_address: string|null, ipv6_address: string|null, sort_order: int}>
+     */
+    public function listNameservers(string $domainId): array
+    {
+        return $this->database->fetchAll(
+            'SELECT hostname, ipv4_address, ipv6_address, sort_order
+             FROM domain_nameservers
+             WHERE domain_id = :domain_id
+             ORDER BY sort_order ASC, created_at ASC',
+            ['domain_id' => $domainId],
+        );
+    }
+
+    /**
      * @param list<array<string, mixed>|string> $statuses
      */
     private function replaceStatuses(string $domainId, array $statuses, string $source): void
