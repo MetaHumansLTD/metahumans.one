@@ -28,6 +28,66 @@ if (!headers_sent()) {
     header('Expires: 0');
 }
 
+function mh_passkey_debug_config(): array {
+    static $config = null;
+    if (is_array($config)) {
+        return $config;
+    }
+
+    $config = [
+        'url' => 'http://127.0.0.1:7778/event',
+        'session' => 'passkey-slow-redirect',
+    ];
+    $envFile = dirname(__DIR__, 2) . '/.dbg/passkey-slow-redirect.env';
+    if (is_file($envFile) && is_readable($envFile)) {
+        $envLines = @file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (is_array($envLines)) {
+            foreach ($envLines as $line) {
+                if (!is_string($line) || strpos($line, '=') === false) {
+                    continue;
+                }
+                [$key, $value] = array_map('trim', explode('=', $line, 2));
+                if ($key === 'DEBUG_SERVER_URL' && $value !== '') {
+                    $config['url'] = $value;
+                } elseif ($key === 'DEBUG_SESSION_ID' && $value !== '') {
+                    $config['session'] = $value;
+                }
+            }
+        }
+    }
+
+    return $config;
+}
+
+function mh_passkey_debug_report(string $hypothesisId, string $location, string $msg, array $data = []): void {
+    $cfg = mh_passkey_debug_config();
+    $payload = json_encode([
+        'sessionId' => (string)($cfg['session'] ?? 'passkey-slow-redirect'),
+        'runId' => 'pre-fix',
+        'hypothesisId' => $hypothesisId,
+        'location' => $location,
+        'msg' => '[DEBUG] ' . $msg,
+        'data' => $data,
+        'ts' => (int) round(microtime(true) * 1000),
+    ], JSON_UNESCAPED_SLASHES);
+    if (!is_string($payload) || $payload === '') {
+        return;
+    }
+
+    try {
+        @file_get_contents((string)($cfg['url'] ?? 'http://127.0.0.1:7778/event'), false, stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n",
+                'content' => $payload,
+                'timeout' => 0.25,
+                'ignore_errors' => true,
+            ],
+        ]));
+    } catch (Throwable) {
+    }
+}
+
 $redirect = isset($_GET['redirect']) ? (string)$_GET['redirect'] : '';
 $redirect = trim($redirect);
 // Preserve same-origin absolute return URLs so OIDC flows can resume after login.
@@ -258,13 +318,34 @@ function mh_post_login_destination(string $redirect): string {
         }
     }
     if ($candidate !== '' && mh_is_interactive_post_login_destination($candidate)) {
+        // #region debug-point A:post-login-destination-candidate
+        mh_passkey_debug_report('A', 'public_html/auth/login.php:mh_post_login_destination', 'using redirect candidate as post-login destination', [
+            'redirect' => $redirect,
+            'candidate' => $candidate,
+            'last' => isset($_SESSION['mh_last_page']) ? trim((string)$_SESSION['mh_last_page']) : '',
+        ]);
+        // #endregion
         return $candidate;
     }
 
     $last = isset($_SESSION['mh_last_page']) ? trim((string)$_SESSION['mh_last_page']) : '';
     if ($last !== '' && mh_is_interactive_post_login_destination($last)) {
+        // #region debug-point A:post-login-destination-last
+        mh_passkey_debug_report('A', 'public_html/auth/login.php:mh_post_login_destination', 'using session last page as post-login destination', [
+            'redirect' => $redirect,
+            'candidate' => $candidate,
+            'last' => $last,
+        ]);
+        // #endregion
         return $last;
     }
+    // #region debug-point A:post-login-destination-fallback
+    mh_passkey_debug_report('A', 'public_html/auth/login.php:mh_post_login_destination', 'falling back to default post-login destination', [
+        'redirect' => $redirect,
+        'candidate' => $candidate,
+        'last' => $last,
+    ]);
+    // #endregion
     return '/hub/index.php';
 }
 
@@ -416,12 +497,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         if ($action === 'finish_passkey_login') {
+            $passkeyStartedAt = microtime(true);
             $challengeId = isset($input['challengeId']) ? (string)$input['challengeId'] : '';
             $credential = $input['credential'] ?? [];
             if ($challengeId === '' || !is_array($credential)) {
                 auth_json_response(['success' => false, 'error' => 'invalid_payload'], 400);
                 exit;
             }
+            // #region debug-point B:finish-passkey-entry
+            mh_passkey_debug_report('B', 'public_html/auth/login.php:finish_passkey_login', 'entered finish_passkey_login', [
+                'challenge_id_len' => strlen($challengeId),
+                'session_id' => (string)session_id(),
+                'last_page' => isset($_SESSION['mh_last_page']) ? (string)$_SESSION['mh_last_page'] : '',
+                'redirect_query' => isset($_GET['redirect']) ? (string)$_GET['redirect'] : '',
+            ]);
+            // #endregion
             $assertion = [
                 'id' => $credential['id'] ?? '',
                 'response' => [
@@ -432,6 +522,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             $auth = new MetaPasskeyAuth();
             $rawUserId = (string)$auth->verifyAuthentication($challengeId, $assertion);
+            // #region debug-point B:finish-passkey-verified
+            mh_passkey_debug_report('B', 'public_html/auth/login.php:finish_passkey_login', 'passkey assertion verified', [
+                'elapsed_ms' => round((microtime(true) - $passkeyStartedAt) * 1000, 2),
+                'raw_user_id' => $rawUserId,
+            ]);
+            // #endregion
             $username = mh_auth_resolve_username_from_login_id($rawUserId);
             if ($username !== '' && $rawUserId !== '' && $username !== $rawUserId && method_exists($auth, 'migrateUserCredentials')) {
                 try { $auth->migrateUserCredentials($rawUserId, $username); } catch (Throwable $e) {}
@@ -440,6 +536,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['mh_auth_method'] = 'passkey';
             mh_auth_load_user_context($_SESSION['mh_auth_user']);
             mh_login_try_grid_bootstrap_for_user((string)$_SESSION['mh_auth_user']);
+            // #region debug-point C:finish-passkey-context-ready
+            mh_passkey_debug_report('C', 'public_html/auth/login.php:finish_passkey_login', 'user context and bootstrap completed', [
+                'elapsed_ms' => round((microtime(true) - $passkeyStartedAt) * 1000, 2),
+                'auth_user' => (string)($_SESSION['mh_auth_user'] ?? ''),
+                'db_preference' => (string)($_SESSION['mh_db_preference'] ?? ''),
+                'tenant_id' => isset($_SESSION['tenant_id']) ? (string)$_SESSION['tenant_id'] : '',
+            ]);
+            // #endregion
             try {
             if (function_exists('cue_autoload')) {
                 cue_autoload('database');
@@ -457,6 +561,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (Throwable $e) {}
             $dest = mh_post_login_destination(isset($_GET['redirect']) ? (string)$_GET['redirect'] : '');
+            // #region debug-point B:finish-passkey-response
+            mh_passkey_debug_report('B', 'public_html/auth/login.php:finish_passkey_login', 'returning passkey login success response', [
+                'elapsed_ms' => round((microtime(true) - $passkeyStartedAt) * 1000, 2),
+                'redirect' => $dest,
+                'last_page' => isset($_SESSION['mh_last_page']) ? (string)$_SESSION['mh_last_page'] : '',
+            ]);
+            // #endregion
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_write_close();
             }
@@ -2182,6 +2293,29 @@ $currentUser = $_SESSION['mh_auth_user'] ?? null;
     }
 
     // --- New Hero Login Logic ---
+    const mhPasskeyDebug = <?php echo json_encode(mh_passkey_debug_config(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+    function mhClientPasskeyDebug(hypothesisId, location, msg, data = {}) {
+        if (!mhPasskeyDebug || !mhPasskeyDebug.url || !mhPasskeyDebug.session) {
+            return;
+        }
+        // #region debug-point E:client-passkey-debug
+        fetch(String(mhPasskeyDebug.url), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sessionId: String(mhPasskeyDebug.session),
+                runId: "pre-fix",
+                hypothesisId,
+                location,
+                msg: "[DEBUG] " + msg,
+                data,
+                ts: Date.now()
+            }),
+            keepalive: true
+        }).catch(() => {});
+        // #endregion
+    }
+
     const seamlessEntryBtnHero = document.getElementById('seamlessEntryBtnHero');
     const heroStatus = document.getElementById('heroStatus');
     const togglePinLogin = document.getElementById('togglePinLogin');
@@ -2239,6 +2373,7 @@ $currentUser = $_SESSION['mh_auth_user'] ?? null;
 
     async function performWebAuthnLogin(data) {
         try {
+            const loginStartedAt = Date.now();
             const options = data.publicKey;
             options.challenge = base64UrlToArrayBuffer(options.challenge);
             if (options.allowCredentials) {
@@ -2256,6 +2391,12 @@ $currentUser = $_SESSION['mh_auth_user'] ?? null;
                 // or just show the QR code if cross-platform is allowed. 
                 // We'll try with default options first as per server request.
                 credential = await navigator.credentials.get({ publicKey: options });
+                // #region debug-point E:client-passkey-credential
+                mhClientPasskeyDebug("E", "public_html/auth/login.php:performWebAuthnLogin", "browser returned passkey credential", {
+                    elapsed_ms: Date.now() - loginStartedAt,
+                    credential_id: credential && credential.id ? String(credential.id) : ""
+                });
+                // #endregion
             } catch (err) {
                 if (err.name === 'NotAllowedError' || err.name === 'AbortError') {
                     // User cancelled the dialog (e.g. closed QR code)
@@ -2285,9 +2426,23 @@ $currentUser = $_SESSION['mh_auth_user'] ?? null;
             });
 
             const verifyData = await verifyResp.json();
+            // #region debug-point E:client-passkey-verify
+            mhClientPasskeyDebug("E", "public_html/auth/login.php:performWebAuthnLogin", "browser received finish_passkey_login response", {
+                elapsed_ms: Date.now() - loginStartedAt,
+                success: !!(verifyData && verifyData.success),
+                redirect: verifyData && verifyData.redirect ? String(verifyData.redirect) : "",
+                current_href: window.location.href
+            });
+            // #endregion
             if (verifyData.success) {
                 mh_emit_auth_event('login');
                 const dest = (verifyData && verifyData.redirect) ? String(verifyData.redirect) : "/hub/index.php";
+                // #region debug-point E:client-passkey-redirect
+                mhClientPasskeyDebug("E", "public_html/auth/login.php:performWebAuthnLogin", "browser is redirecting after passkey success", {
+                    elapsed_ms: Date.now() - loginStartedAt,
+                    redirect: dest
+                });
+                // #endregion
                 window.location.replace(dest);
             } else {
                 throw new Error(verifyData.message);
