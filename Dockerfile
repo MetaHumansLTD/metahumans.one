@@ -2,9 +2,10 @@ FROM php:8.3-apache
 
 # Enable the PHP extensions and Apache modules used by the existing app.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
+    && apt-get install -y --no-install-recommends curl git libcurl4-openssl-dev libonig-dev libzip-dev unzip \
     && docker-php-ext-install -j"$(nproc)" curl mysqli pdo_mysql mbstring zip \
     && a2enmod rewrite headers expires proxy proxy_http proxy_wstunnel ssl \
+    && curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
@@ -14,6 +15,10 @@ COPY public_html/ /var/www/html/
 COPY apps/ /var/www/apps/
 COPY .data/config/ /data/config/
 COPY .data/security/app.key /data/security/app.key
+
+RUN if [ -f "/var/www/html/gear/domain-registrars/composer.json" ]; then \
+        composer install --working-dir=/var/www/html/gear/domain-registrars --no-dev --no-interaction --prefer-dist --optimize-autoloader; \
+    fi
 
 # Mirror the session location configured in `.user.ini`.
 RUN mkdir -p /data/sessions \
