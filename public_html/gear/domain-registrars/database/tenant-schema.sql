@@ -43,7 +43,7 @@ CREATE TABLE contacts (
     metadata_json JSON NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_contacts_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
+    CONSTRAINT fk_dr_tenant_contacts_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
 CREATE INDEX idx_contacts_tenant ON contacts(tenant_id, role_hint);
@@ -83,8 +83,8 @@ CREATE TABLE domains (
     metadata_json JSON NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_domains_provider_name UNIQUE (provider_account_id, domain_name),
-    CONSTRAINT fk_domains_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
+    CONSTRAINT uq_dr_tenant_domains_provider_name UNIQUE (provider_account_id, domain_name),
+    CONSTRAINT fk_dr_tenant_domains_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
 CREATE INDEX idx_domains_tenant ON domains(tenant_id, domain_name);
@@ -100,7 +100,7 @@ CREATE TABLE domain_statuses (
     status_label VARCHAR(255) NULL,
     source VARCHAR(30) NOT NULL,
     observed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_domain_statuses_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_tenant_domain_statuses_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_domain_statuses_domain_id ON domain_statuses(domain_id);
@@ -111,9 +111,9 @@ CREATE TABLE domain_contact_links (
     contact_id CHAR(36) NOT NULL,
     contact_role VARCHAR(20) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_domain_contact_role UNIQUE (domain_id, contact_role),
-    CONSTRAINT fk_domain_contact_links_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
-    CONSTRAINT fk_domain_contact_links_contact FOREIGN KEY (contact_id) REFERENCES contacts(id)
+    CONSTRAINT uq_dr_tenant_domain_contact_role UNIQUE (domain_id, contact_role),
+    CONSTRAINT fk_dr_tenant_domain_contact_links_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
+    CONSTRAINT fk_dr_tenant_domain_contact_links_contact FOREIGN KEY (contact_id) REFERENCES contacts(id)
 );
 
 CREATE TABLE domain_nameservers (
@@ -125,7 +125,7 @@ CREATE TABLE domain_nameservers (
     sort_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_domain_nameservers_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_tenant_domain_nameservers_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_domain_nameservers_domain_id ON domain_nameservers(domain_id);
@@ -162,8 +162,8 @@ CREATE TABLE customer_orders (
     processed_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_customer_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
-    CONSTRAINT fk_customer_orders_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_tenant_customer_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_dr_tenant_customer_orders_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_customer_orders_tenant_status ON customer_orders(tenant_id, status);

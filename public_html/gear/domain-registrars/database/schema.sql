@@ -48,8 +48,8 @@ CREATE TABLE contacts (
     metadata_json JSON NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_contacts_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
-    CONSTRAINT fk_contacts_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
+    CONSTRAINT fk_dr_shared_contacts_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
+    CONSTRAINT fk_dr_shared_contacts_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
 CREATE TABLE tlds (
@@ -79,8 +79,8 @@ CREATE TABLE tld_price_snapshots (
     currency_code CHAR(3) NOT NULL DEFAULT 'ZAR',
     effective_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_tld_prices_tld FOREIGN KEY (tld_id) REFERENCES tlds(id),
-    CONSTRAINT fk_tld_prices_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
+    CONSTRAINT fk_dr_shared_tld_prices_tld FOREIGN KEY (tld_id) REFERENCES tlds(id),
+    CONSTRAINT fk_dr_shared_tld_prices_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
 );
 
 CREATE TABLE domains (
@@ -107,8 +107,8 @@ CREATE TABLE domains (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_domains_provider_name UNIQUE (provider_account_id, domain_name),
-    CONSTRAINT fk_domains_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
-    CONSTRAINT fk_domains_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
+    CONSTRAINT fk_dr_shared_domains_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_dr_shared_domains_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
 );
 
 CREATE INDEX idx_domains_customer_id ON domains(customer_id);
@@ -123,7 +123,7 @@ CREATE TABLE domain_statuses (
     status_label VARCHAR(255) NULL,
     source VARCHAR(30) NOT NULL,
     observed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_domain_statuses_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_shared_domain_statuses_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_domain_statuses_domain_id ON domain_statuses(domain_id);
@@ -135,8 +135,8 @@ CREATE TABLE domain_contact_links (
     contact_role VARCHAR(20) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_domain_contact_role UNIQUE (domain_id, contact_role),
-    CONSTRAINT fk_domain_contact_links_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
-    CONSTRAINT fk_domain_contact_links_contact FOREIGN KEY (contact_id) REFERENCES contacts(id)
+    CONSTRAINT fk_dr_shared_domain_contact_links_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
+    CONSTRAINT fk_dr_shared_domain_contact_links_contact FOREIGN KEY (contact_id) REFERENCES contacts(id)
 );
 
 CREATE TABLE domain_nameservers (
@@ -148,7 +148,7 @@ CREATE TABLE domain_nameservers (
     sort_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_domain_nameservers_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_shared_domain_nameservers_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_domain_nameservers_domain_id ON domain_nameservers(domain_id);
@@ -173,9 +173,9 @@ CREATE TABLE customer_orders (
     processed_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_customer_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
-    CONSTRAINT fk_customer_orders_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
-    CONSTRAINT fk_customer_orders_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_shared_customer_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
+    CONSTRAINT fk_dr_shared_customer_orders_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
+    CONSTRAINT fk_dr_shared_customer_orders_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_customer_orders_status ON customer_orders(status);
@@ -234,8 +234,8 @@ CREATE TABLE sync_job_runs (
     result_json JSON NULL,
     error_message TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_sync_job_runs_definition FOREIGN KEY (job_definition_id) REFERENCES sync_job_definitions(id),
-    CONSTRAINT fk_sync_job_runs_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
+    CONSTRAINT fk_dr_shared_sync_job_runs_definition FOREIGN KEY (job_definition_id) REFERENCES sync_job_definitions(id),
+    CONSTRAINT fk_dr_shared_sync_job_runs_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
 );
 
 CREATE INDEX idx_sync_job_runs_status ON sync_job_runs(status);
@@ -253,9 +253,9 @@ CREATE TABLE domain_sync_events (
     after_json JSON NULL,
     error_message TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_domain_sync_events_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
-    CONSTRAINT fk_domain_sync_events_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
-    CONSTRAINT fk_domain_sync_events_job FOREIGN KEY (job_run_id) REFERENCES sync_job_runs(id)
+    CONSTRAINT fk_dr_shared_domain_sync_events_domain FOREIGN KEY (domain_id) REFERENCES domains(id),
+    CONSTRAINT fk_dr_shared_domain_sync_events_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
+    CONSTRAINT fk_dr_shared_domain_sync_events_job FOREIGN KEY (job_run_id) REFERENCES sync_job_runs(id)
 );
 
 CREATE INDEX idx_domain_sync_events_domain_id ON domain_sync_events(domain_id);
@@ -273,7 +273,7 @@ CREATE TABLE import_conflicts (
     resolved_at TIMESTAMP NULL,
     resolution_notes TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_import_conflicts_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
+    CONSTRAINT fk_dr_shared_import_conflicts_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id)
 );
 
 CREATE INDEX idx_import_conflicts_status ON import_conflicts(resolution_status);
@@ -289,8 +289,8 @@ CREATE TABLE provider_command_logs (
     was_successful BOOLEAN NOT NULL DEFAULT FALSE,
     error_message TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_provider_command_logs_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
-    CONSTRAINT fk_provider_command_logs_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
+    CONSTRAINT fk_dr_shared_provider_command_logs_provider FOREIGN KEY (provider_account_id) REFERENCES provider_accounts(id),
+    CONSTRAINT fk_dr_shared_provider_command_logs_domain FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 CREATE INDEX idx_provider_command_logs_provider ON provider_command_logs(provider_account_id);
