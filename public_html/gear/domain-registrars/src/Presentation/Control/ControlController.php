@@ -20,6 +20,8 @@ final class ControlController
             return $this->renderAuthRequired();
         }
 
+        $path = $this->normalizePath($path);
+
         return match ([$path, strtoupper($method)]) {
             ['/', 'GET'] => $this->renderDashboard($query),
             ['/orders', 'GET'] => $this->renderOrders(),
@@ -27,6 +29,7 @@ final class ControlController
             ['/tasks', 'GET'] => $this->renderTasks(),
             ['/providers/coza', 'GET'] => $this->renderCozaSettings($query),
             ['/providers/coza', 'POST'] => $this->handleCozaSettingsSave($post),
+            ['/tasks/enqueue', 'GET'] => $this->renderTaskEnqueuePage(),
             ['/tasks/enqueue', 'POST'] => $this->handleTaskEnqueue($post),
             default => $this->renderNotFound(),
         };
@@ -228,6 +231,7 @@ HTML;
         $providerAccount = $this->app->providerAccount('coza');
         $saved = $this->app->providerStoredConfig('coza');
         $effective = $this->app->providerEffectiveConfig('coza');
+        $diagnostics = $this->app->providerRuntimeDiagnostics('coza');
         $certOptions = $this->certFileOptions();
         $certPath = $this->displayConfigValue($saved, $effective, 'cert_path');
         $caFile = $this->displayConfigValue($saved, $effective, 'ca_file');
@@ -272,6 +276,25 @@ HTML;
             fn (string $item): string => '<li>' . $this->escape($item) . '</li>',
             $readiness['items'],
         ));
+        $runtimeDiagnosticsMarkup = '<pre class="code-block">' . $this->escape(
+            json_encode($diagnostics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
+        ) . '</pre>';
+        $probeMarkup = '';
+        if (($query['probe'] ?? null) === 'hello') {
+            $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2>' . $runtimeDiagnosticsMarkup . '<p class="muted">The diagnostics above are the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p></article>';
+
+            try {
+                $provider = $this->app->provider('coza');
+                if (method_exists($provider, 'healthCheck')) {
+                    $probeResult = $provider->healthCheck();
+                    $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2><pre class="code-block">' . $this->escape(
+                        json_encode($probeResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
+                    ) . '</pre><p class="muted">The diagnostics below show the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p>' . $runtimeDiagnosticsMarkup . '</article>';
+                }
+            } catch (Throwable $exception) {
+                $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2><pre class="code-block">' . $this->escape($exception->getMessage()) . '</pre><p class="muted">The diagnostics below show the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p>' . $runtimeDiagnosticsMarkup . '</article>';
+            }
+        }
 
         $body = <<<HTML
 {$flashMarkup}
@@ -296,6 +319,7 @@ HTML;
       <p class="muted">Repo cert folder: <code>cert/</code></p>
       <p class="muted">Resolved cert path: <code>{$this->escape($resolvedCertPath ?? 'Not set')}</code></p>
       <p class="muted">Resolved CA file: <code>{$this->escape($resolvedCaPath ?? 'Not set')}</code></p>
+      <p><a href="{$this->escape($this->providersCozaPath())}?probe=hello">Run live EPP hello probe</a></p>
     </article>
     <article class="info-card">
       <h2>Northflank Secret Sets</h2>
@@ -352,6 +376,7 @@ HTML;
     </div>
   </form>
 </section>
+{$probeMarkup}
 HTML;
 
         return $this->layout('.co.za Settings', $body);
@@ -404,6 +429,30 @@ HTML;
             header('Location: ' . $this->basePath() . '?flash=' . rawurlencode($exception->getMessage()));
             return '';
         }
+    }
+
+    private function renderTaskEnqueuePage(): string
+    {
+        $body = <<<HTML
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Worker Control</p>
+      <h1>Queue Registrar Tasks</h1>
+      <p class="muted">This route accepts task submissions and also provides a direct manual queueing screen when opened in a browser.</p>
+    </div>
+    <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
+  </div>
+  <div class="action-grid">
+    {$this->taskForm('sync_pricing', 'pricing', 'Queue pricing sync')}
+    {$this->taskForm('sync_domain_dates', 'dates', 'Queue date sync')}
+    {$this->taskForm('sync_domain_portfolio', 'sync', 'Queue portfolio sync')}
+    {$this->taskForm('retry_failed_sync_runs', 'retries', 'Retry failed tasks')}
+  </div>
+</section>
+HTML;
+
+        return $this->layout('Queue Tasks', $body);
     }
 
     /**
@@ -619,6 +668,19 @@ HTML;
     private function taskEnqueuePath(): string
     {
         return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/tasks/enqueue' : '/tasks/enqueue';
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $trimmed = trim($path);
+        if ($trimmed === '' || $trimmed === '/') {
+            return '/';
+        }
+
+        $normalized = '/' . ltrim($trimmed, '/');
+        $normalized = rtrim($normalized, '/');
+
+        return $normalized === '' ? '/' : $normalized;
     }
 
     private function escape(string $value): string

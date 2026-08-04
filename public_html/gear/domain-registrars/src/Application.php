@@ -144,6 +144,46 @@ final class Application
         };
     }
 
+    /**
+     * Return non-sensitive provider diagnostics that reflect the effective runtime
+     * configuration handed into the provider client.
+     *
+     * @return array<string, mixed>
+     */
+    public function providerRuntimeDiagnostics(string $code): array
+    {
+        $stored = $this->providerStoredConfig($code);
+        $effective = $this->providerEffectiveConfig($code);
+
+        return match ($code) {
+            'coza' => [
+                'provider' => 'coza',
+                'stored_override' => [
+                    'cert_path' => $this->nullableConfigString($stored['cert_path'] ?? null),
+                    'ca_file' => $this->nullableConfigString($stored['ca_file'] ?? null),
+                    'verify_peer' => array_key_exists('verify_peer', $stored) ? (bool) $stored['verify_peer'] : null,
+                    'timeout' => array_key_exists('timeout', $stored) ? (int) $stored['timeout'] : null,
+                    'pricing_json' => $this->nullableConfigString($stored['pricing_json'] ?? null),
+                ],
+                'effective' => [
+                    'host' => $this->nullableConfigString($effective['host'] ?? null),
+                    'port' => (int) ($effective['port'] ?? 700),
+                    'username_present' => $this->nullableConfigString($effective['username'] ?? null) !== null,
+                    'password_present' => $this->nullableConfigString($effective['password'] ?? null) !== null,
+                    'client_id_present' => $this->nullableConfigString($effective['client_id'] ?? null) !== null,
+                    'cert_path' => $this->nullableConfigString($effective['cert_path'] ?? null),
+                    'ca_file' => $this->nullableConfigString($effective['ca_file'] ?? null),
+                    'verify_peer' => (bool) ($effective['verify_peer'] ?? true),
+                    'timeout' => (int) ($effective['timeout'] ?? 30),
+                    'login_object_uris' => is_array($effective['login_object_uris'] ?? null) ? array_values($effective['login_object_uris']) : [],
+                    'login_extension_uris' => is_array($effective['login_extension_uris'] ?? null) ? array_values($effective['login_extension_uris']) : [],
+                ],
+                'resolved' => $this->resolvedFileDiagnostics($effective),
+            ],
+            default => [],
+        };
+    }
+
     public function customerRepository(): CustomerRepository
     {
         return $this->customerRepository ??= new CustomerRepository($this->tenantDatabase());
@@ -372,6 +412,26 @@ final class Application
     private function isAbsolutePath(string $path): bool
     {
         return preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) === 1 || str_starts_with($path, '/');
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
+    private function resolvedFileDiagnostics(array $config): array
+    {
+        $certPath = $this->resolveWorkspacePath($this->nullableConfigString($config['cert_path'] ?? null));
+        $caFile = $this->resolveWorkspacePath($this->nullableConfigString($config['ca_file'] ?? null));
+        $pricingJson = $this->resolveWorkspacePath($this->nullableConfigString($config['pricing_json'] ?? null));
+
+        return [
+            'cert_path' => $certPath,
+            'cert_exists' => $certPath !== null ? is_file($certPath) : null,
+            'ca_file' => $caFile,
+            'ca_exists' => $caFile !== null ? is_file($caFile) : null,
+            'pricing_json' => $pricingJson,
+            'pricing_exists' => $pricingJson !== null ? is_file($pricingJson) : null,
+        ];
     }
 
 }

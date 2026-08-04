@@ -774,6 +774,14 @@ HTML;
                         'register_url' => $available ? $this->registerPath() . '?domain=' . rawurlencode($fqdn) : null,
                     ];
                 } catch (Throwable $exception) {
+                    if ($providerCode === 'coza') {
+                        error_log('[hub/domains][coza] availability failed: ' . json_encode([
+                            'domain' => $fqdn,
+                            'message' => $exception->getMessage(),
+                            'diagnostics' => $this->app->providerRuntimeDiagnostics('coza'),
+                        ], JSON_UNESCAPED_SLASHES));
+                    }
+
                     $results[] = [
                         'domain' => $fqdn,
                         'state' => 'error',
