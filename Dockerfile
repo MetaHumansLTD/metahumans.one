@@ -15,6 +15,7 @@ COPY public_html/ /var/www/html/
 COPY apps/ /var/www/apps/
 COPY .data/config/ /data/config/
 COPY .data/security/app.key /data/security/app.key
+COPY docker-entrypoint-mh.sh /usr/local/bin/docker-entrypoint-mh.sh
 
 RUN if [ -f "/var/www/html/gear/domain-registrars/composer.json" ]; then \
         composer install --working-dir=/var/www/html/gear/domain-registrars --no-dev --no-interaction --prefer-dist --optimize-autoloader; \
@@ -22,6 +23,9 @@ RUN if [ -f "/var/www/html/gear/domain-registrars/composer.json" ]; then \
 
 # Mirror the session location configured in `.user.ini`.
 RUN mkdir -p /data/sessions \
-    && chown -R www-data:www-data /data/sessions /var/www/html /var/www/apps
+    && chown -R www-data:www-data /data/sessions /var/www/html /var/www/apps \
+    && chmod +x /usr/local/bin/docker-entrypoint-mh.sh
 
 EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-mh.sh"]
+CMD ["apache2-foreground"]

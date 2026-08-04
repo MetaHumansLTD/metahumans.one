@@ -2,6 +2,7 @@
 !Dockerfile
 !.dockerignore
 !.gitignore
+!docker-entrypoint-mh.sh
 !.data/
 !.data/config/
 !.data/config/**
