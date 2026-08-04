@@ -9,7 +9,7 @@ $rootPath = dirname(__DIR__);
 $autoloadPath = $rootPath . '/vendor/autoload.php';
 
 if (! is_file($autoloadPath)) {
-    throw new RuntimeException('Composer autoload file not found. Run "composer install" first.');
+    throw new RuntimeException('Domain registrars dependencies are not installed in this app runtime yet.');
 }
 
 require $autoloadPath;

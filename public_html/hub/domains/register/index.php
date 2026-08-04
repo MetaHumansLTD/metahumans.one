@@ -11,4 +11,17 @@ $_ENV['CUE_BOOTSTRAP_PATH'] = $cueBootstrapPath;
 $_SERVER['CUE_BOOTSTRAP_PATH'] = $cueBootstrapPath;
 
 require_once $cueBootstrapPath;
-require ROOT_PATH . '/apps/domain-registrars/integrations/metahumans/hub.php';
+
+$integrationCandidates = [
+    $publicRoot . '/gear/domain-registrars/integrations/metahumans/hub.php',
+    ROOT_PATH . '/apps/domain-registrars/integrations/metahumans/hub.php',
+];
+
+foreach ($integrationCandidates as $integrationPath) {
+    if (is_string($integrationPath) && $integrationPath !== '' && is_file($integrationPath)) {
+        require $integrationPath;
+        return;
+    }
+}
+
+throw new RuntimeException('Domain registrars hub integration file is missing.');
