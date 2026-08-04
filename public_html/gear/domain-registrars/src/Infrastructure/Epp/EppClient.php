@@ -177,6 +177,24 @@ final class EppClient
         $errorCode = 0;
         $errorMessage = '';
 
+        // #region debug-point A:connect-inputs
+        error_log('[DEBUG][coza-epp-connect][A] ' . json_encode([
+            'address' => $address,
+            'verify_peer' => $this->verifyPeer,
+            'timeout_seconds' => $this->timeoutSeconds,
+            'cert_path' => $this->certificatePath,
+            'cert_exists' => $this->certificatePath !== null ? is_file($this->certificatePath) : null,
+            'cert_readable' => $this->certificatePath !== null ? is_readable($this->certificatePath) : null,
+            'cert_perms' => $this->certificatePath !== null && is_file($this->certificatePath) ? substr(sprintf('%o', fileperms($this->certificatePath)), -4) : null,
+            'ca_file' => $this->caFile,
+            'ca_exists' => $this->caFile !== null ? is_file($this->caFile) : null,
+            'ca_readable' => $this->caFile !== null ? is_readable($this->caFile) : null,
+            'user' => function_exists('get_current_user') ? get_current_user() : null,
+            'uid' => function_exists('getmyuid') ? getmyuid() : null,
+            'euid' => function_exists('posix_geteuid') ? @posix_geteuid() : null,
+        ], JSON_UNESCAPED_SLASHES));
+        // #endregion
+
         $stream = @stream_socket_client(
             $address,
             $errorCode,
@@ -187,11 +205,32 @@ final class EppClient
         );
 
         if (! is_resource($stream)) {
+            // #region debug-point B:connect-failure
+            $opensslErrors = [];
+            while (($opensslError = openssl_error_string()) !== false) {
+                $opensslErrors[] = $opensslError;
+            }
+            $lastError = error_get_last();
+            error_log('[DEBUG][coza-epp-connect][B] ' . json_encode([
+                'address' => $address,
+                'error_code' => $errorCode,
+                'error_message' => $errorMessage,
+                'last_error' => is_array($lastError) ? $lastError : null,
+                'openssl_errors' => $opensslErrors,
+            ], JSON_UNESCAPED_SLASHES));
+            // #endregion
             throw new EppException(sprintf('Unable to connect to %s: %s', $address, $errorMessage ?: 'unknown error'));
         }
 
         stream_set_timeout($stream, $this->timeoutSeconds);
         $this->stream = $stream;
+
+        // #region debug-point C:connect-success
+        error_log('[DEBUG][coza-epp-connect][C] ' . json_encode([
+            'address' => $address,
+            'meta' => stream_get_meta_data($stream),
+        ], JSON_UNESCAPED_SLASHES));
+        // #endregion
     }
 
     private function disconnect(): void
