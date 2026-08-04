@@ -100,7 +100,7 @@ function database_getBlockMysqlAllowedPorts(): array {
         $ports[$normalized] = true;
     }
 
-    return array_keys($ports);
+    return array_map('strval', array_keys($ports));
 }
 
 function database_normalizeHostForConfig(array $config, bool $audit = false): array {
