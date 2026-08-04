@@ -2107,6 +2107,49 @@ $currentUser = $_SESSION['mh_auth_user'] ?? null;
         } catch (e) {}
     }
 
+    (function () {
+        let handledTs = 0;
+        function followAuthEvent(payload) {
+            const data = payload && typeof payload === 'object' ? payload : null;
+            const type = data && (data.type || data.event) ? String(data.type || data.event) : '';
+            const ts = data && data.ts ? Number(data.ts) : Date.now();
+            if (!type || ts <= handledTs) {
+                return;
+            }
+            handledTs = ts;
+            if (type !== 'login') {
+                return;
+            }
+            const path = String(window.location.pathname || '');
+            if (path.startsWith('/auth/')) {
+                window.location.replace('/hub/index.php');
+                return;
+            }
+            window.location.reload();
+        }
+
+        try {
+            window.addEventListener('storage', function (ev) {
+                if (!(ev && ev.key === 'mh_auth_event' && ev.newValue)) {
+                    return;
+                }
+                try {
+                    followAuthEvent(JSON.parse(ev.newValue));
+                } catch (e) {
+                }
+            });
+        } catch (e) {
+        }
+
+        try {
+            const bc = new BroadcastChannel('mh-auth');
+            bc.onmessage = function (ev) {
+                followAuthEvent(ev && ev.data ? ev.data : null);
+            };
+        } catch (e) {
+        }
+    })();
+
     // Biometric Popup Logic
     const bioPopup = document.getElementById('bioCoveragePopup');
     const seamlessBtn = document.getElementById('seamlessEntryBtn');

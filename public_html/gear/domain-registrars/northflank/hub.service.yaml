@@ -1,0 +1,40 @@
+# Git-backed combined service modeled after the live metahumans-one service.
+
+service:
+  name: registrar-hub
+  serviceType: combined
+  projectType: github
+  github:
+    repository: https://github.com/MetaHumansLTD/domain-registrars
+    branch: main
+  build:
+    source: git
+    dockerFilePath: /Dockerfile
+    dockerWorkDir: /
+    buildEngine: buildkit
+    buildArgs:
+      APP_ROLE: hub
+  deployment:
+    type: deployment
+    instances: 1
+    public: true
+    internalPort: 80
+    protocol: HTTP
+    domains:
+      - hub.metahumans.one
+    plan: nf-compute-10
+    ephemeralStorageMiB: 1024
+  runtime:
+    environment:
+      APP_ROLE: hub
+      APP_ENV: production
+      APP_URL: https://hub.metahumans.one
+      QUEUE_CONNECTION: redis
+    mountedSecrets:
+      - app-secrets
+      - database-secrets
+      - redis-secrets
+  notes:
+    - GitHub repository is the source of truth for builds and deployments.
+    - Do not mount registrar provider credentials directly into hub.
+    - Route customer actions that touch upstream providers through worker jobs.

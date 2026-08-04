@@ -1,0 +1,111 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Application;
+use App\Infrastructure\Providers\CoZaProvider;
+
+/** @var Application $app */
+$app = require dirname(__DIR__) . '/bootstrap/app.php';
+
+$command = $argv[1] ?? 'help';
+
+try {
+    match ($command) {
+        'app:doctor' => appDoctor($app),
+        'db:schema:load' => loadSchema($app),
+        'db:schema:load:shared' => loadSharedSchema($app),
+        'db:schema:provision:cue' => provisionCueSchemas($app),
+        'coza:hello' => cozaHello($app),
+        'coza:domain:info' => cozaDomainInfo($app, $argv[2] ?? null),
+        'worker:run' => workerRun($app),
+        default => printHelp(),
+    };
+} catch (Throwable $exception) {
+    fwrite(STDERR, $exception->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+function appDoctor(Application $app): void
+{
+    $tenantDatabase = $app->tenantDatabase()->fetchOne('SELECT 1 AS ok');
+    $sharedDatabase = $app->sharedDatabase()->fetchOne('SELECT 1 AS ok');
+
+    echo json_encode(
+        [
+            'app_env' => $app->config()->string('APP_ENV', 'local'),
+            'app_role' => $app->config()->string('APP_ROLE', 'hub'),
+            'tenant_database' => $tenantDatabase,
+            'shared_database' => $sharedDatabase,
+        ],
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+    ) . PHP_EOL;
+}
+
+function loadSchema(Application $app): void
+{
+    $app->sharedSchemaLoader()->load();
+    $app->tenantSchemaLoader()->load();
+    echo "Shared and tenant schemas loaded." . PHP_EOL;
+}
+
+function loadSharedSchema(Application $app): void
+{
+    $app->sharedSchemaLoader()->load();
+    echo "Shared schema loaded." . PHP_EOL;
+}
+
+function provisionCueSchemas(Application $app): void
+{
+    echo json_encode(
+        $app->cueTenantSchemaProvisioner()->provisionAll(),
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+    ) . PHP_EOL;
+}
+
+function cozaHello(Application $app): void
+{
+    $provider = $app->provider('coza');
+    if (! $provider instanceof CoZaProvider) {
+        throw new RuntimeException('The coza provider is not available.');
+    }
+
+    echo json_encode($provider->healthCheck(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+}
+
+function cozaDomainInfo(Application $app, ?string $domainName): void
+{
+    if ($domainName === null || $domainName === '') {
+        throw new RuntimeException('Usage: php bin/console coza:domain:info example.co.za');
+    }
+
+    $provider = $app->provider('coza');
+    if (! $provider instanceof CoZaProvider) {
+        throw new RuntimeException('The coza provider is not available.');
+    }
+
+    echo json_encode(
+        $provider->fetchDomain($domainName, new \App\Domain\Sync\SyncContext('coza', 'console')),
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+    ) . PHP_EOL;
+}
+
+function workerRun(Application $app): void
+{
+    $app->workerService()->run();
+}
+
+function printHelp(): void
+{
+    echo <<<TEXT
+Available commands:
+  php bin/console app:doctor
+  php bin/console db:schema:load
+  php bin/console db:schema:load:shared
+  php bin/console db:schema:provision:cue
+  php bin/console coza:hello
+  php bin/console coza:domain:info example.co.za
+  php bin/console worker:run
+
+TEXT;
+}

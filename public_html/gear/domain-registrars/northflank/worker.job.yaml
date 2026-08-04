@@ -1,0 +1,46 @@
+# Git-backed job/deployment service for sync, import, and retry work.
+
+service:
+  name: registrar-worker
+  serviceType: job
+  projectType: github
+  github:
+    repository: https://github.com/MetaHumansLTD/domain-registrars
+    branch: main
+  build:
+    source: git
+    dockerFilePath: /Dockerfile.worker
+    dockerWorkDir: /
+    buildEngine: buildkit
+  deployment:
+    type: worker
+    instances: 1
+    plan: nf-compute-10
+    ephemeralStorageMiB: 1024
+  runtime:
+    command:
+      - php
+      - bin/worker
+    environment:
+      APP_ROLE: worker
+      APP_ENV: production
+      QUEUE_CONNECTION: redis
+      ENABLE_SCHEDULER: true
+    mountedSecrets:
+      - app-secrets
+      - database-secrets
+      - redis-secrets
+      - provider-secrets
+      - coza-certificates
+  schedules:
+    - job: sync_domain_portfolio
+      cron: "0 */6 * * *"
+    - job: sync_domain_dates
+      cron: "15 2 * * *"
+    - job: sync_pricing
+      cron: "0 3 * * *"
+    - job: retry_failed_sync_runs
+      cron: "*/30 * * * *"
+  notes:
+    - This service owns upstream provider communication, sync jobs, and retries.
+    - Keep long-running or provider-sensitive work out of hub and control.

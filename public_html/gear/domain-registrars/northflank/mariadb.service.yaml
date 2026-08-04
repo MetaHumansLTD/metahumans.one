@@ -1,0 +1,23 @@
+# Internal deployment service modeled after the live mariadb-service pattern.
+
+service:
+  name: registrar-mariadb
+  serviceType: deployment
+  image: docker.io/library/mariadb:11.4.10
+  deployment:
+    type: deployment
+    instances: 1
+    public: false
+    internalPort: 3306
+    protocol: TCP
+    plan: nf-compute-100-2
+    ephemeralStorageMiB: 1024
+  runtime:
+    environment:
+      MYSQL_DATABASE: domainname_controller
+      MYSQL_USER: domainname_controller
+    mountedSecrets:
+      - mariadb-secrets
+  notes:
+    - Internal-only shared registrar database for provider accounts, pricing, sync logs, and worker tasks.
+    - Tenant-owned domains and orders should live in CUE-managed tenant databases rather than this shared service.

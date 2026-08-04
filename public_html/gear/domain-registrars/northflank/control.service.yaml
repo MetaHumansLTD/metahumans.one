@@ -1,0 +1,41 @@
+# Git-backed combined service for the admin control panel.
+
+service:
+  name: registrar-control
+  serviceType: combined
+  projectType: github
+  github:
+    repository: https://github.com/MetaHumansLTD/domain-registrars
+    branch: main
+  build:
+    source: git
+    dockerFilePath: /Dockerfile
+    dockerWorkDir: /
+    buildEngine: buildkit
+    buildArgs:
+      APP_ROLE: control
+  deployment:
+    type: deployment
+    instances: 1
+    public: true
+    internalPort: 80
+    protocol: HTTP
+    domains:
+      - control.metahumans.one
+    plan: nf-compute-10
+    ephemeralStorageMiB: 1024
+  runtime:
+    environment:
+      APP_ROLE: control
+      APP_ENV: production
+      APP_URL: https://control.metahumans.one
+      QUEUE_CONNECTION: redis
+    mountedSecrets:
+      - app-secrets
+      - database-secrets
+      - redis-secrets
+      - provider-secrets
+      - coza-certificates
+  notes:
+    - Keep this service behind strong authentication and tighter access rules.
+    - Use control for sync diagnostics, pricing, conflict review, and manual actions.

@@ -1,0 +1,8 @@
+vendor
+.git
+.github
+.env
+var
+node_modules
+npm-debug.log
+docker-compose.yml

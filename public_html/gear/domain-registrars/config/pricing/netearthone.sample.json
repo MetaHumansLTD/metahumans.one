@@ -1,0 +1,24 @@
+[
+  {
+    "tld": "com",
+    "source": "sample-netearthone",
+    "currency_code": "USD",
+    "registration_price": 11.50,
+    "renewal_price": 13.25,
+    "transfer_price": 11.50,
+    "public_registration_price": 199.00,
+    "public_renewal_price": 219.00,
+    "public_transfer_price": 199.00
+  },
+  {
+    "tld": "net",
+    "source": "sample-netearthone",
+    "currency_code": "USD",
+    "registration_price": 12.10,
+    "renewal_price": 14.10,
+    "transfer_price": 12.10,
+    "public_registration_price": 209.00,
+    "public_renewal_price": 229.00,
+    "public_transfer_price": 209.00
+  }
+]

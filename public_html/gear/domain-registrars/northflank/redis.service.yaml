@@ -1,0 +1,24 @@
+# Internal deployment service for Redis-backed queues and cache.
+
+service:
+  name: registrar-redis
+  serviceType: deployment
+  image: docker.io/library/redis:7.4-alpine
+  deployment:
+    type: deployment
+    instances: 1
+    public: false
+    internalPort: 6379
+    protocol: TCP
+    plan: nf-compute-100-2
+    ephemeralStorageMiB: 1024
+  runtime:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    mountedSecrets:
+      - redis-secrets
+  notes:
+    - Internal-only queue and cache service.
+    - Keep this private and attach persistent storage if queue durability is required.

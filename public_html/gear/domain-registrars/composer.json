@@ -1,0 +1,32 @@
+{
+    "name": "domain-registrars/domain-registrar-service",
+    "description": "Standalone PHP domain registrar service scaffold for .co.za and NetEarthOne",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.1",
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-json": "*",
+        "ext-libxml": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "app:doctor": "php bin/console app:doctor",
+        "db:schema:load": "php bin/console db:schema:load",
+        "coza:hello": "php bin/console coza:hello",
+        "worker:run": "php bin/console worker:run"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
