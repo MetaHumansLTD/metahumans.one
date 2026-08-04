@@ -124,6 +124,46 @@ if (!function_exists('mh_tokenomics_ensure_schema')) {
 }
 
 if (!function_exists('mh_tokenomics_get_tokenomics_pdo')) {
+    function mh_tokenomics_resolve_database_config_id(): string {
+        $preferred = [
+            'db_equity_dedicated',
+            'tenant:equity',
+            'Equity (Dedicated)',
+        ];
+
+        if (function_exists('database_getConfiguration')) {
+            foreach ($preferred as $candidate) {
+                $cfg = database_getConfiguration($candidate);
+                if (is_array($cfg)) {
+                    $resolvedId = trim((string)($cfg['id'] ?? ''));
+                    if ($resolvedId !== '') {
+                        return $resolvedId;
+                    }
+                    if ($candidate !== '') {
+                        return $candidate;
+                    }
+                }
+            }
+        }
+
+        if (function_exists('database_loadConfigurations')) {
+            $configs = database_loadConfigurations();
+            foreach ($configs as $configId => $cfg) {
+                if (!is_array($cfg)) {
+                    continue;
+                }
+                $id = trim((string)($cfg['id'] ?? $configId));
+                $name = trim((string)($cfg['name'] ?? ''));
+                $context = strtolower(trim((string)($cfg['context'] ?? '')));
+                if ($context === 'equity' || strcasecmp($name, 'tenant:equity') === 0 || strcasecmp($name, 'Equity (Dedicated)') === 0) {
+                    return $id !== '' ? $id : (string)$configId;
+                }
+            }
+        }
+
+        throw new RuntimeException('tokenomics_database_configuration_not_found');
+    }
+
     function mh_tokenomics_get_tokenomics_pdo(): PDO {
         if (function_exists('cue_autoload')) {
             cue_autoload('database');
@@ -131,7 +171,8 @@ if (!function_exists('mh_tokenomics_get_tokenomics_pdo')) {
         if (!function_exists('database_getConnectionById')) {
             throw new RuntimeException('database_module_unavailable');
         }
-        $pdo = database_getConnectionById('db_69c4a4a7e2d724.12239321');
+        $resolvedConfigId = mh_tokenomics_resolve_database_config_id();
+        $pdo = database_getConnectionById($resolvedConfigId);
         if (!$pdo instanceof PDO) {
             if (is_object($pdo) && property_exists($pdo, 'pdo') && $pdo->pdo instanceof PDO) {
                 $pdo = $pdo->pdo;

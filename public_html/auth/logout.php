@@ -10,6 +10,7 @@ if (function_exists('security_startSecureSession')) {
 }
 
 $_SESSION = [];
+$params = ['domain' => '', 'path' => '/'];
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', [
@@ -46,5 +47,5 @@ setcookie('mh_sso_logged_out', '1', [
 ]);
 
 session_destroy();
-header('Location: /hub/index.php?logged_out=1');
+header('Location: /auth/login.php?logged_out=1');
 exit;

@@ -886,6 +886,12 @@ function testDatabaseConnection(array $config): array {
     try {
         $storageProfile = $config['storage_profile'] ?? null;
         $host = $config['host'] ?? 'localhost';
+        $port = (string)($config['port'] ?? '3306');
+        if ($storageProfile === 'block_mysql') {
+            $normalized = dbmanager_normalizeBlockMysqlEndpoint($host, $port);
+            $host = $normalized['host'];
+            $port = $normalized['port'];
+        }
         if ($storageProfile !== null && strpos($storageProfile, 'block_') === 0 && !dbmanager_isAllowedBlockStorageHost($host)) {
             return ['success' => false, 'message' => 'Invalid host for block storage profile'];
         }
@@ -894,7 +900,7 @@ function testDatabaseConnection(array $config): array {
             'driver' => $driver,
             'type' => $driver,
             'host' => $host,
-            'port' => $config['port'] ?? '3306',
+            'port' => $port,
             'database' => $config['database'] ?? '',
             'username' => $config['username'] ?? '',
             'password' => $config['password'] ?? '',
@@ -913,13 +919,70 @@ function testDatabaseConnection(array $config): array {
     }
 }
 
+function dbmanager_getAllowedBlockStorageHosts(): array {
+    $hosts = [];
+    if (function_exists('database_getBlockMysqlAllowedHosts')) {
+        foreach ((array)database_getBlockMysqlAllowedHosts() as $candidate) {
+            $candidate = strtolower(trim((string)$candidate));
+            if ($candidate !== '') {
+                $hosts[$candidate] = true;
+            }
+        }
+    }
+    foreach ([getenv('MH_BLOCK_MYSQL_HOST') ?: null, getenv('MARIADB_HOST') ?: null, 'mariadb-service', '127.0.0.1', 'localhost'] as $candidate) {
+        $candidate = strtolower(trim((string)$candidate));
+        if ($candidate !== '') {
+            $hosts[$candidate] = true;
+        }
+    }
+    return array_keys($hosts);
+}
+
+function dbmanager_getAllowedBlockStoragePorts(): array {
+    $ports = [];
+    if (function_exists('database_getBlockMysqlAllowedPorts')) {
+        foreach ((array)database_getBlockMysqlAllowedPorts() as $candidate) {
+            $candidate = trim((string)$candidate);
+            if ($candidate !== '') {
+                $ports[$candidate] = true;
+            }
+        }
+    }
+    foreach ([getenv('MH_BLOCK_MYSQL_PORT') ?: null, getenv('MARIADB_PORT') ?: null, '3306', '3307'] as $candidate) {
+        $candidate = trim((string)$candidate);
+        if ($candidate !== '') {
+            $ports[$candidate] = true;
+        }
+    }
+    return array_keys($ports);
+}
+
+function dbmanager_normalizeBlockMysqlEndpoint(mixed $host, mixed $port): array {
+    $allowedHosts = dbmanager_getAllowedBlockStorageHosts();
+    $allowedPorts = dbmanager_getAllowedBlockStoragePorts();
+
+    $host = strtolower(trim((string)$host));
+    $port = trim((string)$port);
+
+    if ($host === '') {
+        $host = in_array('mariadb-service', $allowedHosts, true) ? 'mariadb-service' : (string)($allowedHosts[0] ?? '127.0.0.1');
+    } elseif ($host === 'localhost' && in_array('127.0.0.1', $allowedHosts, true)) {
+        $host = '127.0.0.1';
+    }
+
+    if ($port === '') {
+        $port = in_array('3306', $allowedPorts, true) ? '3306' : (string)($allowedPorts[0] ?? '3307');
+    }
+
+    return ['host' => $host, 'port' => $port];
+}
+
 function dbmanager_isAllowedBlockStorageHost(string $host): bool {
-    $host = trim((string)$host);
+    $host = strtolower(trim((string)$host));
     if ($host === '') {
         return false;
     }
-    $allowedHosts = ['127.0.0.1', 'localhost'];
-    return in_array($host, $allowedHosts, true);
+    return in_array($host, dbmanager_getAllowedBlockStorageHosts(), true);
 }
 
 function dbmanager_isKripzMaster(): bool {
@@ -1051,19 +1114,16 @@ function dbmanager_getDatabaseStatus(string $configId): array {
 
     $storageProfile = (string)($config['storage_profile'] ?? '');
     $host = (string)($config['host'] ?? '127.0.0.1');
-    $port = (int)($config['port'] ?? 0);
+    $port = (string)($config['port'] ?? '');
     if ($storageProfile === 'block_mysql') {
-        if (strtolower(trim($host)) === 'localhost') {
-            $host = '127.0.0.1';
-        }
-        if ($port === 0 || $port === 3306) {
-            $port = 3307;
-        }
+        $normalized = dbmanager_normalizeBlockMysqlEndpoint($host, $port);
+        $host = $normalized['host'];
+        $port = $normalized['port'];
     }
     $dbName = (string)($config['database'] ?? '');
     $user = (string)($config['username'] ?? '');
 
-    $reachable = dbmanager_isTcpPortReachable($host, $port, 0.8);
+    $reachable = dbmanager_isTcpPortReachable($host, (int)$port, 0.8);
     if (!$reachable) {
         return [
             'success' => true,
@@ -1075,7 +1135,7 @@ function dbmanager_getDatabaseStatus(string $configId): array {
                 'database_exists' => null,
                 'user' => $user,
                 'host' => $host,
-                'port' => (string)($port ?: ($config['port'] ?? '')),
+                'port' => (string)($port !== '' ? $port : ($config['port'] ?? '')),
                 'db_name' => $dbName,
                 'db_configs' => $cfgStatus,
             ],
@@ -1161,15 +1221,17 @@ function dbmanager_createProvisioner(string $provUser, string $provPass, string 
     if ($provUser === '' || $provPass === '') {
         return ['success' => false, 'message' => 'Provisioner username and password are required'];
     }
+    $allowedPorts = dbmanager_getAllowedBlockStoragePorts();
+    $preferredPort = in_array('3306', $allowedPorts, true) ? '3306' : (string)($allowedPorts[0] ?? '3307');
     if ($adminConfigId === '') {
         $configs = getAllDatabaseConfigs();
         $candidates = array_values(array_filter($configs, function($c){
-            return ($c['is_active'] ?? false) === true && (string)($c['port'] ?? '') === '3307' && (string)($c['storage_profile'] ?? '') === 'block_mysql' && (strpos(strtolower($c['name'] ?? ''), 'provisioner') !== false || strpos(strtolower($c['username'] ?? ''), 'root') !== false);
+            return ($c['is_active'] ?? false) === true && (string)($c['storage_profile'] ?? '') === 'block_mysql' && (strpos(strtolower($c['name'] ?? ''), 'provisioner') !== false || strpos(strtolower($c['username'] ?? ''), 'root') !== false);
         }));
         if (empty($candidates)) {
             // fallback
             $candidates = array_values(array_filter($configs, function($c){
-                return ($c['is_active'] ?? false) === true && (string)($c['port'] ?? '') === '3307' && (string)($c['storage_profile'] ?? '') === 'block_mysql';
+                return ($c['is_active'] ?? false) === true && (string)($c['storage_profile'] ?? '') === 'block_mysql';
             }));
         }
         if (!empty($candidates)) {
@@ -1178,19 +1240,20 @@ function dbmanager_createProvisioner(string $provUser, string $provPass, string 
     }
     $adminResult = getDatabaseConfigById($adminConfigId);
     if (!$adminResult['success']) {
-        return ['success' => false, 'message' => 'Admin config not found or inactive; select a valid admin config on 3307'];
+        return ['success' => false, 'message' => 'Admin config not found or inactive; select a valid active block_mysql admin config'];
     }
     $admin = $adminResult['config'];
     if (($admin['is_active'] ?? false) !== true) {
         return ['success' => false, 'message' => 'Admin config is inactive'];
     }
-    $host = (string)($admin['host'] ?? '127.0.0.1');
-    $port = (string)($admin['port'] ?? '3307');
-    if (!dbmanager_isAllowedBlockStorageHost($host) || $port !== '3307') {
-        return ['success' => false, 'message' => 'Admin config must use 127.0.0.1:3307'];
+    $normalizedAdmin = dbmanager_normalizeBlockMysqlEndpoint((string)($admin['host'] ?? ''), (string)($admin['port'] ?? ''));
+    $host = $normalizedAdmin['host'];
+    $port = $normalizedAdmin['port'] !== '' ? $normalizedAdmin['port'] : $preferredPort;
+    if (!dbmanager_isAllowedBlockStorageHost($host) || !in_array($port, $allowedPorts, true)) {
+        return ['success' => false, 'message' => 'Admin config must use an allowed block_mysql endpoint. Allowed hosts: ' . implode(', ', dbmanager_getAllowedBlockStorageHosts()) . '. Allowed ports: ' . implode(', ', $allowedPorts)];
     }
-    if (!dbmanager_isTcpPortReachable($host, 3307, 0.8)) {
-        return ['success' => false, 'message' => 'Port 3307 not reachable'];
+    if (!dbmanager_isTcpPortReachable($host, (int)$port, 0.8)) {
+        return ['success' => false, 'message' => 'Configured block_mysql endpoint is not reachable at ' . $host . ':' . $port];
     }
     $driver = strtolower((string)($admin['type'] ?? 'mysql'));
     if ($driver === 'mariadb') $driver = 'mysql';
@@ -1207,7 +1270,7 @@ function dbmanager_createProvisioner(string $provUser, string $provPass, string 
     try {
         $pdo = database_getConnectionFromConfig($adminCfg);
     } catch (Throwable $e) {
-        return ['success' => false, 'message' => 'Admin authentication failed on 3307'];
+        return ['success' => false, 'message' => 'Admin authentication failed on ' . $host . ':' . $port];
     }
     try {
         $u = $pdo->quote($provUser);
@@ -1224,10 +1287,10 @@ function dbmanager_createProvisioner(string $provUser, string $provPass, string 
     }
     $save = saveDatabaseConfig([
         'config_id' => uniqid('admin_', true),
-        'name' => 'DB Provisioner (3307)',
+        'name' => 'DB Provisioner (block_mysql)',
         'storage_profile' => 'block_mysql',
-        'host' => '127.0.0.1',
-        'port' => '3307',
+        'host' => $host,
+        'port' => $port,
         'database' => 'information_schema',
         'username' => $provUser,
         'password' => $provPass,
@@ -1478,8 +1541,12 @@ function saveDatabaseConfig(array $config): array {
             $host = '127.0.0.1';
         }
 
-        if ($storageProfile !== null && strpos($storageProfile, 'block_') === 0 && !dbmanager_isAllowedBlockStorageHost($host)) {
-            throw new Exception('Invalid host for block storage profile. Allowed hosts: localhost, 127.0.0.1');
+        if ($storageProfile === 'block_mysql') {
+            $normalized = dbmanager_normalizeBlockMysqlEndpoint($host, (string)($config['port'] ?? ''));
+            $host = $normalized['host'];
+            if (!dbmanager_isAllowedBlockStorageHost($host)) {
+                throw new Exception('Invalid host for block storage profile. Allowed hosts: ' . implode(', ', dbmanager_getAllowedBlockStorageHosts()));
+            }
         }
         
         if (file_exists($configsPath)) {
@@ -1955,30 +2022,31 @@ function dbmanager_createDatabaseIfMissing(?string $configId): array {
             $driver = 'mariadb';
         }
         
-        $adminHost = $admin['host'] ?? '127.0.0.1';
-        $adminPort = $admin['port'] ?? '3307';
+        $allowedPorts = dbmanager_getAllowedBlockStoragePorts();
+        $adminHost = (string)($admin['host'] ?? '');
+        $adminPort = (string)($admin['port'] ?? '');
         $adminUser = $admin['username'] ?? '';
         $adminPass = $admin['password'] ?? '';
         
         $storageProfile = $config['storage_profile'] ?? '';
-        
-        // Force block storage check if port is 3307 (Block Storage Port)
-        if (isset($config['port']) && (int)$config['port'] === 3307) {
-            $storageProfile = 'block_mysql';
+        if ($storageProfile === 'block_mysql') {
+            $normalizedAdmin = dbmanager_normalizeBlockMysqlEndpoint($adminHost, $adminPort);
+            $adminHost = $normalizedAdmin['host'];
+            $adminPort = $normalizedAdmin['port'];
         }
 
         if ($storageProfile === 'block_mysql') {
-            if ((string)$adminPort !== '3307') {
-                return ['success' => false, 'message' => 'Admin config must use port 3307 for block_mysql. Selected admin config: ' . $adminConfigId];
+            if (!in_array((string)$adminPort, $allowedPorts, true)) {
+                return ['success' => false, 'message' => 'Admin config must use an allowed block_mysql port (' . implode(', ', $allowedPorts) . '). Selected admin config: ' . $adminConfigId];
             }
             if (!dbmanager_isAllowedBlockStorageHost((string)$adminHost)) {
-                return ['success' => false, 'message' => 'Admin config must use localhost/127.0.0.1 for block_mysql. Selected admin config: ' . $adminConfigId];
+                return ['success' => false, 'message' => 'Admin config must use an allowed block_mysql host (' . implode(', ', dbmanager_getAllowedBlockStorageHosts()) . '). Selected admin config: ' . $adminConfigId];
             }
             $reachable = dbmanager_isTcpPortReachable($adminHost, (int)$adminPort, 0.8);
             if (!$reachable) {
                 $details = [];
-                $details[] = "3307 instance not running or not reachable at {$adminHost}:{$adminPort}";
-                $details[] = "Expected block storage MariaDB to be listening for block_mysql (e.g. mariadb-biometrics.service)";
+                $details[] = "Configured block_mysql endpoint not reachable at {$adminHost}:{$adminPort}";
+                $details[] = "Expected block_mysql MariaDB service to be listening on one of: " . implode(', ', $allowedPorts);
                 if (is_array($cfgStatus) && ($cfgStatus['ok'] ?? false) === true) {
                     $details[] = "db_configs.json=" . ($cfgStatus['path'] ?? '');
                     $details[] = "db_configs.exists=" . (($cfgStatus['exists'] ?? false) ? 'true' : 'false');
@@ -2008,7 +2076,7 @@ function dbmanager_createDatabaseIfMissing(?string $configId): array {
                 $details = [];
                 $details[] = 'Access denied while connecting to the target server for CREATE DATABASE';
                 $details[] = 'This uses the Admin Config (Provisioner) credentials, not the app user.';
-                $details[] = 'Ensure the admin DB user can CREATE DATABASE, CREATE USER, and GRANT on port 3307.';
+                $details[] = 'Ensure the admin DB user can CREATE DATABASE, CREATE USER, and GRANT on the configured block_mysql endpoint.';
                 $details[] = 'admin_config_id=' . $adminConfigId;
                 if (is_array($cfgStatus) && ($cfgStatus['ok'] ?? false) === true) {
                     $details[] = "db_configs.json=" . ($cfgStatus['path'] ?? '');
@@ -2036,7 +2104,7 @@ function dbmanager_createDatabaseIfMissing(?string $configId): array {
                 $details = [];
                 $details[] = 'Access denied while executing CREATE DATABASE';
                 $details[] = 'The configured user lacks CREATE DATABASE on the target MariaDB instance.';
-                $details[] = 'Create a dedicated admin DB user on port 3307 with minimum required privileges and store it as an encrypted config in db_configs.json; then run Create Database again.';
+                $details[] = 'Create a dedicated admin DB user on the active block_mysql endpoint with minimum required privileges and store it as an encrypted config in db_configs.json; then run Create Database again.';
                 return ['success' => false, 'message' => implode(' / ', $details)];
             }
             throw $e;
@@ -6144,7 +6212,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     </select>
                     <button class="btn" id="createProvisionerBtn"><i class="fas fa-user-plus"></i> Create Provisioner</button>
                 </div>
-                <p style="color:#ccc;margin-top:8px;">Creates a privileged admin account on 127.0.0.1:3307 and saves it as an encrypted configuration.</p>
+                <p style="color:#ccc;margin-top:8px;">Creates a privileged admin account on the active block_mysql MariaDB endpoint and saves it as an encrypted configuration.</p>
             </div>
 
             <!-- Table Operations -->

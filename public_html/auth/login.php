@@ -28,63 +28,10 @@ if (!headers_sent()) {
     header('Expires: 0');
 }
 
-function mh_auth_debug_emit(string $hypothesisId, string $location, string $msg, array $data = []): void {
-    // #region debug-point B:auth-debug-emit
-    $url = 'http://127.0.0.1:7777/event';
-    $sessionId = 'oidc-sso-loop';
-    $envPath = dirname(__DIR__) . '/../.dbg/oidc-sso-loop.env';
-    if (is_file($envPath)) {
-        $envRaw = (string)@file_get_contents($envPath);
-        if ($envRaw !== '') {
-            foreach (preg_split('/\r?\n/', $envRaw) ?: [] as $line) {
-                $line = trim((string)$line);
-                if ($line === '' || strpos($line, '=') === false) continue;
-                [$k, $v] = explode('=', $line, 2);
-                if ($k === 'DEBUG_SERVER_URL' && trim($v) !== '') $url = trim($v);
-                if ($k === 'DEBUG_SESSION_ID' && trim($v) !== '') $sessionId = trim($v);
-            }
-        }
-    }
-    $payload = json_encode([
-        'sessionId' => $sessionId,
-        'runId' => 'pre-fix',
-        'hypothesisId' => $hypothesisId,
-        'location' => $location,
-        'msg' => '[DEBUG] ' . $msg,
-        'data' => $data,
-        'ts' => (int)round(microtime(true) * 1000),
-    ], JSON_UNESCAPED_SLASHES);
-    if (is_string($payload) && $payload !== '') {
-        @file_get_contents($url, false, stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => "Content-Type: application/json\r\n",
-                'content' => $payload,
-                'timeout' => 1,
-                'ignore_errors' => true,
-            ],
-        ]));
-    }
-    // #endregion
-}
-
 $redirect = isset($_GET['redirect']) ? (string)$_GET['redirect'] : '';
 $redirect = trim($redirect);
 // Preserve same-origin absolute return URLs so OIDC flows can resume after login.
 // Final safety checks are applied later by mh_is_allowed_redirect()/mh_post_login_destination().
-// #region debug-point B:login-entry
-$debugSessionName = session_name();
-$debugSessionId = session_id();
-$debugCookieValue = (is_string($debugSessionName) && $debugSessionName !== '' && isset($_COOKIE[$debugSessionName]) && is_string($_COOKIE[$debugSessionName])) ? $_COOKIE[$debugSessionName] : null;
-mh_auth_debug_emit('B', 'auth/login.php:entry', 'login entry session snapshot', [
-    'redirect' => $redirect,
-    'mh_auth_user' => $_SESSION['mh_auth_user'] ?? null,
-    'session_name' => $debugSessionName,
-    'session_id' => $debugSessionId !== '' ? $debugSessionId : null,
-    'cookie_present' => $debugCookieValue !== null && $debugCookieValue !== '',
-    'cookie_matches_session' => ($debugCookieValue !== null && $debugSessionId !== '' ? hash_equals($debugSessionId, $debugCookieValue) : false),
-]);
-// #endregion
 
 function mh_contains_at_sign(string $value): bool {
     $value = trim($value);
@@ -215,15 +162,6 @@ if ($ssoData) {
 $loggedIn = (isset($_SESSION['mh_auth_user']) && is_string($_SESSION['mh_auth_user']) && trim((string)$_SESSION['mh_auth_user']) !== '');
 if ($loggedIn && $redirect && mh_is_allowed_redirect($redirect) && strpos($redirect, '/auth/login.php') !== 0 && strpos($redirect, '/auth/index.php') !== 0) {
     $dest = mh_post_login_destination($redirect);
-    // #region debug-point D:login-redirect-out
-    mh_auth_debug_emit('D', 'auth/login.php:redirect', 'login page sees authenticated session and is redirecting out', [
-        'mh_auth_user' => $_SESSION['mh_auth_user'] ?? null,
-        'redirect' => $redirect,
-        'dest' => $dest,
-        'session_name' => $debugSessionName,
-        'session_id' => $debugSessionId !== '' ? $debugSessionId : null,
-    ]);
-    // #endregion
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_write_close();
     }
@@ -271,6 +209,40 @@ function mh_is_allowed_redirect(string $redirect): bool {
     return substr($host, -strlen('.metahumans.one')) === '.metahumans.one';
 }
 
+function mh_is_interactive_post_login_destination(string $candidate): bool {
+    $candidate = trim($candidate);
+    if ($candidate === '' || $candidate[0] !== '/') {
+        return false;
+    }
+
+    $parts = parse_url($candidate);
+    $path = is_array($parts) ? (string)($parts['path'] ?? '') : $candidate;
+    if ($path === '' || $path[0] !== '/') {
+        return false;
+    }
+    if (strpos($path, '/auth/') === 0 || strpos($path, '/hub/widget/') === 0) {
+        return false;
+    }
+    if ($path === '/hub/notices.php') {
+        return false;
+    }
+
+    $query = [];
+    if (is_array($parts) && isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== '') {
+        parse_str($parts['query'], $query);
+        if (!is_array($query)) {
+            $query = [];
+        }
+    }
+    foreach (['ajax', 'b2_jobs', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
+        if (array_key_exists($blockedKey, $query)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function mh_post_login_destination(string $redirect): string {
     $redirect = trim($redirect);
     $candidate = '';
@@ -285,12 +257,12 @@ function mh_post_login_destination(string $redirect): string {
             }
         }
     }
-    if ($candidate !== '' && strpos($candidate, '/hub/widget/') !== 0 && strpos($candidate, '/hub/widget/') === false) {
+    if ($candidate !== '' && mh_is_interactive_post_login_destination($candidate)) {
         return $candidate;
     }
 
     $last = isset($_SESSION['mh_last_page']) ? trim((string)$_SESSION['mh_last_page']) : '';
-    if ($last !== '' && $last[0] === '/' && strpos($last, '/auth/') !== 0 && strpos($last, '/hub/widget/') !== 0) {
+    if ($last !== '' && mh_is_interactive_post_login_destination($last)) {
         return $last;
     }
     return '/hub/index.php';

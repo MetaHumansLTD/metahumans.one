@@ -832,7 +832,7 @@ if (!defined('CUE_CLI_MODE') && php_sapi_name() !== 'cli') {
         $u = isset($_SESSION['mh_auth_user']) ? trim((string)$_SESSION['mh_auth_user']) : '';
         if ($u !== '') {
             $uri = isset($_SERVER['REQUEST_URI']) ? trim((string)$_SERVER['REQUEST_URI']) : '';
-            if ($uri !== '' && $uri[0] === '/' && strpos($uri, '/auth/') !== 0 && strpos($uri, '/hub/widget/') !== 0) {
+            if (mh_is_interactive_last_page($uri)) {
                 $_SESSION['mh_last_page'] = $uri;
             }
         }
@@ -1124,6 +1124,40 @@ function loadContextualModules(): void {
     if (function_exists('mh_remember_me_middleware')) {
         mh_remember_me_middleware();
     }
+}
+
+function mh_is_interactive_last_page(string $uri): bool {
+    $uri = trim($uri);
+    if ($uri === '' || $uri[0] !== '/') {
+        return false;
+    }
+
+    $parts = parse_url($uri);
+    $path = is_array($parts) ? (string)($parts['path'] ?? '') : $uri;
+    if ($path === '' || $path[0] !== '/') {
+        return false;
+    }
+    if (strpos($path, '/auth/') === 0 || strpos($path, '/hub/widget/') === 0) {
+        return false;
+    }
+    if ($path === '/hub/notices.php') {
+        return false;
+    }
+
+    $query = [];
+    if (is_array($parts) && isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== '') {
+        parse_str($parts['query'], $query);
+        if (!is_array($query)) {
+            $query = [];
+        }
+    }
+    foreach (['ajax', 'b2_jobs', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
+        if (array_key_exists($blockedKey, $query)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function mh_manual_logout_guard_active(): bool {

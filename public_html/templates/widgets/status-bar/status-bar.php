@@ -34,20 +34,22 @@ $realmData = null;
 
 if ($currentRealmId && function_exists('cue_autoload')) {
     try {
-        // Only attempt database operations if framework is available
-        if (cue_autoload('database')) {
-            if (function_exists('database_getConnectionById')) {
-                $db = database_getConnectionById('onemeta_ldap');
-            } else {
-                $db = cue_autoload('database')->getConnectionById('onemeta_ldap');
-            }
-            
-            // Check if realms table exists
-            $tables = $db->query("SHOW TABLES LIKE 'realms'")->fetchAll();
-            if (!empty($tables)) {
-                $stmt = $db->prepare("SELECT name, color FROM realms WHERE id = ?");
-                $stmt->execute([$currentRealmId]);
-                $realmData = $stmt->fetch(PDO::FETCH_ASSOC);
+        $navManagerPath = dirname(__DIR__, 2) . '/menus/navigation-database-manager.php';
+        if (is_file($navManagerPath)) {
+            require_once $navManagerPath;
+        }
+
+        if (class_exists('NavigationDatabaseManager')) {
+            $navigator = new NavigationDatabaseManager();
+            $realms = $navigator->getRealms();
+            if (is_object($realms) && isset($realms->$currentRealmId)) {
+                $realm = $realms->$currentRealmId;
+                if (is_object($realm)) {
+                    $realmData = [
+                        'name' => isset($realm->name) ? (string)$realm->name : '',
+                        'color' => isset($realm->color) ? (string)$realm->color : '',
+                    ];
+                }
             }
         }
     } catch (Exception $e) {
