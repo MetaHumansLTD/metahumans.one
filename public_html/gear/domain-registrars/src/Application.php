@@ -34,6 +34,10 @@ final class Application
      * @var array<string, Database>
      */
     private array $tenantDatabases = [];
+    /**
+     * @var array<string, bool>
+     */
+    private array $tenantSchemaLoaded = [];
     private ?ProviderAccountRepository $providerAccountRepository = null;
     private ?CustomerRepository $customerRepository = null;
     private ?DomainRepository $domainRepository = null;
@@ -70,11 +74,18 @@ final class Application
     {
         $cacheKey = $configIdOverride ?? '__default__';
 
-        return $this->tenantDatabases[$cacheKey] ??= new Database(
+        $database = $this->tenantDatabases[$cacheKey] ??= new Database(
             $configIdOverride === null
                 ? ConnectionFactory::tenant($this->config())
                 : ConnectionFactory::tenantByConfigId($this->config(), $configIdOverride),
         );
+
+        if (!($this->tenantSchemaLoaded[$cacheKey] ?? false)) {
+            (new SchemaLoader($database, $this->rootPath . '/database/tenant-schema.sql'))->load();
+            $this->tenantSchemaLoaded[$cacheKey] = true;
+        }
+
+        return $database;
     }
 
     public function database(): Database
