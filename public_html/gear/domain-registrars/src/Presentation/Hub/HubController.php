@@ -48,9 +48,9 @@ final class HubController
     {
         $basePath = $this->basePath();
         $search = trim((string) ($query['q'] ?? ''));
+        $tenantContext = $this->app->tenantContext();
         $results = $search === '' ? [] : $this->searchDomains($search);
         $recentOrders = $this->app->orderRepository()->listRecent(3);
-        $tenantContext = $this->app->tenantContext();
         $contextMarkup = $this->renderTenantContextSummary($tenantContext);
 
         $resultsMarkup = '';

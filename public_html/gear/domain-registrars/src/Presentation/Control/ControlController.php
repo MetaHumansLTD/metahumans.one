@@ -25,6 +25,8 @@ final class ControlController
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains(),
             ['/tasks', 'GET'] => $this->renderTasks(),
+            ['/providers/coza', 'GET'] => $this->renderCozaSettings($query),
+            ['/providers/coza', 'POST'] => $this->handleCozaSettingsSave($post),
             ['/tasks/enqueue', 'POST'] => $this->handleTaskEnqueue($post),
             default => $this->renderNotFound(),
         };
@@ -125,6 +127,7 @@ final class ControlController
       <h1>Operational dashboard</h1>
       <p class="muted">Queue provider work, review recent orders, and keep the registrar service moving.</p>
     </div>
+    <a href="/providers/coza">.co.za settings</a>
   </div>
   <div class="action-grid">
     {$this->taskForm('sync_pricing', 'pricing', 'Queue pricing sync')}
@@ -212,6 +215,168 @@ HTML;
         );
 
         return $this->layout('Tasks', '<section class="panel"><div class="panel-head"><h1>Tasks</h1><a href="/">Back to dashboard</a></div>' . $rows . '</section>');
+    }
+
+    private function renderCozaSettings(array $query): string
+    {
+        $flash = trim((string) ($query['flash'] ?? ''));
+        $providerAccount = $this->app->providerAccount('coza');
+        $saved = $this->app->providerStoredConfig('coza');
+        $effective = $this->app->providerEffectiveConfig('coza');
+        $certOptions = $this->certFileOptions();
+        $certPath = $this->displayConfigValue($saved, $effective, 'cert_path');
+        $caFile = $this->displayConfigValue($saved, $effective, 'ca_file');
+        $pricingJson = $this->displayConfigValue($saved, $effective, 'pricing_json');
+        $timeout = (string) ($this->displayConfigValue($saved, $effective, 'timeout') ?: '30');
+        $secretRef = trim((string) ($providerAccount['credentials_secret_ref'] ?? ''));
+        $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
+        $isActive = (bool) ($providerAccount['is_active'] ?? true);
+        $verifyPeer = array_key_exists('verify_peer', $saved)
+            ? (bool) $saved['verify_peer']
+            : (bool) ($effective['verify_peer'] ?? true);
+        $resolvedCertPath = $this->resolvedPathPreview($certPath);
+        $resolvedCaPath = $this->resolvedPathPreview($caFile);
+        $readiness = $this->cozaReadinessSummary($effective);
+        $cozaSecretSet = $secretRef === '' ? 'metahumans-coza-provider' : $secretRef;
+        $certificateSecretSet = 'metahumans-coza-certificates';
+        $cozaSecretKeys = [
+            'COZA_HOST',
+            'COZA_PORT',
+            'COZA_USERNAME',
+            'COZA_PASSWORD',
+            'COZA_CLIENT_ID',
+            'COZA_LOGIN_OBJECT_URIS',
+            'COZA_LOGIN_EXTENSION_URIS',
+        ];
+        $netearthoneSecretSet = 'metahumans-netearthone-provider';
+        $netearthoneSecretKeys = [
+            'NETEARTHONE_API_BASE_URL',
+            'NETEARTHONE_AUTH_USER_ID',
+            'NETEARTHONE_API_KEY',
+            'NETEARTHONE_TIMEOUT',
+            'NETEARTHONE_PRICING_JSON',
+            'NETEARTHONE_DEFAULT_CUSTOMER_ID',
+            'NETEARTHONE_DEFAULT_INVOICE_OPTION',
+        ];
+        $cozaSecretKeyMarkup = $this->renderTokenList($cozaSecretKeys);
+        $netearthoneSecretKeyMarkup = $this->renderTokenList($netearthoneSecretKeys);
+        $certificateFileMarkup = $this->renderTokenList($certOptions);
+
+        $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $readinessItems = implode('', array_map(
+            fn (string $item): string => '<li>' . $this->escape($item) . '</li>',
+            $readiness['items'],
+        ));
+
+        $body = <<<HTML
+{$flashMarkup}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Provider Settings</p>
+      <h1>.co.za EPP connection</h1>
+      <p class="muted">Complete provider credentials in Northflank secret sets under <code>metahumans</code>. This screen stores only non-sensitive runtime settings and secret references.</p>
+    </div>
+    <a href="/">Back to dashboard</a>
+  </div>
+  <div class="settings-grid">
+    <article class="info-card">
+      <h2>Current Status</h2>
+      <p class="status-pill">{$this->escape($readiness['label'])}</p>
+      <ul class="info-list">{$readinessItems}</ul>
+      <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? '.co.za'))}</p>
+      <p class="muted">Environment: {$this->escape($environment)}</p>
+      <p class="muted">Provider secret set: <code>{$this->escape($cozaSecretSet)}</code></p>
+      <p class="muted">Certificate secret set: <code>{$this->escape($certificateSecretSet)}</code></p>
+      <p class="muted">Repo cert folder: <code>cert/</code></p>
+      <p class="muted">Resolved cert path: <code>{$this->escape($resolvedCertPath ?? 'Not set')}</code></p>
+      <p class="muted">Resolved CA file: <code>{$this->escape($resolvedCaPath ?? 'Not set')}</code></p>
+    </article>
+    <article class="info-card">
+      <h2>Northflank Secret Sets</h2>
+      <p class="muted">Create these secret sets in the <code>metahumans</code> project and mount them on control and worker.</p>
+      <p class="muted"><strong>.co.za provider:</strong> <code>{$this->escape($cozaSecretSet)}</code></p>
+      <div class="token-list">{$cozaSecretKeyMarkup}</div>
+      <p class="muted" style="margin-top: 14px;"><strong>.co.za certificates:</strong> <code>{$this->escape($certificateSecretSet)}</code></p>
+      <div class="token-list">{$certificateFileMarkup}</div>
+      <p class="muted" style="margin-top: 14px;"><strong>NetEarthOne provider:</strong> <code>{$this->escape($netearthoneSecretSet)}</code></p>
+      <div class="token-list">{$netearthoneSecretKeyMarkup}</div>
+    </article>
+  </div>
+  <form method="post" action="/providers/coza" class="settings-form">
+    <div class="form-grid">
+      <label>
+        <span>Timeout (seconds)</span>
+        <input type="number" name="timeout" min="5" max="300" value="{$this->escape($timeout)}" required>
+      </label>
+      <label>
+        <span>Certificate Path</span>
+        <input type="text" name="cert_path" value="{$this->escape($certPath)}" placeholder="cert/client.pem or mounted absolute path">
+      </label>
+      <label>
+        <span>CA File</span>
+        <input type="text" name="ca_file" value="{$this->escape($caFile)}" placeholder="cert/ca.pem or mounted absolute path">
+      </label>
+      <label>
+        <span>Pricing JSON Path</span>
+        <input type="text" name="pricing_json" value="{$this->escape($pricingJson)}" placeholder="config/pricing/coza.custom.json">
+      </label>
+      <label>
+        <span>Environment</span>
+        <select name="environment">
+          <option value="production"{$this->selected($environment, 'production')}>Production</option>
+          <option value="sandbox"{$this->selected($environment, 'sandbox')}>Sandbox</option>
+          <option value="staging"{$this->selected($environment, 'staging')}>Staging</option>
+        </select>
+      </label>
+      <label>
+        <span>Provider Secret Set Ref</span>
+        <input type="text" name="credentials_secret_ref" value="{$this->escape($cozaSecretSet)}" placeholder="metahumans-coza-provider">
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="verify_peer" value="1"{$this->checked($verifyPeer)}>
+        <span>Verify TLS peer certificate</span>
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="is_active" value="1"{$this->checked($isActive)}>
+        <span>Provider account is active</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Save Non-Sensitive Settings</button>
+    </div>
+  </form>
+</section>
+HTML;
+
+        return $this->layout('.co.za Settings', $body);
+    }
+
+    private function handleCozaSettingsSave(array $post): string
+    {
+        $providerAccount = $this->app->providerAccount('coza');
+
+        $config = [
+            'cert_path' => $this->normalizeProjectPathInput($post['cert_path'] ?? null),
+            'ca_file' => $this->normalizeProjectPathInput($post['ca_file'] ?? null),
+            'verify_peer' => isset($post['verify_peer']) && (string) $post['verify_peer'] === '1',
+            'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
+            'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
+        ];
+
+        $this->app->providerAccountRepository()->updateSettings(
+            (string) $providerAccount['id'],
+            [
+                'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
+                'environment' => $post['environment'] ?? 'production',
+                'credentials_secret_ref' => $post['credentials_secret_ref'] ?? null,
+            ],
+            $config,
+        );
+
+        header('Location: /providers/coza?flash=' . rawurlencode('.co.za settings saved.'));
+
+        return '';
     }
 
     private function handleTaskEnqueue(array $post): string
@@ -352,6 +517,7 @@ HTML;
     </div>
     <nav>
       <a href="/">Dashboard</a>
+      <a href="/providers/coza">.co.za Settings</a>
       <a href="/orders">Orders</a>
       <a href="/domains">Domains</a>
       <a href="/tasks">Tasks</a>
@@ -430,5 +596,153 @@ HTML;
             'netearthone' => 'NetEarthOne',
             default => $providerCode === '' ? '-' : ucfirst($providerCode),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $saved
+     * @param array<string, mixed> $effective
+     */
+    private function displayConfigValue(array $saved, array $effective, string $key): string
+    {
+        $value = array_key_exists($key, $saved) ? $saved[$key] : ($effective[$key] ?? '');
+
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function certFileOptions(): array
+    {
+        $certRoot = $this->app->projectRootPath() . '/cert';
+        if (! is_dir($certRoot)) {
+            return [];
+        }
+
+        $items = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($certRoot, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file instanceof \SplFileInfo || ! $file->isFile()) {
+                continue;
+            }
+
+            $absolutePath = str_replace('\\', '/', $file->getPathname());
+            $projectRoot = str_replace('\\', '/', $this->app->projectRootPath()) . '/';
+            if (str_starts_with($absolutePath, $projectRoot)) {
+                $items[] = substr($absolutePath, strlen($projectRoot));
+            }
+        }
+
+        sort($items);
+
+        return array_values(array_unique($items));
+    }
+
+    /**
+     * @return array{label: string, items: list<string>}
+     */
+    private function cozaReadinessSummary(array $config): array
+    {
+        $items = [];
+        $requiredKeys = [
+            'host' => 'Host configured',
+            'username' => 'Username configured',
+            'password' => 'Password configured',
+            'client_id' => 'Client ID configured',
+            'cert_path' => 'Certificate path configured',
+        ];
+
+        foreach ($requiredKeys as $key => $label) {
+            if ($this->nullableString($config[$key] ?? null) !== null) {
+                $items[] = $label;
+            }
+        }
+
+        $status = count($items) >= count($requiredKeys) ? 'Ready for EPP login' : 'Needs more connection details';
+
+        if ($this->nullableString($config['ca_file'] ?? null) !== null) {
+            $items[] = 'CA file configured';
+        }
+        $items[] = ! empty($config['verify_peer']) ? 'TLS peer verification is enabled' : 'TLS peer verification is disabled';
+
+        return [
+            'label' => $status,
+            'items' => $items,
+        ];
+    }
+
+    private function renderTokenList(array $items): string
+    {
+        if ($items === []) {
+            return '<p class="muted">No certificate files were found in <code>cert/</code> yet.</p>';
+        }
+
+        return implode('', array_map(
+            fn (string $item): string => '<span class="token-item">' . $this->escape($item) . '</span>',
+            $items,
+        ));
+    }
+
+    private function normalizeProjectPathInput(mixed $value): ?string
+    {
+        $path = $this->nullableString($value);
+        if ($path === null) {
+            return null;
+        }
+
+        $normalized = str_replace('\\', '/', $path);
+        $projectRoot = str_replace('\\', '/', $this->app->projectRootPath());
+
+        if (preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) === 1 || str_starts_with($normalized, '/')) {
+            if (str_starts_with($normalized, $projectRoot . '/')) {
+                return ltrim(substr($normalized, strlen($projectRoot)), '/');
+            }
+
+            return $normalized;
+        }
+
+        if (str_starts_with($normalized, $projectRoot . '/')) {
+            return ltrim(substr($normalized, strlen($projectRoot)), '/');
+        }
+
+        return ltrim($normalized, '/');
+    }
+
+    private function resolvedPathPreview(?string $path): ?string
+    {
+        $value = $this->nullableString($path);
+        if ($value === null) {
+            return null;
+        }
+
+        if (preg_match('/^[A-Za-z]:[\\\\\\/]/', $value) === 1 || str_starts_with($value, '/')) {
+            return $value;
+        }
+
+        return str_replace('\\', '/', $this->app->projectRootPath()) . '/' . ltrim(str_replace('\\', '/', $value), '/');
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function checked(bool $value): string
+    {
+        return $value ? ' checked' : '';
+    }
+
+    private function selected(string $value, string $option): string
+    {
+        return $value === $option ? ' selected' : '';
     }
 }

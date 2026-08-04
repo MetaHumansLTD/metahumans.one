@@ -34,8 +34,10 @@ service:
       - app-secrets
       - database-secrets
       - redis-secrets
-      - provider-secrets
-      - coza-certificates
+      - metahumans-coza-provider
+      - metahumans-netearthone-provider
+      - metahumans-coza-certificates
   notes:
     - Keep this service behind strong authentication and tighter access rules.
     - Use control for sync diagnostics, pricing, conflict review, and manual actions.
+    - Provider credentials must come from mounted secret sets, not `.env` files or app-managed settings.

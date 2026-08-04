@@ -40,6 +40,73 @@ if (!function_exists('mh_load_biometrics_user')) {
                     if ($emailHint !== '') {
                         $_SESSION['mh_auth_email'] = $emailHint;
                     }
+                    $tenantId = isset($_SESSION['mh_tenant_id']) && is_string($_SESSION['mh_tenant_id'])
+                        ? trim((string)$_SESSION['mh_tenant_id'])
+                        : '';
+                    $hasDbPreference = (
+                        (isset($_SESSION['mh_db_preference']) && is_string($_SESSION['mh_db_preference']) && trim((string)$_SESSION['mh_db_preference']) !== '')
+                        || (isset($_SESSION['current_database_config_id']) && is_string($_SESSION['current_database_config_id']) && trim((string)$_SESSION['current_database_config_id']) !== '')
+                    );
+
+                    if ($tenantId === '' || !$hasDbPreference) {
+                        try {
+                            if (function_exists('mh_auth_user_store_pdo')) {
+                                $pdoBio = mh_auth_user_store_pdo();
+                                $stmt = $pdoBio->prepare("SELECT id, name, persona_name, tenant_id, role, permissions, `groups`, email, device_id, genesis_status, tokens, token_usage FROM users WHERE username = ? LIMIT 1");
+                                $stmt->execute([$username]);
+                                $tenantUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                                if (is_array($tenantUser)) {
+                                    $tenantId = isset($tenantUser['tenant_id']) ? trim((string)$tenantUser['tenant_id']) : $tenantId;
+                                    if ($tenantId === '') {
+                                        $tenantId = 'user:' . $username;
+                                    }
+
+                                    $_SESSION['mh_user_internal_id'] = $tenantUser['id'] ?? ($_SESSION['mh_user_internal_id'] ?? null);
+                                    $_SESSION['mh_auth_persona'] = $tenantUser['persona_name'] ?? ($_SESSION['mh_auth_persona'] ?? null);
+                                    $_SESSION['mh_auth_display'] = (isset($tenantUser['persona_name']) && trim((string)$tenantUser['persona_name']) !== '')
+                                        ? (string)$tenantUser['persona_name']
+                                        : ((isset($tenantUser['name']) && trim((string)$tenantUser['name']) !== '') ? (string)$tenantUser['name'] : ($_SESSION['mh_auth_display'] ?? $username));
+                                    $_SESSION['mh_auth_permissions'] = $tenantUser['permissions'] ?? ($_SESSION['mh_auth_permissions'] ?? null);
+                                    $_SESSION['mh_auth_groups'] = $tenantUser['groups'] ?? ($_SESSION['mh_auth_groups'] ?? null);
+                                    $_SESSION['mh_auth_email'] = (isset($tenantUser['email']) && trim((string)$tenantUser['email']) !== '')
+                                        ? (string)$tenantUser['email']
+                                        : ($_SESSION['mh_auth_email'] ?? null);
+                                    $_SESSION['mh_device_id'] = $tenantUser['device_id'] ?? ($_SESSION['mh_device_id'] ?? null);
+                                    $_SESSION['mh_genesis_status'] = $tenantUser['genesis_status'] ?? ($_SESSION['mh_genesis_status'] ?? 0);
+                                    $_SESSION['tokens'] = $tenantUser['tokens'] ?? ($_SESSION['tokens'] ?? 0);
+                                    $_SESSION['token_usage'] = $tenantUser['token_usage'] ?? ($_SESSION['token_usage'] ?? 0);
+
+                                    $rawRole = (string)($tenantUser['role'] ?? '');
+                                    if ($rawRole !== '') {
+                                        $_SESSION['mh_auth_role'] = (stripos($rawRole, 'kripzmaster') !== false) ? 'KripzMasters' : 'Users';
+                                    }
+                                }
+                            }
+                        } catch (Throwable) {
+                        }
+                    }
+
+                    if ($tenantId === '') {
+                        $tenantId = 'user:' . $username;
+                    }
+
+                    $_SESSION['mh_tenant_id'] = $tenantId;
+                    if (!isset($_SESSION['mh_persona_tenant_id']) && isset($_SESSION['mh_auth_persona']) && is_string($_SESSION['mh_auth_persona']) && trim((string)$_SESSION['mh_auth_persona']) !== '') {
+                        $_SESSION['mh_persona_tenant_id'] = 'persona:' . trim((string)$_SESSION['mh_auth_persona']);
+                    }
+
+                    try {
+                        if (function_exists('mh_provision_tenant_storage')) {
+                            mh_provision_tenant_storage($tenantId);
+                        }
+                        if (function_exists('mh_apply_tenant_context')) {
+                            mh_apply_tenant_context($tenantId);
+                        }
+                    } catch (Throwable $e) {
+                        error_log('Tenant context apply skipped: ' . $e->getMessage());
+                    }
+
                     if (function_exists('mh_get_token_balance')) {
                         $bal = mh_get_token_balance($username);
                         if (is_int($bal)) {

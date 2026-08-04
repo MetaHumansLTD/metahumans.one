@@ -30,8 +30,9 @@ service:
       - app-secrets
       - database-secrets
       - redis-secrets
-      - provider-secrets
-      - coza-certificates
+      - metahumans-coza-provider
+      - metahumans-netearthone-provider
+      - metahumans-coza-certificates
   schedules:
     - job: sync_domain_portfolio
       cron: "0 */6 * * *"
@@ -44,3 +45,4 @@ service:
   notes:
     - This service owns upstream provider communication, sync jobs, and retries.
     - Keep long-running or provider-sensitive work out of hub and control.
+    - Provider credentials must come from mounted secret sets, not `.env` files or app-managed settings.

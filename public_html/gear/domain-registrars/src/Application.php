@@ -60,6 +60,11 @@ final class Application
         return $this->rootPath;
     }
 
+    public function projectRootPath(): string
+    {
+        return dirname($this->rootPath, 3);
+    }
+
     public function config(): AppConfig
     {
         return $this->config ??= new AppConfig();
@@ -106,6 +111,36 @@ final class Application
     public function providerAccountRepository(): ProviderAccountRepository
     {
         return $this->providerAccountRepository ??= new ProviderAccountRepository($this->sharedDatabase());
+    }
+
+    public function providerAccount(string $code): array
+    {
+        $metadata = $this->providerAccountMetadata($code);
+
+        return $this->providerAccountRepository()->getOrCreate(
+            $code,
+            $metadata['display_name'],
+            $metadata['driver_class'],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function providerStoredConfig(string $code): array
+    {
+        return $this->providerAccountRepository()->decodeConfig($this->providerAccount($code));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function providerEffectiveConfig(string $code): array
+    {
+        return match ($code) {
+            'coza' => $this->cozaEffectiveConfig(),
+            default => [],
+        };
     }
 
     public function customerRepository(): CustomerRepository
@@ -187,24 +222,26 @@ final class Application
 
     public function provider(string $code): object
     {
+        $cozaConfig = $code === 'coza' ? $this->providerEffectiveConfig('coza') : [];
+
         return match ($code) {
             'coza' => new CoZaProvider(
                 new EppClient(
-                    host: $this->config()->string('COZA_HOST'),
-                    port: $this->config()->int('COZA_PORT', 700),
-                    username: $this->config()->string('COZA_USERNAME'),
-                    password: $this->config()->string('COZA_PASSWORD'),
-                    clientId: $this->config()->string('COZA_CLIENT_ID', $this->config()->string('COZA_USERNAME')),
-                    certificatePath: $this->config()->nullableString('COZA_CERT_PATH'),
-                    certificatePassphrase: $this->config()->nullableString('COZA_CERT_PASSPHRASE'),
-                    caFile: $this->config()->nullableString('COZA_CA_FILE'),
-                    verifyPeer: $this->config()->bool('COZA_VERIFY_PEER', true),
-                    timeoutSeconds: $this->config()->int('COZA_TIMEOUT', 30),
-                    objectUris: $this->config()->csv('COZA_LOGIN_OBJECT_URIS'),
-                    extensionUris: $this->config()->csv('COZA_LOGIN_EXTENSION_URIS'),
+                    host: (string) ($cozaConfig['host'] ?? ''),
+                    port: (int) ($cozaConfig['port'] ?? 700),
+                    username: (string) ($cozaConfig['username'] ?? ''),
+                    password: (string) ($cozaConfig['password'] ?? ''),
+                    clientId: (string) ($cozaConfig['client_id'] ?? ''),
+                    certificatePath: $this->resolveWorkspacePath($this->nullableConfigString($cozaConfig['cert_path'] ?? null)),
+                    certificatePassphrase: $this->nullableConfigString($cozaConfig['cert_passphrase'] ?? null),
+                    caFile: $this->resolveWorkspacePath($this->nullableConfigString($cozaConfig['ca_file'] ?? null)),
+                    verifyPeer: (bool) ($cozaConfig['verify_peer'] ?? true),
+                    timeoutSeconds: (int) ($cozaConfig['timeout'] ?? 30),
+                    objectUris: is_array($cozaConfig['login_object_uris'] ?? null) ? $cozaConfig['login_object_uris'] : [],
+                    extensionUris: is_array($cozaConfig['login_extension_uris'] ?? null) ? $cozaConfig['login_extension_uris'] : [],
                 ),
                 $this->rootPath . '/config/pricing/coza.sample.json',
-                $this->config()->nullableString('COZA_PRICING_JSON'),
+                $this->resolveWorkspacePath($this->nullableConfigString($cozaConfig['pricing_json'] ?? null)),
             ),
             'netearthone' => new NetEarthOneProvider(
                 new NetEarthOneApiClient(
@@ -227,6 +264,105 @@ final class Application
         $value = $_SESSION[$key] ?? null;
 
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * @return array{display_name: string, driver_class: string}
+     */
+    private function providerAccountMetadata(string $code): array
+    {
+        return match ($code) {
+            'coza' => [
+                'display_name' => '.co.za',
+                'driver_class' => CoZaProvider::class,
+            ],
+            'netearthone' => [
+                'display_name' => 'NetEarthOne',
+                'driver_class' => NetEarthOneProvider::class,
+            ],
+            default => throw new RuntimeException(sprintf('Unknown provider "%s".', $code)),
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cozaEffectiveConfig(): array
+    {
+        $stored = $this->providerStoredConfig('coza');
+        $defaultObjectUris = [
+            'urn:ietf:params:xml:ns:domain-1.0',
+            'urn:ietf:params:xml:ns:contact-1.0',
+            'urn:ietf:params:xml:ns:host-1.0',
+        ];
+
+        $resolved = array_replace(
+            [
+                'host' => $this->config()->nullableString('COZA_HOST'),
+                'port' => $this->config()->int('COZA_PORT', 700),
+                'username' => $this->config()->nullableString('COZA_USERNAME'),
+                'password' => $this->config()->nullableString('COZA_PASSWORD'),
+                'client_id' => $this->config()->nullableString('COZA_CLIENT_ID') ?? $this->config()->nullableString('COZA_USERNAME'),
+                'cert_path' => $this->config()->nullableString('COZA_CERT_PATH'),
+                'cert_passphrase' => $this->config()->nullableString('COZA_CERT_PASSPHRASE'),
+                'ca_file' => $this->config()->nullableString('COZA_CA_FILE'),
+                'verify_peer' => $this->config()->bool('COZA_VERIFY_PEER', true),
+                'timeout' => $this->config()->int('COZA_TIMEOUT', 30),
+                'login_object_uris' => $this->config()->csv('COZA_LOGIN_OBJECT_URIS'),
+                'login_extension_uris' => $this->config()->csv('COZA_LOGIN_EXTENSION_URIS'),
+                'pricing_json' => $this->config()->nullableString('COZA_PRICING_JSON'),
+            ],
+            array_intersect_key($stored, array_flip([
+                'verify_peer',
+                'timeout',
+                'cert_path',
+                'ca_file',
+                'pricing_json',
+            ])),
+        );
+
+        if (! is_array($resolved['login_object_uris'] ?? null) || $resolved['login_object_uris'] === []) {
+            $resolved['login_object_uris'] = $defaultObjectUris;
+        }
+
+        if (! is_array($resolved['login_extension_uris'] ?? null)) {
+            $resolved['login_extension_uris'] = [];
+        }
+
+        $resolved['client_id'] = $this->nullableConfigString($resolved['client_id'] ?? null)
+            ?? $this->nullableConfigString($resolved['username'] ?? null);
+
+        return $resolved;
+    }
+
+    private function resolveWorkspacePath(?string $path): ?string
+    {
+        $trimmed = $this->nullableConfigString($path);
+        if ($trimmed === null) {
+            return null;
+        }
+
+        if ($this->isAbsolutePath($trimmed)) {
+            return $trimmed;
+        }
+
+        return $this->projectRootPath() . '/' . ltrim(str_replace('\\', '/', $trimmed), '/');
+    }
+
+    private function nullableConfigString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) === 1 || str_starts_with($path, '/');
     }
 
 }

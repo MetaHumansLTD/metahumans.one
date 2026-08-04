@@ -76,7 +76,19 @@ function mh_isUserLoggedInForRegistration() {
 }
 
 $currentUser = $_SESSION['mh_auth_user'] ?? ($_SERVER['HTTP_AUTH_USER'] ?? ($_SERVER['REMOTE_USER'] ?? null));
-$registrationLocked = mh_isUserLoggedInForRegistration();
+$currentUser = is_string($currentUser) ? trim($currentUser) : '';
+$allowLoggedInAddDevice = false;
+if ($currentUser !== '') {
+    $allowLoggedInAddDevice = isset($_GET['add_device']) && (string)$_GET['add_device'] === '1';
+}
+if (session_status() === PHP_SESSION_ACTIVE) {
+    if ($allowLoggedInAddDevice) {
+        $_SESSION['mh_allow_logged_in_add_device_for'] = $currentUser;
+    } else {
+        unset($_SESSION['mh_allow_logged_in_add_device_for']);
+    }
+}
+$registrationLocked = mh_isUserLoggedInForRegistration() && !$allowLoggedInAddDevice;
 
 function auth_json_response(array $data, int $statusCode = 200): void {
     if (!headers_sent()) {
@@ -152,12 +164,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'verify_pin_and_start_add_device') {
-            if ($registrationLocked) {
+            $username = trim((string)($input['username'] ?? ''));
+            $pin = trim((string)($input['pin'] ?? ''));
+            $allowedLoggedInUser = isset($_SESSION['mh_allow_logged_in_add_device_for']) && is_string($_SESSION['mh_allow_logged_in_add_device_for'])
+                ? trim((string)$_SESSION['mh_allow_logged_in_add_device_for'])
+                : '';
+            $isAllowedLoggedInAddDevice = (
+                $allowedLoggedInUser !== ''
+                && $currentUser !== ''
+                && strcasecmp($allowedLoggedInUser, $username) === 0
+                && strcasecmp($currentUser, $username) === 0
+            );
+            if ($registrationLocked && !$isAllowedLoggedInAddDevice) {
                 auth_json_response(['success' => false, 'error' => 'registration_locked', 'message' => 'You are already signed in.'], 403);
                 exit;
             }
-            $username = trim((string)($input['username'] ?? ''));
-            $pin = trim((string)($input['pin'] ?? ''));
 
             if ($username === '' || $pin === '') {
                 auth_json_response(['success' => false, 'error' => 'missing_fields'], 400);
@@ -633,6 +654,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pinBackup->setPinForUser($username, $pin);
 
             unset($_SESSION['mh_reg_username'], $_SESSION['mh_reg_display'], $_SESSION['mh_reg_pin'], $_SESSION['mh_reg_first'], $_SESSION['mh_reg_last']);
+            unset($_SESSION['mh_allow_logged_in_add_device_for']);
             
             // Auto-login after registration
             $_SESSION['mh_auth_display'] = $displayName;
@@ -899,19 +921,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span class="mh-auth-pill-dot"></span>
                     <span>Meta Humans Identity</span>
                 </div>
-                <h1 class="mh-auth-title">Register New Identity</h1>
+                <h1 class="mh-auth-title"><?php echo $allowLoggedInAddDevice ? 'Add This Device' : 'Register New Identity'; ?></h1>
                 <p class="mh-auth-subtitle">
-                    Create a passkey bound to this device and a secure PIN fallback.
+                    <?php if ($allowLoggedInAddDevice): ?>
+                        Add a new passkey on this device for <strong><?php echo htmlspecialchars($currentUser, ENT_QUOTES, 'UTF-8'); ?></strong>. Enter your PIN to verify it is you.
+                    <?php else: ?>
+                        Create a passkey bound to this device and a secure PIN fallback.
+                    <?php endif; ?>
                 </p>
                 <form id="registrationForm" class="mh-auth-form" autocomplete="off">
                     <input type="text" id="regWebsite" name="website" value="" style="display:none" tabindex="-1" autocomplete="off">
-                    <div class="mh-auth-field-group">
+                    <div class="mh-auth-field-group" style="<?php echo $allowLoggedInAddDevice ? 'display:none;' : ''; ?>">
                         <label>Real Name</label>
                         <div class="mh-auth-input-shell">
                             <input type="text" id="regFirstName" name="firstName" autocomplete="given-name" required>
                         </div>
                     </div>
-                    <div class="mh-auth-field-group">
+                    <div class="mh-auth-field-group" style="<?php echo $allowLoggedInAddDevice ? 'display:none;' : ''; ?>">
                         <label>Real Surname</label>
                         <div class="mh-auth-input-shell">
                             <input type="text" id="regLastName" name="lastName" autocomplete="family-name" required>
@@ -921,34 +947,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mh-auth-field-group">
                         <label>Username</label>
                         <div class="mh-auth-input-shell">
-                            <input type="text" id="regUsername" name="username" autocomplete="username" required>
+                            <input type="text" id="regUsername" name="username" autocomplete="username" required value="<?php echo $allowLoggedInAddDevice ? htmlspecialchars($currentUser, ENT_QUOTES, 'UTF-8') : ''; ?>" <?php echo $allowLoggedInAddDevice ? 'readonly' : ''; ?>>
                         </div>
                     </div>
-                    <div class="mh-auth-field-group" id="groupPersonaId">
+                    <div class="mh-auth-field-group" id="groupPersonaId" style="<?php echo $allowLoggedInAddDevice ? 'display:none;' : ''; ?>">
                         <label>Meta Human Persona Name</label>
                         <div class="mh-auth-input-shell">
                             <input type="text" id="regPersonaId" name="persona_id" autocomplete="off" placeholder="e.g. MH-Kripz" required>
                         </div>
                     </div>
                     <div class="mh-auth-field-group">
-                        <label>PIN (minimum 5 digits)</label>
+                        <label><?php echo $allowLoggedInAddDevice ? 'PIN' : 'PIN (minimum 5 digits)'; ?></label>
                         <div class="mh-auth-input-shell">
                             <input type="password" id="regPin" name="pin" inputmode="numeric" pattern="[0-9]*" minlength="5" autocomplete="new-password" required>
                         </div>
                     </div>
-                    <div class="mh-auth-field-group">
+                    <div class="mh-auth-field-group" style="<?php echo $allowLoggedInAddDevice ? 'display:none;' : ''; ?>">
                         <label>Confirm PIN</label>
                         <div class="mh-auth-input-shell">
                             <input type="password" id="regPinConfirm" name="pinConfirm" inputmode="numeric" pattern="[0-9]*" minlength="5" autocomplete="new-password" required>
                         </div>
                     </div>
                     <button type="button" class="mh-auth-button-main" id="startRegistrationButton">
-                        Continue
+                        <?php echo $allowLoggedInAddDevice ? 'Add This Device Now' : 'Continue'; ?>
                     </button>
                     <div class="mh-auth-status" id="registrationStatus"></div>
                 </form>
-                <a class="mh-auth-register-button" href="<?php echo htmlspecialchars($baseUrl . '/auth/login.php', ENT_QUOTES, 'UTF-8'); ?>">
-                    Back to login
+                <a class="mh-auth-register-button" href="<?php echo htmlspecialchars($baseUrl . ($allowLoggedInAddDevice ? '/auth/settings.php' : '/auth/login.php'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo $allowLoggedInAddDevice ? 'Back to settings' : 'Back to login'; ?>
                 </a>
             </div>
         </section>
@@ -957,6 +983,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php if (function_exists('getTemplatesPath')) { include_once getTemplatesPath() . '/global-ui/includes/complete-body-end.php'; } ?>
 <script>
+    const forceAddDeviceMode = <?php echo $allowLoggedInAddDevice ? 'true' : 'false'; ?>;
+    const forcedAddDeviceUsername = <?php echo json_encode($allowLoggedInAddDevice ? $currentUser : '', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
     const registrationStatus = document.getElementById("registrationStatus");
     const startRegistrationButton = document.getElementById("startRegistrationButton");
     const usernameInput = document.getElementById("regUsername");
@@ -1035,6 +1063,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     async function checkUserExistence() {
+        if (forceAddDeviceMode) {
+            return;
+        }
         const username = usernameInput.value.trim();
         if (!username) return;
 
@@ -1248,7 +1279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             renderStatus(registrationStatus, 'success', 'Success! Redirecting...');
             setTimeout(() => {
-                window.location.href = isAddDeviceMode ? '/hub/' : '/hub/genesis/tokenization.php';
+                window.location.href = isAddDeviceMode ? '/auth/settings.php?device_added=1' : '/hub/genesis/tokenization.php';
             }, 1500);
 
         } catch (err) {
@@ -1292,7 +1323,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         startRegistrationButton.addEventListener('click', handleRegistration);
     }
     
-    if (usernameInput) {
+    if (forceAddDeviceMode) {
+        isAddDeviceMode = true;
+        if (usernameInput) {
+            usernameInput.value = forcedAddDeviceUsername || '';
+            usernameInput.readOnly = true;
+        }
+        if (personaIdGroup) {
+            personaIdGroup.style.display = 'none';
+        }
+        if (pinConfirmGroup) {
+            pinConfirmGroup.style.display = 'none';
+        }
+        renderStatus(registrationStatus, 'info', 'Enter your PIN to add this device to your account.');
+    } else if (usernameInput) {
         usernameInput.addEventListener('blur', checkUserExistence);
         usernameInput.addEventListener('input', () => {
             clearTimeout(debounceTimer);

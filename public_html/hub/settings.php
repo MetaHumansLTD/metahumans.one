@@ -33,6 +33,8 @@ $message = '';
 if (isset($_SESSION['hub_settings_flash_message']) && is_string($_SESSION['hub_settings_flash_message'])) {
     $message = $_SESSION['hub_settings_flash_message'];
     unset($_SESSION['hub_settings_flash_message']);
+} elseif (isset($_GET['device_added']) && (string)$_GET['device_added'] === '1') {
+    $message = 'This device was added successfully.';
 }
 
 // Auth Check
@@ -615,6 +617,12 @@ try {
                     </div>
                     <button type="submit">Update PIN</button>
                 </form>
+            </div>
+
+            <div class="settings-card">
+                <h2>Devices</h2>
+                <div class="mh-small" style="margin-bottom: 12px;">Register another passkey on this device for your current account. This uses your existing PIN to confirm it is you.</div>
+                <a class="mh-btn-secondary" style="display:inline-block; text-decoration:none; padding: 10px 14px; border-radius: 10px;" href="/auth/register.php?add_device=1">Add This Device Now</a>
             </div>
 
             <div class="settings-card">
