@@ -21,6 +21,18 @@ if (!function_exists('str_starts_with')) {
     }
 }
 
+if (!function_exists('globalUi_isAuthRequest')) {
+    function globalUi_isAuthRequest(?string $requestUri = null): bool {
+        $requestUri = trim((string)($requestUri ?? ($_SERVER['REQUEST_URI'] ?? '')));
+        if ($requestUri === '') {
+            return false;
+        }
+
+        $path = (string)(parse_url($requestUri, PHP_URL_PATH) ?? $requestUri);
+        return str_starts_with($path, '/auth/');
+    }
+}
+
 /**
  * Get current realm information using existing navigator system
  * @return array|null Realm data or null if not found
@@ -241,9 +253,12 @@ function renderGlobalHeader($config = []) {
         }
     }
     
+    $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+    $isAuthRoute = globalUi_isAuthRequest($requestUri);
+
     // Realm Auto-Detection Logic - Folder-Based
-    $currentRealm = $_SESSION['current_realm'] ?? null;
-    if (!$currentRealm && function_exists('cue_autoload')) {
+    $currentRealm = $isAuthRoute ? null : ($_SESSION['current_realm'] ?? null);
+    if (!$isAuthRoute && !$currentRealm && function_exists('cue_autoload')) {
         try {
             // Check database status properly
             $emergencyDisabled = (defined('CUE_DATABASE_EMERGENCY_DISABLED') && CUE_DATABASE_EMERGENCY_DISABLED);
@@ -321,8 +336,8 @@ function renderGlobalHeader($config = []) {
     // Default Header Configuration - Minimal defaults, primary config loaded from JSON
     $headerConfig = [
         'enabled' => true,
-        'show_navigation' => true,  // Enable navigation for realm-specific menus
-        'navigation_items' => getNavigationItems(), // Load realm-specific menus
+        'show_navigation' => !$isAuthRoute,  // Auth routes use a lightweight header path
+        'navigation_items' => $isAuthRoute ? [] : getNavigationItems(), // Load realm-specific menus only when needed
     ];
     
     // Load from JSON config if exists - Always reload for fresh data
@@ -839,11 +854,13 @@ function renderGlobalHeader($config = []) {
         echo '</nav>';
     }
     
-    $u = isset($_SESSION['mh_auth_user']) ? trim((string)$_SESSION['mh_auth_user']) : '';
-    echo '<button type="button" class="mh-header-notices-btn" id="mhHeaderNoticesBtn" data-user="' . htmlspecialchars($u, ENT_QUOTES) . '" data-feed="/hub/notices.php?ajax=feed" aria-label="Notices">';
-    echo '<span class="mh-header-notices-dot" aria-hidden="true"></span>';
-    echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
-    echo '</button>';
+    if (!$isAuthRoute) {
+        $u = isset($_SESSION['mh_auth_user']) ? trim((string)$_SESSION['mh_auth_user']) : '';
+        echo '<button type="button" class="mh-header-notices-btn" id="mhHeaderNoticesBtn" data-user="' . htmlspecialchars($u, ENT_QUOTES) . '" data-feed="/hub/notices.php?ajax=feed" aria-label="Notices">';
+        echo '<span class="mh-header-notices-dot" aria-hidden="true"></span>';
+        echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+        echo '</button>';
+    }
 
     echo '<div class="hamburger-trigger-spacer" aria-hidden="true"></div>';
     
