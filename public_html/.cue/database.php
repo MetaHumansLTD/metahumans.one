@@ -55,12 +55,61 @@ function database_isEmergencyDisabled(): bool {
     return defined('CUE_DATABASE_EMERGENCY_DISABLED') && CUE_DATABASE_EMERGENCY_DISABLED;
 }
 
+function database_getBlockMysqlAllowedHosts(): array {
+    $hosts = [];
+    $candidates = [
+        getenv('MH_BLOCK_MYSQL_HOST') ?: null,
+        getenv('MARIADB_HOST') ?: null,
+        'mariadb-service',
+        CUE_DB_CANONICAL_HOST_BLOCK_MYSQL,
+        '127.0.0.1',
+        'localhost',
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate)) {
+            continue;
+        }
+        $normalized = strtolower(trim($candidate));
+        if ($normalized === '') {
+            continue;
+        }
+        $hosts[$normalized] = true;
+    }
+
+    return array_keys($hosts);
+}
+
+function database_getBlockMysqlAllowedPorts(): array {
+    $ports = [];
+    $candidates = [
+        getenv('MH_BLOCK_MYSQL_PORT') ?: null,
+        getenv('MARIADB_PORT') ?: null,
+        (string) CUE_DB_PORT_MYSQL_PRIMARY,
+        (string) CUE_DB_PORT_MYSQL_SECONDARY,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate)) {
+            continue;
+        }
+        $normalized = trim($candidate);
+        if ($normalized === '' || !ctype_digit($normalized)) {
+            continue;
+        }
+        $ports[$normalized] = true;
+    }
+
+    return array_keys($ports);
+}
+
 function database_normalizeHostForConfig(array $config, bool $audit = false): array {
     $profile = (string)($config['storage_profile'] ?? '');
     $host = (string)($config['host'] ?? '');
     $hostNorm = strtolower(trim($host));
 
     if ($profile === 'block_mysql') {
+        $allowedHosts = database_getBlockMysqlAllowedHosts();
         if ($hostNorm === 'localhost') {
             $config['host'] = CUE_DB_CANONICAL_HOST_BLOCK_MYSQL;
             if ($audit) {
@@ -71,17 +120,17 @@ function database_normalizeHostForConfig(array $config, bool $audit = false): ar
                     'normalized_host' => $config['host'],
                 ]);
             }
-        } elseif ($hostNorm !== CUE_DB_CANONICAL_HOST_BLOCK_MYSQL) {
+        } elseif (!in_array($hostNorm, $allowedHosts, true)) {
             if ($audit) {
-                cue_autoload('error')->logError('Non-canonical host detected for block_mysql configuration', [
+                cue_autoload('error')->logError('Unsupported host detected for block_mysql configuration', [
                     'config_id' => (string)($config['id'] ?? ''),
                     'storage_profile' => $profile,
                     'host' => $host,
-                    'expected_host' => CUE_DB_CANONICAL_HOST_BLOCK_MYSQL,
+                    'allowed_hosts' => $allowedHosts,
                 ]);
             }
             if (CUE_DATABASE_HOST_STRICT) {
-                throw new Exception('block_mysql host must be 127.0.0.1');
+                throw new Exception('block_mysql host is not allowed for this runtime');
             }
         }
     }
@@ -93,27 +142,30 @@ function database_normalizePortForConfig(array $config, bool $audit = false): ar
     $profile = (string)($config['storage_profile'] ?? '');
     $port = (string)($config['port'] ?? '');
     if ($profile === 'block_mysql') {
-        if ($port === '' || $port === (string)CUE_DB_PORT_MYSQL_PRIMARY) {
-            $config['port'] = (string)CUE_DB_PORT_MYSQL_SECONDARY;
+        $allowedPorts = database_getBlockMysqlAllowedPorts();
+        if ($port === '') {
+            $config['port'] = in_array((string)CUE_DB_PORT_MYSQL_PRIMARY, $allowedPorts, true)
+                ? (string)CUE_DB_PORT_MYSQL_PRIMARY
+                : (string)CUE_DB_PORT_MYSQL_SECONDARY;
             if ($audit) {
-                cue_autoload('error')->logInfo('Non-canonical port for block_mysql normalized to 3307', [
+                cue_autoload('error')->logInfo('Missing port for block_mysql normalized to runtime default', [
                     'config_id' => (string)($config['id'] ?? ''),
                     'storage_profile' => $profile,
                     'original_port' => $port,
                     'normalized_port' => $config['port'],
                 ]);
             }
-        } elseif ($port !== (string)CUE_DB_PORT_MYSQL_SECONDARY) {
+        } elseif (!in_array($port, $allowedPorts, true)) {
             if ($audit) {
-                cue_autoload('error')->logError('Non-canonical port detected for block_mysql configuration', [
+                cue_autoload('error')->logError('Unsupported port detected for block_mysql configuration', [
                     'config_id' => (string)($config['id'] ?? ''),
                     'storage_profile' => $profile,
                     'port' => $port,
-                    'expected_port' => (string)CUE_DB_PORT_MYSQL_SECONDARY,
+                    'allowed_ports' => $allowedPorts,
                 ]);
             }
             if (CUE_DATABASE_PORT_STRICT) {
-                throw new Exception('block_mysql port must be 3307');
+                throw new Exception('block_mysql port is not allowed for this runtime');
             }
         }
     }
@@ -166,20 +218,20 @@ function database_validateProfileConstraints(array $config): bool {
     $host = (string)($config['host'] ?? '');
 
     if ($profile === 'block_mysql') {
-        if ($port !== (string)CUE_DB_PORT_MYSQL_SECONDARY) {
+        if (!in_array($port, database_getBlockMysqlAllowedPorts(), true)) {
             if (CUE_DATABASE_PROFILE_ENFORCE) {
                 return false;
             }
-            cue_autoload('error')->logError('block_mysql configuration has non-block port', [
+            cue_autoload('error')->logError('block_mysql configuration has unsupported port', [
                 'config_id' => (string)($config['id'] ?? ''),
                 'port' => $port,
             ]);
         }
-        if (strtolower(trim($host)) !== strtolower(CUE_DB_CANONICAL_HOST_BLOCK_MYSQL)) {
+        if (!in_array(strtolower(trim($host)), database_getBlockMysqlAllowedHosts(), true)) {
             if (CUE_DATABASE_PROFILE_ENFORCE) {
                 return false;
             }
-            cue_autoload('error')->logError('block_mysql configuration has non-canonical host', [
+            cue_autoload('error')->logError('block_mysql configuration has unsupported host', [
                 'config_id' => (string)($config['id'] ?? ''),
                 'host' => $host,
             ]);
@@ -1034,7 +1086,7 @@ function database_getBiometricsConfiguration(array $configurations): ?array {
         if (strcasecmp($name, 'biometrics') !== 0) {
             continue;
         }
-        if ($port === (string)CUE_DB_PORT_MYSQL_SECONDARY && database_inferStorageProfile($cfg) === 'block_mysql') {
+        if (database_inferStorageProfile($cfg) === 'block_mysql' && database_validateProfileConstraints($cfg)) {
             return $cfg;
         }
     }
