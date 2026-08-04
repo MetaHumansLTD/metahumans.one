@@ -294,7 +294,7 @@ function mh_is_interactive_post_login_destination(string $candidate): bool {
             $query = [];
         }
     }
-    foreach (['ajax', 'b2_jobs', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
+    foreach (['ajax', 'b2_jobs', 'b2_policy', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
         if (array_key_exists($blockedKey, $query)) {
             return false;
         }

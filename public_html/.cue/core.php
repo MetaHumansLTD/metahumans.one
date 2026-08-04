@@ -818,7 +818,7 @@ if (!defined('CUE_CLI_MODE') && php_sapi_name() !== 'cli') {
                         $redirectTarget = '/hub/';
                     }
                 }
-                if ($redirectTarget !== '' && strpos($redirectTarget, '/auth/') !== 0) {
+                if ($redirectTarget !== '' && mh_is_interactive_last_page($redirectTarget)) {
                     $redir .= '?redirect=' . urlencode($redirectTarget);
                 }
                 error_log('[CUE AUTH] Redirecting unauthenticated request: ' . $rq . ' -> ' . $redir);
@@ -1151,7 +1151,7 @@ function mh_is_interactive_last_page(string $uri): bool {
             $query = [];
         }
     }
-    foreach (['ajax', 'b2_jobs', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
+    foreach (['ajax', 'b2_jobs', 'b2_policy', 'bucket_policy_status', 'snapshot_monitor', 'download', 'format'] as $blockedKey) {
         if (array_key_exists($blockedKey, $query)) {
             return false;
         }
