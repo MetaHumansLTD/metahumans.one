@@ -352,6 +352,29 @@ final class DomainRepository
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function listForAccount(string $tenantId, string $ownerType, string $ownerId, int $limit = 100): array
+    {
+        return $this->database->fetchAll(
+            sprintf(
+                'SELECT *
+                 FROM domains
+                 WHERE tenant_id = :tenant_id
+                    OR (owner_type = :owner_type AND owner_id = :owner_id)
+                 ORDER BY COALESCE(expires_at, renewal_due_at, created_at) ASC
+                 LIMIT %d',
+                max(1, $limit),
+            ),
+            [
+                'tenant_id' => $tenantId,
+                'owner_type' => $ownerType,
+                'owner_id' => $ownerId,
+            ],
+        );
+    }
+
+    /**
      * @param list<array<string, mixed>|string> $statuses
      */
     private function replaceStatuses(string $domainId, array $statuses, string $source): void

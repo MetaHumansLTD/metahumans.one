@@ -28,18 +28,40 @@ final class HubController
             ['/', 'GET'] => $this->renderSearchPage($query),
             ['/hub/domains', 'GET'] => $this->renderSearchPage($query),
             ['/hub/domains/', 'GET'] => $this->renderSearchPage($query),
+            ['/manage', 'GET'] => $this->renderPortfolioPage(),
+            ['/manage/', 'GET'] => $this->renderPortfolioPage(),
+            ['/hub/domains/manage', 'GET'] => $this->renderPortfolioPage(),
+            ['/hub/domains/manage/', 'GET'] => $this->renderPortfolioPage(),
             ['/register', 'GET'] => $this->renderRegistrationPage($query),
             ['/register/', 'GET'] => $this->renderRegistrationPage($query),
             ['/register/index.php', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register/', 'GET'] => $this->renderRegistrationPage($query),
             ['/hub/domains/register/index.php', 'GET'] => $this->renderRegistrationPage($query),
+            ['/renew', 'GET'] => $this->renderRenewalPage($query),
+            ['/renew/', 'GET'] => $this->renderRenewalPage($query),
+            ['/hub/domains/renew', 'GET'] => $this->renderRenewalPage($query),
+            ['/hub/domains/renew/', 'GET'] => $this->renderRenewalPage($query),
+            ['/cancel', 'GET'] => $this->renderCancellationPage($query),
+            ['/cancel/', 'GET'] => $this->renderCancellationPage($query),
+            ['/hub/domains/cancel', 'GET'] => $this->renderCancellationPage($query),
+            ['/hub/domains/cancel/', 'GET'] => $this->renderCancellationPage($query),
             ['/register', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/register/', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/register/index.php', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register/', 'POST'] => $this->handleRegistrationSubmit($post),
             ['/hub/domains/register/index.php', 'POST'] => $this->handleRegistrationSubmit($post),
+            ['/renew', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/renew/', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/hub/domains/renew', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/hub/domains/renew/', 'POST'] => $this->handleRenewalSubmit($post),
+            ['/cancel', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/cancel/', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/hub/domains/cancel', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/hub/domains/cancel/', 'POST'] => $this->handleCancellationSubmit($post),
+            ['/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
+            ['/hub/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
             default => $this->renderNotFound(),
         };
     }
@@ -47,6 +69,7 @@ final class HubController
     private function renderSearchPage(array $query): string
     {
         $basePath = $this->basePath();
+        $managePath = $this->managePath();
         $search = trim((string) ($query['q'] ?? ''));
         $tenantContext = $this->app->tenantContext();
         $results = $search === '' ? [] : $this->searchDomains($search);
@@ -113,6 +136,7 @@ final class HubController
       <label for="q" class="sr-only">Search domain</label>
       <input id="q" name="q" type="text" value="{$this->escape($search)}" placeholder="Try studioalpha or metahumans" autocomplete="off">
       <button type="submit" class="button button-primary">Search Domains</button>
+      <a href="{$this->escape($managePath)}" class="button button-secondary">My Domains</a>
     </form>
     <div class="tld-pills">
       <span>.co.za</span>
@@ -138,6 +162,93 @@ final class HubController
 HTML;
 
         return $this->layout('Hub Domain Search', $body);
+    }
+
+    private function renderPortfolioPage(): string
+    {
+        $tenantContext = $this->app->tenantContext();
+        $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
+        $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
+        $ownerId = (string) ($tenantContext['owner_id'] ?? $tenantId);
+        $domains = $this->app->domainRepository()->listForAccount($tenantId, $ownerType, $ownerId, 100);
+        $orders = $this->app->orderRepository()->listForAccount($tenantId, $ownerType, $ownerId, 100);
+        $contextMarkup = $this->renderTenantContextSummary($tenantContext);
+
+        $domainCards = '';
+        if ($domains === []) {
+            $domainCards = '<article class="domain-card"><div><p class="status status-pending">No Domains Yet</p><h3>Your account has no saved domains yet</h3><p class="muted">Once a registration order is saved or a registrar domain is synchronized into this tenant, it will appear here.</p></div><div class="domain-card__aside"><a class="button button-primary" href="' . $this->escape($this->basePath()) . '">Search Domains</a></div></article>';
+        } else {
+            $items = [];
+            foreach ($domains as $domain) {
+                $domainName = (string) ($domain['domain_name'] ?? '');
+                $status = (string) ($domain['registrar_status'] ?? 'active');
+                $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
+                $expiresLabel = $expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced';
+                $items[] = sprintf(
+                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside"><a class="button button-primary" href="%s?domain=%s">Renew</a><a class="button button-secondary" href="%s?domain=%s">Cancel</a></div></article>',
+                    $this->escape($this->statusClassForDomain($status)),
+                    $this->escape($this->domainStatusLabel($status)),
+                    $this->escape($domainName),
+                    $this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? ''))),
+                    $this->escape($expiresLabel),
+                    $this->escape($this->renewPath()),
+                    $this->escape(rawurlencode($domainName)),
+                    $this->escape($this->cancelPath()),
+                    $this->escape(rawurlencode($domainName)),
+                );
+            }
+            $domainCards = implode('', $items);
+        }
+
+        $orderRows = '';
+        if ($orders === []) {
+            $orderRows = '<div class="summary-row"><span>No orders yet</span><strong>Start from search</strong></div>';
+        } else {
+            $rows = [];
+            foreach ($orders as $order) {
+                $cancelAction = '';
+                if (in_array((string) ($order['status'] ?? ''), ['draft', 'queued', 'failed'], true)) {
+                    $cancelAction = '<form method="post" action="' . $this->escape($this->cancelOrderPath()) . '" class="inline-form"><input type="hidden" name="order_id" value="' . $this->escape((string) ($order['id'] ?? '')) . '"><button type="submit" class="button button-muted">Cancel Order</button></form>';
+                }
+                $rows[] = '<article class="domain-card"><div><p class="' . $this->escape($this->statusClassForOrder((string) ($order['status'] ?? 'draft'))) . '">' . $this->escape(strtoupper((string) ($order['action_type'] ?? 'register'))) . ' / ' . $this->escape((string) ($order['status'] ?? 'draft')) . '</p><h3>' . $this->escape((string) ($order['domain_name'] ?? '')) . '</h3><p class="muted">' . $this->escape((string) ($order['order_number'] ?? '')) . ' via ' . $this->escape($this->providerDisplayName((string) ($order['provider_code'] ?? ''))) . '</p></div><div class="domain-card__aside"><strong>' . $this->escape((string) ($order['submission_mode'] ?? 'draft')) . '</strong>' . $cancelAction . '</div></article>';
+            }
+            $orderRows = implode('', $rows);
+        }
+
+        $body = <<<HTML
+<section class="hero">
+  <div class="hero__content">
+    <p class="eyebrow">Client Area / Hub</p>
+    <h1>Manage your domains in one account view.</h1>
+    <p class="lead">This is the user-facing page where domains are listed, renewal requests are saved, and cancellation requests are tracked per tenant account.</p>
+    <div class="search-bar">
+      <a href="{$this->escape($this->basePath())}" class="button button-primary">Search Domains</a>
+      <a href="{$this->escape($this->registerPath())}" class="button button-secondary">Register a Domain</a>
+    </div>
+  </div>
+  <aside class="hero__card">
+    <p class="eyebrow">Account View</p>
+    <ol>
+      <li>Domains listed below belong to the active tenant account.</li>
+      <li>Renewal requests are saved from this page.</li>
+      <li>Cancellation requests are saved here for control review.</li>
+    </ol>
+    {$contextMarkup}
+  </aside>
+</section>
+
+<section class="panel panel-results">
+  <div class="panel__head"><h2>My Domains</h2><p class="muted">User-facing portfolio page: <code>{$this->escape($this->managePath())}</code></p></div>
+  {$domainCards}
+</section>
+
+<section class="panel panel-results">
+  <div class="panel__head"><h2>Account Orders</h2><p class="muted">Saved registration, renewal, and cancellation requests for this tenant account.</p></div>
+  {$orderRows}
+</section>
+HTML;
+
+        return $this->layout('My Domains', $body);
     }
 
     private function renderRegistrationPage(array $query): string
@@ -260,6 +371,81 @@ HTML;
         return $this->layout('Register Domain', $body);
     }
 
+    private function renderRenewalPage(array $query): string
+    {
+        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
+        }
+
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
+        $body = <<<HTML
+<section class="checkout">
+  <div class="checkout__main panel">
+    <p class="eyebrow">Renewal Request</p>
+    <h1>Renew {$this->escape($domainName)}</h1>
+    <p class="lead">This saves a renewal request into the tenant account so it can be processed cleanly from the platform flow.</p>
+    <form method="post" action="{$this->escape($this->renewPath())}" class="checkout-form">
+      <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
+      <div class="field-grid">
+        <label><span>Current Expiry</span><input type="text" value="{$this->escape($expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced')}" disabled></label>
+        <label><span>Renewal Period</span><select name="period_years"><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option></select></label>
+      </div>
+      <label><span>Notes</span><textarea name="notes" rows="4" placeholder="Optional renewal notes for control review"></textarea></label>
+      <div class="submit-row">
+        <button type="submit" class="button button-primary">Save Renewal Request</button>
+        <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
+      </div>
+    </form>
+  </div>
+  <aside class="checkout__summary panel">
+    <p class="eyebrow">Domain Summary</p>
+    <h2>{$this->escape($domainName)}</h2>
+    <div class="summary-row"><span>Provider</span><strong>{$this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? '')))}</strong></div>
+    <div class="summary-row"><span>Status</span><strong>{$this->escape((string) ($domain['registrar_status'] ?? 'active'))}</strong></div>
+  </aside>
+</section>
+HTML;
+
+        return $this->layout('Renew Domain', $body);
+    }
+
+    private function renderCancellationPage(array $query): string
+    {
+        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Cancel Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
+        }
+
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $body = <<<HTML
+<section class="checkout">
+  <div class="checkout__main panel">
+    <p class="eyebrow">Cancellation Request</p>
+    <h1>Cancel {$this->escape($domainName)}</h1>
+    <p class="lead">This saves a cancellation or non-renewal request in the account so it can be reviewed and actioned safely.</p>
+    <form method="post" action="{$this->escape($this->cancelPath())}" class="checkout-form">
+      <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
+      <label><span>Reason</span><textarea name="reason" rows="5" placeholder="Explain whether this is a deletion request, a stop-renewal request, or another cancellation instruction"></textarea></label>
+      <div class="submit-row">
+        <button type="submit" class="button button-primary">Save Cancellation Request</button>
+        <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
+      </div>
+    </form>
+  </div>
+  <aside class="checkout__summary panel">
+    <p class="eyebrow">Domain Summary</p>
+    <h2>{$this->escape($domainName)}</h2>
+    <div class="summary-row"><span>Provider</span><strong>{$this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? '')))}</strong></div>
+    <div class="summary-row"><span>Status</span><strong>{$this->escape((string) ($domain['registrar_status'] ?? 'active'))}</strong></div>
+  </aside>
+</section>
+HTML;
+
+        return $this->layout('Cancel Domain', $body);
+    }
+
     private function handleRegistrationSubmit(array $post): string
     {
         $basePath = $this->basePath();
@@ -342,6 +528,76 @@ HTML;
         } catch (Throwable $exception) {
             return $this->layout('Registration Error', '<section class="panel"><h1>Unable to save order</h1><p class="lead">' . $this->escape($exception->getMessage()) . '</p><a class="button button-primary" href="' . $this->escape($registerPath) . '?domain=' . $this->escape(rawurlencode($domainName)) . '">Go back</a></section>');
         }
+    }
+
+    private function handleRenewalSubmit(array $post): string
+    {
+        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
+
+        $tenantContext = $this->app->tenantContext();
+        $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
+        $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
+        $periodYears = max(1, (int) ($post['period_years'] ?? 1));
+        $payload = array_replace($tenantContext, [
+            'domain_name' => (string) ($domain['domain_name'] ?? ''),
+            'notes' => trim((string) ($post['notes'] ?? '')),
+            'requested_action' => 'renew',
+            'current_expiry_date' => $domain['expires_at'] ?? null,
+        ]);
+
+        $order = $this->app->orderRepository()->createDomainActionOrder(
+            $domain,
+            $customerEmail,
+            'renew',
+            'draft',
+            $payload,
+            $periodYears,
+        );
+
+        return $this->layout('Renewal Saved', '<section class="panel"><p class="eyebrow">Renewal Saved</p><h1>Renewal request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Renewal</a></div></section>');
+    }
+
+    private function handleCancellationSubmit(array $post): string
+    {
+        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        if ($domain === null) {
+            return $this->layout('Cancellation Saved', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
+
+        $tenantContext = $this->app->tenantContext();
+        $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
+        $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
+        $payload = array_replace($tenantContext, [
+            'domain_name' => (string) ($domain['domain_name'] ?? ''),
+            'reason' => trim((string) ($post['reason'] ?? '')),
+            'requested_action' => 'cancel',
+        ]);
+
+        $order = $this->app->orderRepository()->createDomainActionOrder(
+            $domain,
+            $customerEmail,
+            'cancel',
+            'draft',
+            $payload,
+            1,
+        );
+
+        return $this->layout('Cancellation Saved', '<section class="panel"><p class="eyebrow">Cancellation Saved</p><h1>Cancellation request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->cancelPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Cancellation</a></div></section>');
+    }
+
+    private function handleOrderCancel(array $post): string
+    {
+        $tenantContext = $this->app->tenantContext();
+        $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
+        $orderId = trim((string) ($post['order_id'] ?? ''));
+        if ($orderId !== '' && $tenantId !== '') {
+            $this->app->orderRepository()->cancelOpenOrder($orderId, $tenantId);
+        }
+
+        return $this->layout('Order Cancelled', '<section class="panel"><h1>Order updated</h1><p class="lead">The selected open order has been cancelled for this tenant account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
     }
 
     /**
@@ -490,6 +746,7 @@ HTML;
       </a>
       <nav class="topbar__nav">
         <a href="{$this->escape($this->basePath())}">Search</a>
+        <a href="{$this->escape($this->managePath())}">My Domains</a>
         <a href="{$this->escape($this->registerPath())}">Register</a>
       </nav>
     </header>
@@ -771,13 +1028,19 @@ h2 {
 
 .search-bar input,
 .field-grid input,
-.field-grid select {
+.field-grid select,
+textarea {
   width: 100%;
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(2, 6, 23, 0.72);
   color: var(--domains-text);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .search-bar input {
@@ -827,6 +1090,10 @@ h2 {
   background: rgba(15, 23, 42, 0.8);
   color: var(--domains-text);
   border-color: rgba(148, 163, 184, 0.22);
+}
+
+.inline-form {
+  margin: 0;
 }
 
 .domain-card {
@@ -994,5 +1261,85 @@ CSS;
     private function registerPath(): string
     {
         return $this->basePath() === '/hub/domains' ? '/hub/domains/register' : '/register';
+    }
+
+    private function managePath(): string
+    {
+        return $this->basePath() === '/hub/domains' ? '/hub/domains/manage' : '/manage';
+    }
+
+    private function renewPath(): string
+    {
+        return $this->basePath() === '/hub/domains' ? '/hub/domains/renew' : '/renew';
+    }
+
+    private function cancelPath(): string
+    {
+        return $this->basePath() === '/hub/domains' ? '/hub/domains/cancel' : '/cancel';
+    }
+
+    private function cancelOrderPath(): string
+    {
+        return $this->basePath() === '/hub/domains' ? '/hub/domains/orders/cancel' : '/orders/cancel';
+    }
+
+    private function findManagedDomain(string $domainName): ?array
+    {
+        $domainName = strtolower(trim($domainName));
+        if ($domainName === '') {
+            return null;
+        }
+
+        $domain = $this->app->domainRepository()->findByName($domainName);
+        if ($domain === null) {
+            return null;
+        }
+
+        $tenantContext = $this->app->tenantContext();
+        $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
+        $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
+        $ownerId = (string) ($tenantContext['owner_id'] ?? $tenantId);
+
+        if ((string) ($domain['tenant_id'] ?? '') === $tenantId) {
+            return $domain;
+        }
+
+        if ((string) ($domain['owner_type'] ?? '') === $ownerType && (string) ($domain['owner_id'] ?? '') === $ownerId) {
+            return $domain;
+        }
+
+        return null;
+    }
+
+    private function statusClassForDomain(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'active', 'completed' => 'status status-available',
+            'pending_submission', 'queued', 'processing' => 'status status-pending',
+            'submission_failed', 'failed' => 'status status-error',
+            default => 'status status-taken',
+        };
+    }
+
+    private function domainStatusLabel(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return match ($status) {
+            'pending_submission' => 'Pending Submission',
+            'submission_failed' => 'Submission Failed',
+            default => $status === '' ? 'Unknown Status' : ucwords(str_replace('_', ' ', $status)),
+        };
+    }
+
+    private function statusClassForOrder(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'completed' => 'status status-available',
+            'draft', 'queued', 'processing' => 'status status-pending',
+            'failed' => 'status status-error',
+            'cancelled' => 'status status-taken',
+            default => 'status status-pending',
+        };
     }
 }

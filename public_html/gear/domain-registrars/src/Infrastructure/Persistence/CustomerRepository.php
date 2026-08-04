@@ -102,4 +102,12 @@ final class CustomerRepository
 
         return $record;
     }
+
+    public function findById(string $id): ?array
+    {
+        return $this->database->fetchOne(
+            'SELECT * FROM customers WHERE id = :id LIMIT 1',
+            ['id' => $id],
+        );
+    }
 }

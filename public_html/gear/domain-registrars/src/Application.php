@@ -77,12 +77,13 @@ final class Application
 
     public function tenantDatabase(?string $configIdOverride = null): Database
     {
-        $cacheKey = $configIdOverride ?? '__default__';
+        $resolvedConfigId = $configIdOverride ?? $this->resolvedTenantDbConfigId();
+        $cacheKey = $resolvedConfigId ?? '__default__';
 
         $database = $this->tenantDatabases[$cacheKey] ??= new Database(
-            $configIdOverride === null
+            $resolvedConfigId === null
                 ? ConnectionFactory::tenant($this->config())
-                : ConnectionFactory::tenantByConfigId($this->config(), $configIdOverride),
+                : ConnectionFactory::tenantByConfigId($this->config(), $resolvedConfigId),
         );
 
         if (!($this->tenantSchemaLoaded[$cacheKey] ?? false)) {
@@ -333,6 +334,14 @@ final class Application
             ?? $this->nullableConfigString($resolved['username'] ?? null);
 
         return $resolved;
+    }
+
+    private function resolvedTenantDbConfigId(): ?string
+    {
+        $context = $this->tenantContext();
+
+        return $this->nullableConfigString($context['tenant_db_config_id'] ?? null)
+            ?? $this->config()->nullableString('TENANT_DB_CONFIG_ID');
     }
 
     private function resolveWorkspacePath(?string $path): ?string
