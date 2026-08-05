@@ -420,8 +420,16 @@ final class DomainRepository
             'import' => [
                 'source' => 'control-bulk-import',
                 'imported_domain_name' => $normalizedDomain,
+                'autorenew' => $payload['autorenew'] ?? null,
+                'registrant' => $payload['registrant'] ?? null,
+                'billing' => $payload['billing'] ?? null,
+                'admin' => $payload['admin'] ?? null,
+                'tech' => $payload['tech'] ?? null,
             ],
         ];
+        $registeredAt = $this->nullableTimestampString($payload['registered_at'] ?? $payload['cdate'] ?? null);
+        $expiresAt = $this->nullableTimestampString($payload['expires_at'] ?? $payload['expiry'] ?? null);
+        $autoRenewEnabled = $this->normalizeBoolean($payload['autorenew'] ?? $payload['auto_renew_enabled'] ?? false) ?? 0;
 
         if ($existing !== null) {
             $metadata = $this->mergeMetadata($existing, $metadataPatch);
@@ -434,6 +442,10 @@ final class DomainRepository
                      billing_tenant_id = :billing_tenant_id,
                      provider_code = :provider_code,
                      registrar_status = :registrar_status,
+                     auto_renew_enabled = :auto_renew_enabled,
+                     registered_at = :registered_at,
+                     expires_at = :expires_at,
+                     renewal_due_at = :renewal_due_at,
                      last_sync_error = NULL,
                      metadata_json = :metadata_json,
                      updated_at = CURRENT_TIMESTAMP
@@ -447,6 +459,10 @@ final class DomainRepository
                     'billing_tenant_id' => $billingTenantId,
                     'provider_code' => $providerCode,
                     'registrar_status' => (string) ($payload['registrar_status'] ?? ($existing['registrar_status'] ?? 'imported')),
+                    'auto_renew_enabled' => $autoRenewEnabled,
+                    'registered_at' => $registeredAt,
+                    'expires_at' => $expiresAt,
+                    'renewal_due_at' => $expiresAt,
                     'metadata_json' => $metadata,
                 ],
             );
@@ -472,7 +488,11 @@ final class DomainRepository
             'provider_code' => $providerCode,
             'domain_name' => $normalizedDomain,
             'tld' => $tld,
-            'registrar_status' => (string) ($payload['registrar_status'] ?? 'imported'),
+            'registrar_status' => (string) ($payload['registrar_status'] ?? 'active'),
+            'auto_renew_enabled' => $autoRenewEnabled,
+            'registered_at' => $registeredAt,
+            'expires_at' => $expiresAt,
+            'renewal_due_at' => $expiresAt,
             'metadata_json' => json_encode($metadataPatch, JSON_UNESCAPED_SLASHES),
         ];
 
@@ -480,16 +500,28 @@ final class DomainRepository
             'INSERT INTO domains (
                 id, tenant_id, owner_type, owner_id, acting_user_id, acting_persona_id, billing_mode, billing_tenant_id,
                 finance_event_ref, receipt_bundle_path, receipt_bundle_hash, external_action_ref, customer_id,
-                provider_account_id, provider_code, domain_name, tld, registrar_status, metadata_json, created_at, updated_at
+                provider_account_id, provider_code, domain_name, tld, registrar_status, auto_renew_enabled,
+                registered_at, expires_at, renewal_due_at, metadata_json, created_at, updated_at
              ) VALUES (
                 :id, :tenant_id, :owner_type, :owner_id, :acting_user_id, :acting_persona_id, :billing_mode, :billing_tenant_id,
                 :finance_event_ref, :receipt_bundle_path, :receipt_bundle_hash, :external_action_ref, :customer_id,
-                :provider_account_id, :provider_code, :domain_name, :tld, :registrar_status, :metadata_json, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                :provider_account_id, :provider_code, :domain_name, :tld, :registrar_status, :auto_renew_enabled,
+                :registered_at, :expires_at, :renewal_due_at, :metadata_json, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
              )',
             $record,
         );
 
         return $this->findById($record['id']) ?? $record;
+    }
+
+    private function nullableTimestampString(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+        return $normalized === '' ? null : $normalized;
     }
 
     /**

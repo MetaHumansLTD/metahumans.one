@@ -563,7 +563,7 @@ HTML;
 <form method="post" action="{$this->escape($this->domainsPath())}" enctype="multipart/form-data" class="checkout-form">
   <div class="panel panel-subtle">
     <h2>Bulk Import Domains</h2>
-    <p class="muted">Paste one domain per line, or upload a CSV with columns like <code>domain_name</code>, <code>provider_code</code>, <code>owner_type</code>, <code>owner_id</code>, <code>tenant_id</code>, and <code>billing_tenant_id</code>.</p>
+    <p class="muted">Paste one domain per line, or upload a CSV with columns like <code>domain_name</code>, <code>provider_code</code>, <code>owner_type</code>, <code>owner_id</code>, and <code>billing_tenant_id</code>. The `.co.za` export format with <code>name</code>, <code>cdate</code>, <code>expiry</code>, <code>autorenew</code>, <code>registrant</code>, <code>billing</code>, <code>admin</code>, and <code>tech</code> is supported too.</p>
     <div class="field-grid">
       <label>
         <span>Default Provider</span>
@@ -699,6 +699,9 @@ HTML;
                     }
                     if (($entry['domain_name'] ?? '') === '' && ($entry['domain'] ?? '') !== '') {
                         $entry['domain_name'] = (string) $entry['domain'];
+                    }
+                    if (($entry['domain_name'] ?? '') === '' && ($entry['name'] ?? '') !== '') {
+                        $entry['domain_name'] = (string) $entry['name'];
                     }
                 } else {
                     $entry['domain_name'] = trim((string) ($columns[0] ?? ''));
