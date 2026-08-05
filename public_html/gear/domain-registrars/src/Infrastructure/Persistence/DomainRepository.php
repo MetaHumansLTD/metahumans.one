@@ -335,17 +335,18 @@ final class DomainRepository
              FROM domains
              WHERE domain_name = :domain_name
                AND (
-                    tenant_id = :tenant_id
+                    tenant_id = :tenant_id_filter
                     OR (owner_type = :owner_type AND owner_id = :owner_id)
                )
              ORDER BY
-                CASE WHEN tenant_id = :tenant_id THEN 0 ELSE 1 END,
+                CASE WHEN tenant_id = :tenant_id_sort THEN 0 ELSE 1 END,
                 updated_at DESC,
                 created_at DESC
              LIMIT 1',
             [
                 'domain_name' => strtolower($domainName),
-                'tenant_id' => $tenantId,
+                'tenant_id_filter' => $tenantId,
+                'tenant_id_sort' => $tenantId,
                 'owner_type' => $ownerType,
                 'owner_id' => $ownerId,
             ],
