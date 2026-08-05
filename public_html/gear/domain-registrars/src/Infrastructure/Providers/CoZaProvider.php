@@ -114,6 +114,8 @@ final class CoZaProvider implements RegistrarProviderInterface, DomainPortfolioS
             'registrar_status' => 'active',
             'expires_at' => $domain['expires_at'] ?? null,
             'registered_at' => $domain['created_at'] ?? null,
+            'registrant' => $domain['registrant'] ?? null,
+            'contacts' => is_array($domain['contacts'] ?? null) ? $domain['contacts'] : [],
             'nameservers' => $domain['nameservers'] ?? [],
             'statuses' => $domain['statuses'] ?? [],
             'raw' => $domain,

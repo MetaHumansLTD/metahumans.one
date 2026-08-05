@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Presentation\Control;
 
 use App\Application;
+use App\Domain\Provider\Contracts\DomainMutationInterface;
+use App\Domain\Provider\Contracts\DomainPortfolioSyncInterface;
+use App\Domain\Sync\SyncContext;
 use Throwable;
 
 final class ControlController
@@ -27,6 +30,9 @@ final class ControlController
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains($query),
             ['/domains', 'POST'] => $this->handleDomainsImport($post),
+            ['/domains/sync', 'POST'] => $this->handleDomainSync($post),
+            ['/domains/renew', 'POST'] => $this->handleDomainRenew($post),
+            ['/domains/assign', 'POST'] => $this->handleDomainAssign($post),
             ['/tasks', 'GET'] => $this->renderTasks(),
             ['/providers/coza', 'GET'] => $this->renderCozaSettings($query),
             ['/providers/coza', 'POST'] => $this->handleCozaSettingsSave($post),
@@ -192,6 +198,9 @@ HTML;
         $domains = $this->app->domainRepository()->listRecent(200);
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $importForm = $this->renderDomainImportForm();
+        $domainCards = $domains === []
+            ? '<p class="muted">No records yet.</p>'
+            : implode('', array_map(fn (array $domain): string => $this->renderDomainManagementCard($domain), $domains));
         $rows = $this->renderTable(
             ['Provider', 'Domain', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated'],
             array_map(
@@ -218,6 +227,9 @@ HTML;
             . '">Back to dashboard</a></div>'
             . $importForm
             . $rows
+                . '<div class="action-grid" style="margin-top:20px;">'
+                . $domainCards
+                . '</div>'
             . '</section>'
         );
     }
@@ -520,6 +532,13 @@ HTML;
                     'owner_id' => $ownerId,
                     'billing_mode' => trim((string) ($entry['billing_mode'] ?? 'user')),
                     'billing_tenant_id' => $billingTenantId,
+                    'registered_at' => $entry['registered_at'] ?? $entry['cdate'] ?? null,
+                    'expires_at' => $entry['expires_at'] ?? $entry['expiry'] ?? null,
+                    'autorenew' => $entry['autorenew'] ?? $entry['auto_renew_enabled'] ?? null,
+                    'registrant' => $entry['registrant'] ?? null,
+                    'billing' => $entry['billing'] ?? null,
+                    'admin' => $entry['admin'] ?? null,
+                    'tech' => $entry['tech'] ?? null,
                 ],
             );
             $imported++;
@@ -534,6 +553,144 @@ HTML;
         }
 
         return $this->renderDomains(['flash' => $message]);
+    }
+
+    private function handleDomainSync(array $post): string
+    {
+        $domain = $this->findControlDomain($post);
+        if ($domain === null) {
+            return $this->redirectToDomains('The selected domain could not be found.');
+        }
+
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $this->app->provider($providerCode);
+        if (! $provider instanceof DomainPortfolioSyncInterface) {
+            return $this->redirectToDomains(sprintf('%s does not support live registry sync.', $this->providerDisplayName($providerCode)));
+        }
+
+        $sync = $provider->syncDomain(
+            (string) ($domain['domain_name'] ?? ''),
+            new SyncContext($providerCode, 'control-domain-sync', true),
+        );
+
+        if (($sync['ok'] ?? true) === false) {
+            return $this->redirectToDomains((string) ($sync['message'] ?? 'The registry sync failed.'));
+        }
+
+        $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+        $nameserverCount = count($this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? '')));
+
+        return $this->redirectToDomains(sprintf(
+            'Synced %s from the registry. %d nameserver%s stored locally.',
+            (string) ($domain['domain_name'] ?? ''),
+            $nameserverCount,
+            $nameserverCount === 1 ? '' : 's',
+        ));
+    }
+
+    private function handleDomainRenew(array $post): string
+    {
+        $domain = $this->findControlDomain($post);
+        if ($domain === null) {
+            return $this->redirectToDomains('The selected domain could not be found.');
+        }
+
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $this->app->provider($providerCode);
+        if (! $provider instanceof DomainMutationInterface) {
+            return $this->redirectToDomains(sprintf('%s does not support live renewals.', $this->providerDisplayName($providerCode)));
+        }
+
+        $periodYears = max(1, (int) ($post['period_years'] ?? 1));
+        $currentExpiryDate = $this->normalizeDateOnly((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? ''));
+
+        if ($currentExpiryDate === null && $provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'control-pre-renew-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->app->domainRepository()->findById((string) ($domain['id'] ?? '')) ?? $domain;
+                $currentExpiryDate = $this->normalizeDateOnly((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? ''));
+            }
+        }
+
+        if ($currentExpiryDate === null) {
+            return $this->redirectToDomains(sprintf(
+                'Cannot renew %s yet because no current expiry date is stored. Sync the domain first.',
+                (string) ($domain['domain_name'] ?? ''),
+            ));
+        }
+
+        $result = $provider->renewDomain(
+            (string) ($domain['domain_name'] ?? ''),
+            $periodYears,
+            ['current_expiry_date' => $currentExpiryDate],
+        );
+
+        if (! ($result['ok'] ?? false)) {
+            return $this->redirectToDomains((string) ($result['message'] ?? 'The live renewal failed.'));
+        }
+
+        if ($provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'control-post-renew-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->app->domainRepository()->findById((string) ($domain['id'] ?? '')) ?? $domain;
+            }
+        }
+
+        return $this->redirectToDomains(sprintf(
+            'Renewed %s for %d year%s without billing. Current expiry: %s.',
+            (string) ($domain['domain_name'] ?? ''),
+            $periodYears,
+            $periodYears === 1 ? '' : 's',
+            $this->formatDateDisplay((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? 'Not yet synced')),
+        ));
+    }
+
+    private function handleDomainAssign(array $post): string
+    {
+        $domain = $this->findControlDomain($post);
+        if ($domain === null) {
+            return $this->redirectToDomains('The selected domain could not be found.');
+        }
+
+        $tenantId = trim((string) ($post['tenant_id'] ?? (string) ($domain['tenant_id'] ?? '')));
+        $ownerType = trim((string) ($post['owner_type'] ?? (string) ($domain['owner_type'] ?? 'user')));
+        $ownerId = trim((string) ($post['owner_id'] ?? (string) ($domain['owner_id'] ?? '')));
+        $billingTenantId = trim((string) ($post['billing_tenant_id'] ?? (string) ($domain['billing_tenant_id'] ?? $tenantId)));
+
+        if ($tenantId === '') {
+            return $this->redirectToDomains('A tenant ID is required before assigning this domain.');
+        }
+
+        if ($ownerId === '') {
+            $ownerId = $tenantId;
+        }
+
+        $this->app->domainRepository()->assignOwnership(
+            (string) ($domain['id'] ?? ''),
+            [
+                'tenant_id' => $tenantId,
+                'owner_type' => $ownerType === '' ? 'user' : $ownerType,
+                'owner_id' => $ownerId,
+                'billing_mode' => trim((string) ($post['billing_mode'] ?? (string) ($domain['billing_mode'] ?? 'user'))),
+                'billing_tenant_id' => $billingTenantId === '' ? $tenantId : $billingTenantId,
+                'customer_id' => trim((string) ($post['customer_id'] ?? '')),
+            ],
+        );
+
+        return $this->redirectToDomains(sprintf(
+            'Assigned %s to %s %s.',
+            (string) ($domain['domain_name'] ?? ''),
+            $ownerType === '' ? 'user' : $ownerType,
+            $ownerId,
+        ));
     }
 
     /**
@@ -625,6 +782,112 @@ HTML;
   </label>
   <button type="submit">Run</button>
 </form>
+HTML;
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     */
+    private function renderDomainManagementCard(array $domain): string
+    {
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $nameservers = $this->app->domainRepository()->listNameservers($domainId);
+        $metadata = $this->decodeDomainMetadata($domain);
+        $contacts = is_array($metadata['contacts'] ?? null) ? $metadata['contacts'] : [];
+        $importMetadata = is_array($metadata['import'] ?? null) ? $metadata['import'] : [];
+        $registrant = trim((string) ($metadata['registrant'] ?? ($importMetadata['registrant'] ?? '')));
+        $billingContact = trim((string) ($contacts['billing'] ?? ($importMetadata['billing'] ?? '')));
+        $adminContact = trim((string) ($contacts['admin'] ?? ($importMetadata['admin'] ?? '')));
+        $techContact = trim((string) ($contacts['tech'] ?? ($importMetadata['tech'] ?? '')));
+        $nameserverItems = $nameservers === []
+            ? '<li>No nameservers stored locally yet. Run a registry sync.</li>'
+            : implode('', array_map(fn (array $nameserver): string => '<li>' . $this->escape($this->nameserverDisplay($nameserver)) . '</li>', $nameservers));
+        $expiresAt = $this->formatDateDisplay((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? ''));
+        $registeredAt = $this->formatDateDisplay((string) ($domain['registered_at'] ?? ''));
+        $lastSync = $this->formatDateDisplay((string) ($domain['last_synced_at'] ?? ''));
+        $ownerType = (string) ($domain['owner_type'] ?? 'user');
+        $ownerId = (string) ($domain['owner_id'] ?? '');
+        $tenantId = (string) ($domain['tenant_id'] ?? '');
+        $billingMode = (string) ($domain['billing_mode'] ?? 'user');
+        $billingTenantId = (string) ($domain['billing_tenant_id'] ?? '');
+
+        return <<<HTML
+<article class="action-card">
+  <p class="eyebrow">{$this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? '')))}</p>
+  <h3>{$this->escape($domainName)}</h3>
+  <p class="muted">Status: {$this->escape((string) ($domain['registrar_status'] ?? 'active'))} | Registered: {$this->escape($registeredAt)} | Expires: {$this->escape($expiresAt)} | Last Sync: {$this->escape($lastSync)}</p>
+  <div class="summary-row"><span>Registrant</span><strong>{$this->escape($registrant !== '' ? $registrant : 'Not synced yet')}</strong></div>
+  <div class="summary-row"><span>Admin</span><strong>{$this->escape($adminContact !== '' ? $adminContact : 'Not synced yet')}</strong></div>
+  <div class="summary-row"><span>Tech</span><strong>{$this->escape($techContact !== '' ? $techContact : 'Not synced yet')}</strong></div>
+  <div class="summary-row"><span>Billing</span><strong>{$this->escape($billingContact !== '' ? $billingContact : 'Not synced yet')}</strong></div>
+  <div class="panel panel-subtle" style="margin-top:12px;">
+    <h2 style="margin-bottom:8px;">Nameservers</h2>
+    <ul class="info-list">{$nameserverItems}</ul>
+  </div>
+  <form method="post" action="{$this->escape($this->domainsSyncPath())}" class="settings-form">
+    <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
+    <div class="form-actions">
+      <button type="submit">Sync Registry Details</button>
+    </div>
+  </form>
+  <form method="post" action="{$this->escape($this->domainsRenewPath())}" class="settings-form">
+    <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
+    <div class="form-grid">
+      <label>
+        <span>Renewal Period</span>
+        <select name="period_years">
+          <option value="1">1 year</option>
+          <option value="2">2 years</option>
+          <option value="3">3 years</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Renew Now Without Charging</button>
+    </div>
+  </form>
+  <form method="post" action="{$this->escape($this->domainsAssignPath())}" class="settings-form">
+    <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
+    <div class="form-grid">
+      <label>
+        <span>Tenant ID</span>
+        <input type="text" name="tenant_id" value="{$this->escape($tenantId)}" placeholder="user:example">
+      </label>
+      <label>
+        <span>Owner Type</span>
+        <select name="owner_type">
+          <option value="user"{$this->selected($ownerType, 'user')}>User</option>
+          <option value="company"{$this->selected($ownerType, 'company')}>Company</option>
+          <option value="persona"{$this->selected($ownerType, 'persona')}>Persona</option>
+        </select>
+      </label>
+      <label>
+        <span>Owner ID</span>
+        <input type="text" name="owner_id" value="{$this->escape($ownerId)}" placeholder="user or company id">
+      </label>
+      <label>
+        <span>Billing Mode</span>
+        <select name="billing_mode">
+          <option value="user"{$this->selected($billingMode, 'user')}>User</option>
+          <option value="company"{$this->selected($billingMode, 'company')}>Company</option>
+          <option value="persona"{$this->selected($billingMode, 'persona')}>Persona</option>
+        </select>
+      </label>
+      <label>
+        <span>Billing Tenant ID</span>
+        <input type="text" name="billing_tenant_id" value="{$this->escape($billingTenantId)}" placeholder="billing tenant id">
+      </label>
+      <label>
+        <span>Customer ID</span>
+        <input type="text" name="customer_id" value="{$this->escape((string) ($domain['customer_id'] ?? ''))}" placeholder="Optional existing customer id">
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Assign Domain</button>
+    </div>
+  </form>
+</article>
 HTML;
     }
 
@@ -739,7 +1002,9 @@ HTML;
             $columns,
         );
 
-        return in_array('domain_name', $normalized, true) || in_array('domain', $normalized, true);
+        return in_array('domain_name', $normalized, true)
+            || in_array('domain', $normalized, true)
+            || in_array('name', $normalized, true);
     }
 
     private function renderNotFound(): string
@@ -902,6 +1167,21 @@ HTML;
         return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/domains' : '/domains';
     }
 
+    private function domainsSyncPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/domains/sync' : '/domains/sync';
+    }
+
+    private function domainsRenewPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/domains/renew' : '/domains/renew';
+    }
+
+    private function domainsAssignPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/domains/assign' : '/domains/assign';
+    }
+
     private function tasksPath(): string
     {
         return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/tasks' : '/tasks';
@@ -942,6 +1222,92 @@ HTML;
             'netearthone' => 'NetEarthOne',
             default => $providerCode === '' ? '-' : ucfirst($providerCode),
         };
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>|null
+     */
+    private function findControlDomain(array $payload): ?array
+    {
+        $domainId = trim((string) ($payload['domain_id'] ?? ''));
+        if ($domainId !== '') {
+            return $this->app->domainRepository()->findById($domainId);
+        }
+
+        $domainName = trim((string) ($payload['domain_name'] ?? ''));
+        if ($domainName !== '') {
+            return $this->app->domainRepository()->findByName($domainName);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     * @return array<string, mixed>
+     */
+    private function decodeDomainMetadata(array $domain): array
+    {
+        $metadata = $domain['metadata_json'] ?? null;
+        if (! is_string($metadata) || trim($metadata) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($metadata, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<string, mixed> $nameserver
+     */
+    private function nameserverDisplay(array $nameserver): string
+    {
+        $parts = [trim((string) ($nameserver['hostname'] ?? ''))];
+
+        $ipv4 = trim((string) ($nameserver['ipv4_address'] ?? $nameserver['ipv4'] ?? ''));
+        if ($ipv4 !== '') {
+            $parts[] = 'IPv4 ' . $ipv4;
+        }
+
+        $ipv6 = trim((string) ($nameserver['ipv6_address'] ?? $nameserver['ipv6'] ?? ''));
+        if ($ipv6 !== '') {
+            $parts[] = 'IPv6 ' . $ipv6;
+        }
+
+        return implode(' | ', array_filter($parts, static fn (string $part): bool => $part !== ''));
+    }
+
+    private function formatDateDisplay(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return 'Not set';
+        }
+
+        return str_contains($trimmed, ' ') ? substr($trimmed, 0, 19) : $trimmed;
+    }
+
+    private function normalizeDateOnly(string $value): ?string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $trimmed, $matches) === 1) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    private function redirectToDomains(string $message): string
+    {
+        header('Location: ' . $this->domainsPath() . '?flash=' . rawurlencode($message));
+
+        return '';
     }
 
     /**

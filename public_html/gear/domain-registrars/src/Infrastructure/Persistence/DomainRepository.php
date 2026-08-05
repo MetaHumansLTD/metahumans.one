@@ -163,6 +163,8 @@ final class DomainRepository
             $existing,
             [
                 'last_registration_result' => $providerResult,
+                'registrant' => $providerResult['registrant'] ?? null,
+                'contacts' => is_array($providerResult['contacts'] ?? null) ? $providerResult['contacts'] : [],
                 'raw' => $providerResult['raw'] ?? null,
             ],
         );
@@ -246,6 +248,8 @@ final class DomainRepository
             $existing,
             [
                 'last_sync_result' => $syncResult,
+                'registrant' => $syncResult['registrant'] ?? null,
+                'contacts' => is_array($syncResult['contacts'] ?? null) ? $syncResult['contacts'] : [],
                 'raw' => $syncResult['raw'] ?? null,
             ],
         );
@@ -386,6 +390,61 @@ final class DomainRepository
              ORDER BY sort_order ASC, created_at ASC',
             ['domain_id' => $domainId],
         );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function assignOwnership(string $domainId, array $payload): ?array
+    {
+        $existing = $this->findById($domainId);
+        if ($existing === null) {
+            return null;
+        }
+
+        $tenantId = trim((string) ($payload['tenant_id'] ?? ($existing['tenant_id'] ?? '')));
+        $ownerType = trim((string) ($payload['owner_type'] ?? ($existing['owner_type'] ?? 'user')));
+        $ownerId = trim((string) ($payload['owner_id'] ?? ($existing['owner_id'] ?? $tenantId)));
+        $billingMode = trim((string) ($payload['billing_mode'] ?? ($existing['billing_mode'] ?? 'user')));
+        $billingTenantId = trim((string) ($payload['billing_tenant_id'] ?? ($existing['billing_tenant_id'] ?? $tenantId)));
+        $customerId = trim((string) ($payload['customer_id'] ?? ''));
+        $metadata = $this->mergeMetadata(
+            $existing,
+            [
+                'allocation' => [
+                    'tenant_id' => $tenantId,
+                    'owner_type' => $ownerType,
+                    'owner_id' => $ownerId,
+                    'billing_mode' => $billingMode,
+                    'billing_tenant_id' => $billingTenantId,
+                ],
+            ],
+        );
+
+        $this->database->execute(
+            'UPDATE domains
+             SET tenant_id = :tenant_id,
+                 owner_type = :owner_type,
+                 owner_id = :owner_id,
+                 billing_mode = :billing_mode,
+                 billing_tenant_id = :billing_tenant_id,
+                 customer_id = COALESCE(:customer_id, customer_id),
+                 metadata_json = :metadata_json,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id',
+            [
+                'id' => $domainId,
+                'tenant_id' => $tenantId,
+                'owner_type' => $ownerType,
+                'owner_id' => $ownerId,
+                'billing_mode' => $billingMode,
+                'billing_tenant_id' => $billingTenantId,
+                'customer_id' => $customerId === '' ? null : $customerId,
+                'metadata_json' => $metadata,
+            ],
+        );
+
+        return $this->findById($domainId);
     }
 
     /**

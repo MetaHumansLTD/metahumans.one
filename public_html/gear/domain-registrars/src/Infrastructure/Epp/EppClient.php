@@ -632,12 +632,58 @@ final class EppClient
 
         $xpath = $this->xpath($document);
         $nameserverNodes = $xpath->query('/epp:epp/epp:response/epp:resData/domain:infData/domain:ns/domain:hostObj');
+        $nameserverAttrNodes = $xpath->query('/epp:epp/epp:response/epp:resData/domain:infData/domain:ns/domain:hostAttr');
         $statusNodes = $xpath->query('/epp:epp/epp:response/epp:resData/domain:infData/domain:status');
+        $contactNodes = $xpath->query('/epp:epp/epp:response/epp:resData/domain:infData/domain:contact');
 
         $nameservers = [];
         if ($nameserverNodes !== false) {
             foreach ($nameserverNodes as $node) {
-                $nameservers[] = trim($node->textContent);
+                $hostname = trim($node->textContent);
+                if ($hostname === '') {
+                    continue;
+                }
+
+                $nameservers[] = [
+                    'hostname' => $hostname,
+                ];
+            }
+        }
+
+        if ($nameserverAttrNodes !== false) {
+            foreach ($nameserverAttrNodes as $node) {
+                if (! $node instanceof DOMElement) {
+                    continue;
+                }
+
+                $hostname = trim((string) $xpath->evaluate('string(domain:hostName)', $node));
+                if ($hostname === '') {
+                    continue;
+                }
+
+                $entry = [
+                    'hostname' => $hostname,
+                ];
+                foreach ($xpath->query('domain:hostAddr', $node) ?: [] as $addressNode) {
+                    if (! $addressNode instanceof DOMElement) {
+                        continue;
+                    }
+
+                    $ip = trim($addressNode->textContent);
+                    if ($ip === '') {
+                        continue;
+                    }
+
+                    $protocol = strtolower(trim($addressNode->getAttribute('ip')));
+                    if ($protocol === 'v6') {
+                        $entry['ipv6'] = $ip;
+                        continue;
+                    }
+
+                    $entry['ipv4'] = $ip;
+                }
+
+                $nameservers[] = $entry;
             }
         }
 
@@ -654,6 +700,23 @@ final class EppClient
             }
         }
 
+        $contacts = [];
+        if ($contactNodes !== false) {
+            foreach ($contactNodes as $node) {
+                if (! $node instanceof DOMElement) {
+                    continue;
+                }
+
+                $type = strtolower(trim($node->getAttribute('type')));
+                $handle = trim($node->textContent);
+                if ($type === '' || $handle === '') {
+                    continue;
+                }
+
+                $contacts[$type] = $handle;
+            }
+        }
+
         return $generic + [
             'domain_name' => $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/domain:infData/domain:name'),
             'roid' => $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/domain:infData/domain:roid'),
@@ -661,6 +724,7 @@ final class EppClient
             'client_id' => $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/domain:infData/domain:clID'),
             'created_at' => $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/domain:infData/domain:crDate'),
             'expires_at' => $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/domain:infData/domain:exDate'),
+            'contacts' => $contacts,
             'nameservers' => $nameservers,
             'statuses' => $statuses,
         ];

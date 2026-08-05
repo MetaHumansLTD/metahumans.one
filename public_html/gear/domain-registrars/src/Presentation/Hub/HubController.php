@@ -1548,10 +1548,12 @@ CSS;
         }
 
         $draftPayload = is_array($metadata['draft_payload'] ?? null) ? $metadata['draft_payload'] : [];
-        $defaults['registrant'] = trim((string) ($draftPayload['registrant'] ?? ($metadata['registrant'] ?? '')));
-        $defaults['contact_admin'] = trim((string) ($draftPayload['contacts']['admin'] ?? ''));
-        $defaults['contact_tech'] = trim((string) ($draftPayload['contacts']['tech'] ?? ''));
-        $defaults['contact_billing'] = trim((string) ($draftPayload['contacts']['billing'] ?? ''));
+        $contacts = is_array($metadata['contacts'] ?? null) ? $metadata['contacts'] : [];
+        $importMetadata = is_array($metadata['import'] ?? null) ? $metadata['import'] : [];
+        $defaults['registrant'] = trim((string) ($draftPayload['registrant'] ?? ($metadata['registrant'] ?? ($importMetadata['registrant'] ?? ''))));
+        $defaults['contact_admin'] = trim((string) ($draftPayload['contacts']['admin'] ?? ($contacts['admin'] ?? ($importMetadata['admin'] ?? ''))));
+        $defaults['contact_tech'] = trim((string) ($draftPayload['contacts']['tech'] ?? ($contacts['tech'] ?? ($importMetadata['tech'] ?? ''))));
+        $defaults['contact_billing'] = trim((string) ($draftPayload['contacts']['billing'] ?? ($contacts['billing'] ?? ($importMetadata['billing'] ?? ''))));
 
         $nameservers = $this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? ''));
         foreach (array_slice($nameservers, 0, 4) as $index => $nameserver) {
