@@ -247,6 +247,17 @@ final class EppClient
         $response = $this->sendAuthenticatedCommand($this->buildLoginDocument(), false);
         $result = $this->parseGenericResponse($response);
 
+        // #region debug-point D:login-result
+        error_log('[DEBUG][coza-epp-connect][D] ' . json_encode([
+            'client_id_equals_username' => $this->clientId === $this->username,
+            'client_id_length' => strlen($this->clientId),
+            'username_length' => strlen($this->username),
+            'password_length' => strlen($this->password),
+            'result' => $result,
+            'response_xml' => $this->documentToXml($response),
+        ], JSON_UNESCAPED_SLASHES));
+        // #endregion
+
         if (! $result['ok']) {
             throw new EppException('EPP login failed: ' . $result['message']);
         }
