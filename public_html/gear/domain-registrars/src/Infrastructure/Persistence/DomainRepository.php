@@ -9,9 +9,48 @@ use App\Support\Uuid;
 
 final class DomainRepository
 {
+    /** @var array<string, list<string>>|null */
+    private ?array $columnCache = null;
+
     public function __construct(
         private readonly Database $database,
     ) {
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function domainsColumns(): array
+    {
+        if (is_array($this->columnCache)) {
+            return $this->columnCache;
+        }
+
+        try {
+            $rows = $this->database->fetchAll('SHOW COLUMNS FROM domains');
+        } catch (\Throwable) {
+            $rows = false;
+        }
+
+        $columns = [];
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $name = is_array($row) ? (string) ($row['Field'] ?? $row[0] ?? '') : (string) $row;
+                if ($name !== '') {
+                    $columns[] = $name;
+                }
+            }
+        }
+
+        $columns = array_values(array_unique($columns));
+        $this->columnCache = $columns;
+
+        return $columns;
+    }
+
+    private function columnExists(string $column): bool
+    {
+        return in_array($column, $this->domainsColumns(), true);
     }
 
     /**
@@ -255,52 +294,83 @@ final class DomainRepository
             ],
         );
 
-        $this->database->execute(
-            'UPDATE domains
-             SET upstream_domain_id = COALESCE(:upstream_domain_id, upstream_domain_id),
-                 upstream_order_id = COALESCE(:upstream_order_id, upstream_order_id),
-                 registrar_status = COALESCE(:registrar_status, registrar_status),
-                 finance_event_ref = COALESCE(:finance_event_ref, finance_event_ref),
-                 receipt_bundle_path = COALESCE(:receipt_bundle_path, receipt_bundle_path),
-                 receipt_bundle_hash = COALESCE(:receipt_bundle_hash, receipt_bundle_hash),
-                 auto_renew_enabled = COALESCE(:auto_renew_enabled, auto_renew_enabled),
-                 registered_at = COALESCE(:registered_at, registered_at),
-                 expires_at = COALESCE(:expires_at, expires_at),
-                 renewal_due_at = COALESCE(:renewal_due_at, renewal_due_at),
-                 grace_period_ends_at = COALESCE(:grace_period_ends_at, grace_period_ends_at),
-                 redemption_period_ends_at = COALESCE(:redemption_period_ends_at, redemption_period_ends_at),
-                 registrant_handle = COALESCE(:registrant_handle, registrant_handle),
-                 admin_handle = COALESCE(:admin_handle, admin_handle),
-                 tech_handle = COALESCE(:tech_handle, tech_handle),
-                 billing_handle = COALESCE(:billing_handle, billing_handle),
-                 last_synced_at = CURRENT_TIMESTAMP,
-                 last_sync_source = :last_sync_source,
-                 last_sync_error = NULL,
-                 metadata_json = :metadata_json,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = :id',
-            [
-                'id' => $domainId,
-                'upstream_domain_id' => $syncResult['upstream_domain_id'] ?? null,
-                'upstream_order_id' => $syncResult['upstream_order_id'] ?? $syncResult['orderid'] ?? null,
-                'registrar_status' => $syncResult['registrar_status'] ?? null,
-                'finance_event_ref' => $syncResult['finance_event_ref'] ?? null,
-                'receipt_bundle_path' => $syncResult['receipt_bundle_path'] ?? null,
-                'receipt_bundle_hash' => $syncResult['receipt_bundle_hash'] ?? null,
-                'auto_renew_enabled' => $this->normalizeBoolean($syncResult['auto_renew_enabled'] ?? null),
-                    'registered_at' => $this->nullableTimestampString($syncResult['registered_at'] ?? null),
-                    'expires_at' => $this->nullableTimestampString($syncResult['expires_at'] ?? null),
-                    'renewal_due_at' => $this->nullableTimestampString($syncResult['renewal_due_at'] ?? $syncResult['expires_at'] ?? null),
-                    'grace_period_ends_at' => $this->nullableTimestampString($syncResult['grace_period_ends_at'] ?? null),
-                    'redemption_period_ends_at' => $this->nullableTimestampString($syncResult['redemption_period_ends_at'] ?? null),
-                'registrant_handle' => $syncResult['registrant'] ?? null,
-                'admin_handle' => is_string($contacts['admin'] ?? null) ? (string) $contacts['admin'] : null,
-                'tech_handle' => is_string($contacts['tech'] ?? null) ? (string) $contacts['tech'] : null,
-                'billing_handle' => is_string($contacts['billing'] ?? null) ? (string) $contacts['billing'] : null,
-                'last_sync_source' => $syncResult['provider'] ?? 'worker',
-                'metadata_json' => $metadata,
-            ],
-        );
+        $set = [
+            'upstream_domain_id = COALESCE(:upstream_domain_id, upstream_domain_id)',
+            'upstream_order_id = COALESCE(:upstream_order_id, upstream_order_id)',
+            'registrar_status = COALESCE(:registrar_status, registrar_status)',
+            'finance_event_ref = COALESCE(:finance_event_ref, finance_event_ref)',
+            'receipt_bundle_path = COALESCE(:receipt_bundle_path, receipt_bundle_path)',
+            'receipt_bundle_hash = COALESCE(:receipt_bundle_hash, receipt_bundle_hash)',
+            'auto_renew_enabled = COALESCE(:auto_renew_enabled, auto_renew_enabled)',
+            'registered_at = COALESCE(:registered_at, registered_at)',
+            'expires_at = COALESCE(:expires_at, expires_at)',
+            'renewal_due_at = COALESCE(:renewal_due_at, renewal_due_at)',
+            'grace_period_ends_at = COALESCE(:grace_period_ends_at, grace_period_ends_at)',
+            'redemption_period_ends_at = COALESCE(:redemption_period_ends_at, redemption_period_ends_at)',
+            'last_synced_at = CURRENT_TIMESTAMP',
+            'last_sync_source = :last_sync_source',
+            'last_sync_error = NULL',
+            'metadata_json = :metadata_json',
+            'updated_at = CURRENT_TIMESTAMP',
+        ];
+
+        $params = [
+            'id' => $domainId,
+            'upstream_domain_id' => $syncResult['upstream_domain_id'] ?? null,
+            'upstream_order_id' => $syncResult['upstream_order_id'] ?? $syncResult['orderid'] ?? null,
+            'registrar_status' => $syncResult['registrar_status'] ?? null,
+            'finance_event_ref' => $syncResult['finance_event_ref'] ?? null,
+            'receipt_bundle_path' => $syncResult['receipt_bundle_path'] ?? null,
+            'receipt_bundle_hash' => $syncResult['receipt_bundle_hash'] ?? null,
+            'auto_renew_enabled' => $this->normalizeBoolean($syncResult['auto_renew_enabled'] ?? null),
+            'registered_at' => $this->nullableTimestampString($syncResult['registered_at'] ?? null),
+            'expires_at' => $this->nullableTimestampString($syncResult['expires_at'] ?? null),
+            'renewal_due_at' => $this->nullableTimestampString($syncResult['renewal_due_at'] ?? $syncResult['expires_at'] ?? null),
+            'grace_period_ends_at' => $this->nullableTimestampString($syncResult['grace_period_ends_at'] ?? null),
+            'redemption_period_ends_at' => $this->nullableTimestampString($syncResult['redemption_period_ends_at'] ?? null),
+            'last_sync_source' => $syncResult['provider'] ?? 'worker',
+            'metadata_json' => $metadata,
+        ];
+
+        $registrantValue = $syncResult['registrant'] ?? null;
+        $adminValue = is_string($contacts['admin'] ?? null) ? (string) $contacts['admin'] : null;
+        $techValue = is_string($contacts['tech'] ?? null) ? (string) $contacts['tech'] : null;
+        $billingValue = is_string($contacts['billing'] ?? null) ? (string) $contacts['billing'] : null;
+
+        if ($this->columnExists('registrant_handle')) {
+            $set[] = 'registrant_handle = COALESCE(:registrant_handle, registrant_handle)';
+            $params['registrant_handle'] = $registrantValue;
+        } elseif ($this->columnExists('registrant')) {
+            $set[] = 'registrant = COALESCE(:registrant_legacy, registrant)';
+            $params['registrant_legacy'] = $registrantValue;
+        }
+
+        if ($this->columnExists('admin_handle')) {
+            $set[] = 'admin_handle = COALESCE(:admin_handle, admin_handle)';
+            $params['admin_handle'] = $adminValue;
+        } elseif ($this->columnExists('admin')) {
+            $set[] = 'admin = COALESCE(:admin_legacy, admin)';
+            $params['admin_legacy'] = $adminValue;
+        }
+
+        if ($this->columnExists('tech_handle')) {
+            $set[] = 'tech_handle = COALESCE(:tech_handle, tech_handle)';
+            $params['tech_handle'] = $techValue;
+        } elseif ($this->columnExists('tech')) {
+            $set[] = 'tech = COALESCE(:tech_legacy, tech)';
+            $params['tech_legacy'] = $techValue;
+        }
+
+        if ($this->columnExists('billing_handle')) {
+            $set[] = 'billing_handle = COALESCE(:billing_handle, billing_handle)';
+            $params['billing_handle'] = $billingValue;
+        } elseif ($this->columnExists('billing')) {
+            $set[] = 'billing = COALESCE(:billing_legacy, billing)';
+            $params['billing_legacy'] = $billingValue;
+        }
+
+        $sql = 'UPDATE domains SET ' . implode(', ', $set) . ' WHERE id = :id';
+        $this->database->execute($sql, $params);
 
         if (isset($syncResult['nameservers']) && is_array($syncResult['nameservers'])) {
             $nameservers = array_map(

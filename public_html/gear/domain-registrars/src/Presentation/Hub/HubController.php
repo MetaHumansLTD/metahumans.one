@@ -2048,10 +2048,10 @@ CSS;
         $metadataContacts = $this->extractContactsFromMetadata($metadata);
 
         $dbHandles = [
-            'registrant' => trim((string) ($domain['registrant_handle'] ?? '')),
-            'admin' => trim((string) ($domain['admin_handle'] ?? '')),
-            'tech' => trim((string) ($domain['tech_handle'] ?? '')),
-            'billing' => trim((string) ($domain['billing_handle'] ?? '')),
+            'registrant' => trim((string) ($domain['registrant_handle'] ?? ($domain['registrant'] ?? ''))),
+            'admin' => trim((string) ($domain['admin_handle'] ?? ($domain['admin'] ?? ''))),
+            'tech' => trim((string) ($domain['tech_handle'] ?? ($domain['tech'] ?? ''))),
+            'billing' => trim((string) ($domain['billing_handle'] ?? ($domain['billing'] ?? ''))),
         ];
 
         $defaults['registrant'] = trim((string) (
