@@ -198,11 +198,11 @@ final class DomainRepository
                 'receipt_bundle_path' => $providerResult['receipt_bundle_path'] ?? null,
                 'receipt_bundle_hash' => $providerResult['receipt_bundle_hash'] ?? null,
                 'auto_renew_enabled' => $this->normalizeBoolean($providerResult['auto_renew_enabled'] ?? null),
-                'registered_at' => $providerResult['registered_at'] ?? $providerResult['created_at'] ?? null,
-                'expires_at' => $providerResult['expires_at'] ?? null,
-                'renewal_due_at' => $providerResult['renewal_due_at'] ?? $providerResult['expires_at'] ?? null,
-                'grace_period_ends_at' => $providerResult['grace_period_ends_at'] ?? null,
-                'redemption_period_ends_at' => $providerResult['redemption_period_ends_at'] ?? null,
+                    'registered_at' => $this->nullableTimestampString($providerResult['registered_at'] ?? $providerResult['created_at'] ?? null),
+                    'expires_at' => $this->nullableTimestampString($providerResult['expires_at'] ?? null),
+                    'renewal_due_at' => $this->nullableTimestampString($providerResult['renewal_due_at'] ?? $providerResult['expires_at'] ?? null),
+                    'grace_period_ends_at' => $this->nullableTimestampString($providerResult['grace_period_ends_at'] ?? null),
+                    'redemption_period_ends_at' => $this->nullableTimestampString($providerResult['redemption_period_ends_at'] ?? null),
                 'last_sync_source' => $providerResult['provider'] ?? 'worker',
                 'metadata_json' => $metadata,
             ],
@@ -283,11 +283,11 @@ final class DomainRepository
                 'receipt_bundle_path' => $syncResult['receipt_bundle_path'] ?? null,
                 'receipt_bundle_hash' => $syncResult['receipt_bundle_hash'] ?? null,
                 'auto_renew_enabled' => $this->normalizeBoolean($syncResult['auto_renew_enabled'] ?? null),
-                'registered_at' => $syncResult['registered_at'] ?? null,
-                'expires_at' => $syncResult['expires_at'] ?? null,
-                'renewal_due_at' => $syncResult['renewal_due_at'] ?? $syncResult['expires_at'] ?? null,
-                'grace_period_ends_at' => $syncResult['grace_period_ends_at'] ?? null,
-                'redemption_period_ends_at' => $syncResult['redemption_period_ends_at'] ?? null,
+                    'registered_at' => $this->nullableTimestampString($syncResult['registered_at'] ?? null),
+                    'expires_at' => $this->nullableTimestampString($syncResult['expires_at'] ?? null),
+                    'renewal_due_at' => $this->nullableTimestampString($syncResult['renewal_due_at'] ?? $syncResult['expires_at'] ?? null),
+                    'grace_period_ends_at' => $this->nullableTimestampString($syncResult['grace_period_ends_at'] ?? null),
+                    'redemption_period_ends_at' => $this->nullableTimestampString($syncResult['redemption_period_ends_at'] ?? null),
                 'last_sync_source' => $syncResult['provider'] ?? 'worker',
                 'metadata_json' => $metadata,
             ],
@@ -580,7 +580,17 @@ final class DomainRepository
         }
 
         $normalized = trim((string) $value);
-        return $normalized === '' ? null : $normalized;
+        if ($normalized === '') {
+            return null;
+        }
+
+        try {
+            $timestamp = new \DateTimeImmutable($normalized);
+
+            return $timestamp->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return $normalized;
+        }
     }
 
     /**
