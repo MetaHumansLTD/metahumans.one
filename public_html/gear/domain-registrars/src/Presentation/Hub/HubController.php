@@ -777,17 +777,27 @@ HTML;
 
         $nameservers = [];
         foreach (['ns1', 'ns2', 'ns3', 'ns4'] as $field) {
-            $hostname = trim((string) ($post[$field] ?? ''));
+            $raw = $post[$field] ?? '';
+            if (is_array($raw)) {
+                $raw = $raw[0] ?? '';
+            }
+            $hostname = $this->normalizeNameserverHostname($raw);
             if ($hostname !== '') {
                 $nameservers[] = ['hostname' => $hostname];
             }
         }
 
-        $contacts = array_filter([
-            'admin' => trim((string) ($post['contact_admin'] ?? '')),
-            'tech' => trim((string) ($post['contact_tech'] ?? '')),
-            'billing' => trim((string) ($post['contact_billing'] ?? '')),
-        ], static fn (string $value): bool => $value !== '');
+        $contacts = [];
+        foreach (['admin' => 'contact_admin', 'tech' => 'contact_tech', 'billing' => 'contact_billing'] as $role => $field) {
+            $raw = $post[$field] ?? '';
+            if (is_array($raw)) {
+                $raw = $raw[0] ?? '';
+            }
+            $handle = trim((string) $raw);
+            if ($handle !== '') {
+                $contacts[$role] = $handle;
+            }
+        }
 
         $providerCode = trim((string) ($domain['provider_code'] ?? ''));
         $provider = $this->app->provider($providerCode);
@@ -1675,6 +1685,31 @@ CSS;
             'success' => is_array($success) ? $success : [],
             'error' => is_array($error) ? $error : [],
         ];
+    }
+
+    private function normalizeNameserverHostname(mixed $value): string
+    {
+        if (is_array($value)) {
+            $value = $value['hostname'] ?? $value[0] ?? '';
+        }
+        if (is_object($value) && method_exists($value, '__toString')) {
+            $value = (string) $value;
+        }
+
+        $hostname = strtolower(trim((string) $value));
+        if ($hostname === '') {
+            return '';
+        }
+
+        if (! str_contains($hostname, '.')) {
+            return '';
+        }
+
+        if (preg_match('/[^a-z0-9.\-]/', $hostname) === 1) {
+            return '';
+        }
+
+        return $hostname;
     }
 
     private function flashSuccess(string $message): void

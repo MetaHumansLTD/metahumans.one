@@ -462,11 +462,7 @@ final class EppClient
 
         if (is_array($nameservers) && $nameservers !== []) {
             $ns = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:ns');
-            foreach ($nameservers as $nameserver) {
-                $hostname = is_array($nameserver) ? (string) ($nameserver['hostname'] ?? '') : (string) $nameserver;
-                if ($hostname === '') {
-                    continue;
-                }
+            foreach ($this->normalizeNameserverHostnames($nameservers) as $hostname) {
                 $ns->appendChild($document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:hostObj', $hostname));
             }
             $domainCreate->appendChild($ns);
@@ -524,21 +520,19 @@ final class EppClient
     }
 
     /**
-     * @param list<string> $currentNameservers
-     * @param list<array{hostname: string, ipv4?: string|null, ipv6?: string|null}> $targetNameservers
+     * @param array<int, mixed> $currentNameservers
+     * @param array<int, mixed> $targetNameservers
      */
     private function buildDomainUpdateNameserversDocument(
         string $domainName,
         array $currentNameservers,
         array $targetNameservers,
     ): DOMDocument {
-        $targetHostnames = array_values(array_filter(array_map(
-            static fn (array $item): string => (string) ($item['hostname'] ?? ''),
-            $targetNameservers,
-        )));
+        $currentHostnames = $this->normalizeNameserverHostnames($currentNameservers);
+        $targetHostnames = $this->normalizeNameserverHostnames($targetNameservers);
 
-        $toAdd = array_values(array_diff($targetHostnames, $currentNameservers));
-        $toRemove = array_values(array_diff($currentNameservers, $targetHostnames));
+        $toAdd = array_values(array_diff($targetHostnames, $currentHostnames));
+        $toRemove = array_values(array_diff($currentHostnames, $targetHostnames));
 
         $document = $this->newBaseDocument();
         $command = $document->createElement('command');
@@ -572,6 +566,31 @@ final class EppClient
         $document->documentElement?->appendChild($command);
 
         return $document;
+    }
+
+    /**
+     * @param array<int, mixed> $nameservers
+     * @return list<string>
+     */
+    private function normalizeNameserverHostnames(array $nameservers): array
+    {
+        $hostnames = [];
+        foreach ($nameservers as $entry) {
+            if (is_array($entry)) {
+                $hostname = trim((string) ($entry['hostname'] ?? ''));
+            } elseif (is_object($entry) && method_exists($entry, '__toString')) {
+                $hostname = trim((string) $entry);
+            } else {
+                $hostname = trim((string) $entry);
+            }
+            if ($hostname === '') {
+                continue;
+            }
+
+            $hostnames[] = strtolower($hostname);
+        }
+
+        return array_values(array_unique(array_filter($hostnames, static fn (string $host): bool => $host !== '')));
     }
 
     private function createClientTransactionId(DOMDocument $document): DOMElement
