@@ -93,8 +93,11 @@ final class HubController
             ['/hub/companies/domains/edit', 'POST'] => $this->handleUpdateSubmit($post),
             ['/hub/companies/domains/edit/', 'POST'] => $this->handleUpdateSubmit($post),
             ['/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
+            ['/orders/cancel/', 'POST'] => $this->handleOrderCancel($post),
             ['/hub/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
+            ['/hub/domains/orders/cancel/', 'POST'] => $this->handleOrderCancel($post),
             ['/hub/companies/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
+            ['/hub/companies/domains/orders/cancel/', 'POST'] => $this->handleOrderCancel($post),
             default => $this->renderNotFound(),
         };
     }
@@ -411,6 +414,8 @@ HTML;
             return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
+        $this->rememberManagedDomain($domain);
+
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
         $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
@@ -453,6 +458,8 @@ HTML;
             return $this->layout('Cancel Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
+        $this->rememberManagedDomain($domain);
+
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
         $body = <<<HTML
@@ -489,6 +496,8 @@ HTML;
         if ($domain === null) {
             return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
+
+        $this->rememberManagedDomain($domain);
 
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
@@ -1457,54 +1466,54 @@ CSS;
     private function registerPath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/register',
-            '/hub/companies/domains' => '/hub/companies/domains/register',
-            default => '/register',
+            '/hub/domains' => '/hub/domains/register/',
+            '/hub/companies/domains' => '/hub/companies/domains/register/',
+            default => '/register/',
         };
     }
 
     private function managePath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/manage',
-            '/hub/companies/domains' => '/hub/companies/domains/manage',
-            default => '/manage',
+            '/hub/domains' => '/hub/domains/manage/',
+            '/hub/companies/domains' => '/hub/companies/domains/manage/',
+            default => '/manage/',
         };
     }
 
     private function renewPath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/renew',
-            '/hub/companies/domains' => '/hub/companies/domains/renew',
-            default => '/renew',
+            '/hub/domains' => '/hub/domains/renew/',
+            '/hub/companies/domains' => '/hub/companies/domains/renew/',
+            default => '/renew/',
         };
     }
 
     private function cancelPath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/cancel',
-            '/hub/companies/domains' => '/hub/companies/domains/cancel',
-            default => '/cancel',
+            '/hub/domains' => '/hub/domains/cancel/',
+            '/hub/companies/domains' => '/hub/companies/domains/cancel/',
+            default => '/cancel/',
         };
     }
 
     private function cancelOrderPath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/orders/cancel',
-            '/hub/companies/domains' => '/hub/companies/domains/orders/cancel',
-            default => '/orders/cancel',
+            '/hub/domains' => '/hub/domains/orders/cancel/',
+            '/hub/companies/domains' => '/hub/companies/domains/orders/cancel/',
+            default => '/orders/cancel/',
         };
     }
 
     private function editPath(): string
     {
         return match ($this->basePath()) {
-            '/hub/domains' => '/hub/domains/edit',
-            '/hub/companies/domains' => '/hub/companies/domains/edit',
-            default => '/edit',
+            '/hub/domains' => '/hub/domains/edit/',
+            '/hub/companies/domains' => '/hub/companies/domains/edit/',
+            default => '/edit/',
         };
     }
 
@@ -1524,11 +1533,29 @@ CSS;
         }
 
         $domainName = strtolower(trim((string) ($payload['domain'] ?? $payload['domain_name'] ?? '')));
-        if ($domainName === '') {
-            return null;
+        if ($domainName !== '') {
+            $domain = $this->app->domainRepository()->findForAccountByName($tenantId, $ownerType, $ownerId, $domainName);
+            if ($domain !== null) {
+                return $domain;
+            }
         }
 
-        return $this->app->domainRepository()->findForAccountByName($tenantId, $ownerType, $ownerId, $domainName);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $rememberedDomainId = trim((string) ($_SESSION['mh_hub_selected_domain_id'] ?? ''));
+            if ($rememberedDomainId !== '') {
+                $domain = $this->app->domainRepository()->findById($rememberedDomainId);
+                if ($domain !== null && $this->domainBelongsToAccount($domain, $tenantId, $ownerType, $ownerId)) {
+                    return $domain;
+                }
+            }
+
+            $rememberedDomainName = strtolower(trim((string) ($_SESSION['mh_hub_selected_domain_name'] ?? '')));
+            if ($rememberedDomainName !== '') {
+                return $this->app->domainRepository()->findForAccountByName($tenantId, $ownerType, $ownerId, $rememberedDomainName);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1551,6 +1578,19 @@ CSS;
             . '<input type="hidden" name="domain" value="' . $this->escape($domainName) . '">'
             . '<button type="submit" class="' . $this->escape($buttonClass) . '">' . $this->escape($label) . '</button>'
             . '</form>';
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     */
+    private function rememberManagedDomain(array $domain): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        $_SESSION['mh_hub_selected_domain_id'] = (string) ($domain['id'] ?? '');
+        $_SESSION['mh_hub_selected_domain_name'] = (string) ($domain['domain_name'] ?? '');
     }
 
     /**
