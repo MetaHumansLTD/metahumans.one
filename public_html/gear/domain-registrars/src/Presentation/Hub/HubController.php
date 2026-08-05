@@ -511,7 +511,35 @@ HTML;
 
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
-        $defaults = $this->domainUpdateDefaults($domain);
+        $view = $this->buildDomainUpdateView($domain);
+        $defaults = $view['defaults'];
+        $provenance = $view['provenance'];
+        $lastSync = $view['lastSync'];
+        $lastSyncLabel = $lastSync['time'] !== ''
+            ? ($lastSync['time'] . ' · source: ' . $this->escape($lastSync['source']))
+            : 'Never live-synced yet';
+
+        $provenanceRows = '';
+        foreach (['registrant', 'contact_admin', 'contact_tech', 'contact_billing', 'ns1', 'ns2', 'ns3', 'ns4'] as $field) {
+            $display = match ($field) {
+                'registrant' => 'Registrant Handle',
+                'contact_admin' => 'Admin Handle',
+                'contact_tech' => 'Tech Handle',
+                'contact_billing' => 'Billing Handle',
+                default => strtoupper($field),
+            };
+            $provenanceRows .= '<div class="summary-row"><span>' . $display . ' provenance</span><strong>' . $this->escape((string) ($provenance[$field] ?? 'not-found')) . '</strong></div>';
+        }
+
+        $provenancePanel = '<div class="panel panel-subtle" style="margin-bottom:18px;"><p class="eyebrow">Live Sync · Data Provenance</p>'
+            . '<h2 style="font-size:1.05rem;">Where these values come from</h2>'
+            . '<p class="lead" style="font-size:0.9rem;">The values above are resolved in this priority order: '
+            . '<strong>Draft pending order payload → Live registry sync (last_sync_result) → domains DB handle columns → metadata → CSV import</strong>. '
+            . 'Nameservers resolve: <strong>Persisted domain_nameservers rows → live registry sync result → metadata fallback</strong>.</p>'
+            . '<div class="summary-row"><span>Last live registry sync</span><strong>' . $this->escape($lastSyncLabel) . '</strong></div>'
+            . '<div class="summary-row"><span>On-demand sync trigger</span><strong>GET /edit/ and /renew/ pages call <code>ensureDomainSyncedForManagement()</code> live to EPP when nameservers or handles are empty or older than expected</strong></div>'
+            . $provenanceRows . '</div>';
+
         $flashMarkup = $this->renderFlashMessages($flash);
         $body = <<<HTML
 <section class="checkout">
@@ -520,6 +548,7 @@ HTML;
     <h1>Edit {$this->escape($domainName)}</h1>
     <p class="lead">Nameserver and registry handle changes from this page are submitted live to the registrar. The values shown here are registry handle IDs for reference and are not full contact profiles.</p>
     {$flashMarkup}
+    {$provenancePanel}
     <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
       <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
@@ -823,6 +852,15 @@ HTML;
             $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
+        $targetHostnames = [];
+        foreach ($nameservers as $ns) {
+            $hostname = $this->normalizeNameserverHostname($ns);
+            if ($hostname !== '') {
+                $targetHostnames[] = $hostname;
+            }
+        }
+        $targetHostnames = array_values(array_unique($targetHostnames));
+
         $result = $provider->updateNameservers((string) ($domain['domain_name'] ?? ''), $nameservers);
         if (! ($result['ok'] ?? false)) {
             $this->flashError((string) ($result['message'] ?? 'The live nameserver update failed.'));
@@ -850,13 +888,33 @@ HTML;
 
         $appliedHostnames = [];
         foreach ($this->app->domainRepository()->listNameservers($domainId) as $row) {
-            $hostname = trim((string) ($row['hostname'] ?? ''));
+            $hostname = $this->normalizeNameserverHostname($row['hostname'] ?? '');
             if ($hostname !== '') {
                 $appliedHostnames[] = $hostname;
             }
         }
-        $appliedNote = $appliedHostnames === [] ? '' : (' Current stored nameservers: ' . implode(', ', $appliedHostnames) . '.');
-        $this->flashSuccess('Nameservers updated for ' . $domainName . '.' . $appliedNote);
+        $appliedHostnames = array_values(array_unique($appliedHostnames));
+
+        $matchesTarget =
+            $targetHostnames !== []
+            && $appliedHostnames !== []
+            && count($targetHostnames) === count($appliedHostnames)
+            && count(array_diff($targetHostnames, $appliedHostnames)) === 0
+            && count(array_diff($appliedHostnames, $targetHostnames)) === 0;
+
+        if (! $matchesTarget) {
+            $appliedText = $appliedHostnames === [] ? 'none read back from registry' : implode(', ', $appliedHostnames);
+            $targetText = implode(', ', $targetHostnames);
+            $this->flashError(
+                'The registrar accepted the update for ' . $domainName
+                . ' but the registry did not reflect the requested nameservers.'
+                . ' Requested: ' . $targetText . '.'
+                . ' Registry read-back: ' . $appliedText . '.'
+            );
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        $this->flashSuccess('Nameservers updated for ' . $domainName . '. Registry confirmed: ' . implode(', ', $appliedHostnames) . '.');
         $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
     }
 
@@ -932,14 +990,67 @@ HTML;
             }
         }
 
-        $updated = [];
-        if ($registrant !== '') {
-            $updated[] = 'registrant=' . $registrant;
+        $metadata = [];
+        if (is_string($domain['metadata_json'] ?? null) && trim((string) $domain['metadata_json']) !== '') {
+            $decoded = json_decode((string) $domain['metadata_json'], true);
+            if (is_array($decoded)) {
+                $metadata = $decoded;
+            }
         }
-        foreach ($contacts as $role => $handle) {
-            $updated[] = $role . '=' . $handle;
+
+        $syncedContacts = is_array($metadata['last_sync_result']['contacts'] ?? null)
+            ? $metadata['last_sync_result']['contacts']
+            : (is_array($domain['contacts'] ?? null) ? $domain['contacts'] : []);
+        $syncedRegistrant = trim((string) ($metadata['last_sync_result']['registrant'] ?? ($domain['registrant_handle'] ?? ($domain['registrant'] ?? ''))));
+        $syncedAdmin = trim((string) ($syncedContacts['admin'] ?? ($domain['admin_handle'] ?? ($domain['admin'] ?? ''))));
+        $syncedTech = trim((string) ($syncedContacts['tech'] ?? ($domain['tech_handle'] ?? ($domain['tech'] ?? ''))));
+        $syncedBilling = trim((string) ($syncedContacts['billing'] ?? ($domain['billing_handle'] ?? ($domain['billing'] ?? ''))));
+
+        $targets = [
+            'registrant' => $registrant,
+            'admin' => $contacts['admin'] ?? '',
+            'tech' => $contacts['tech'] ?? '',
+            'billing' => $contacts['billing'] ?? '',
+        ];
+        $synced = [
+            'registrant' => $syncedRegistrant,
+            'admin' => $syncedAdmin,
+            'tech' => $syncedTech,
+            'billing' => $syncedBilling,
+        ];
+
+        $deltas = [];
+        foreach (['registrant', 'admin', 'tech', 'billing'] as $role) {
+            if ($targets[$role] === '') {
+                continue;
+            }
+            if ($synced[$role] === $targets[$role]) {
+                $deltas[] = $role . '=' . $targets[$role];
+            } else {
+                $deltas[] = $role . '=requested(' . $targets[$role] . ')/registry(' . ($synced[$role] === '' ? 'empty' : $synced[$role]) . ')';
+            }
         }
-        $this->flashSuccess('Registry handles updated for ' . $domainName . ': ' . implode(', ', $updated) . '.');
+
+        $mismatchText = [];
+        foreach (['registrant', 'admin', 'tech', 'billing'] as $role) {
+            if ($targets[$role] === '') {
+                continue;
+            }
+            if ($synced[$role] !== $targets[$role]) {
+                $mismatchText[] = $role . ': requested "' . $targets[$role] . '", registry read-back "' . ($synced[$role] === '' ? 'empty' : $synced[$role]) . '"';
+            }
+        }
+
+        if ($mismatchText !== []) {
+            $this->flashError(
+                'The registrar accepted the handle update for ' . $domainName
+                . ' but the registry did not reflect the requested values: '
+                . implode('; ', $mismatchText) . '.'
+            );
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        $this->flashSuccess('Registry handles updated for ' . $domainName . ': ' . implode(', ', $deltas) . '.');
         $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
     }
 
@@ -2019,9 +2130,9 @@ CSS;
 
     /**
      * @param array<string, mixed> $domain
-     * @return array{registrant: string, contact_admin: string, contact_tech: string, contact_billing: string, ns1: string, ns2: string, ns3: string, ns4: string, notes: string}
+     * @return array{defaults: array{registrant: string, contact_admin: string, contact_tech: string, contact_billing: string, ns1: string, ns2: string, ns3: string, ns4: string, notes: string}, provenance: array{registrant: string, contact_admin: string, contact_tech: string, contact_billing: string, ns1: string, ns2: string, ns3: string, ns4: string}, lastSync: array{time: string, source: string}}
      */
-    private function domainUpdateDefaults(array $domain): array
+    private function buildDomainUpdateView(array $domain): array
     {
         $defaults = [
             'registrant' => '',
@@ -2033,6 +2144,17 @@ CSS;
             'ns3' => '',
             'ns4' => '',
             'notes' => '',
+        ];
+
+        $provenance = [
+            'registrant' => 'not-found',
+            'contact_admin' => 'not-found',
+            'contact_tech' => 'not-found',
+            'contact_billing' => 'not-found',
+            'ns1' => 'not-found',
+            'ns2' => 'not-found',
+            'ns3' => 'not-found',
+            'ns4' => 'not-found',
         ];
 
         $metadata = [];
@@ -2047,6 +2169,15 @@ CSS;
         $importMetadata = is_array($metadata['import'] ?? null) ? $metadata['import'] : [];
         $metadataContacts = $this->extractContactsFromMetadata($metadata);
 
+        $lastSyncRegistrant = trim((string) ($metadata['last_sync_result']['registrant'] ?? ''));
+        $lastSyncContacts = is_array($metadata['last_sync_result']['contacts'] ?? null)
+            ? [
+                'admin' => trim((string) ($metadata['last_sync_result']['contacts']['admin'] ?? '')),
+                'tech' => trim((string) ($metadata['last_sync_result']['contacts']['tech'] ?? '')),
+                'billing' => trim((string) ($metadata['last_sync_result']['contacts']['billing'] ?? '')),
+            ]
+            : ['admin' => '', 'tech' => '', 'billing' => ''];
+
         $dbHandles = [
             'registrant' => trim((string) ($domain['registrant_handle'] ?? ($domain['registrant'] ?? ''))),
             'admin' => trim((string) ($domain['admin_handle'] ?? ($domain['admin'] ?? ''))),
@@ -2054,46 +2185,97 @@ CSS;
             'billing' => trim((string) ($domain['billing_handle'] ?? ($domain['billing'] ?? ''))),
         ];
 
-        $defaults['registrant'] = trim((string) (
-            $draftPayload['registrant']
-            ?? ($dbHandles['registrant'] !== '' ? $dbHandles['registrant'] : null)
-            ?? ($metadataContacts['registrant'] !== '' ? $metadataContacts['registrant'] : null)
-            ?? ($importMetadata['registrant'] ?? '')
-        ));
-        $defaults['contact_admin'] = trim((string) (
-            $draftPayload['contacts']['admin']
-            ?? ($dbHandles['admin'] !== '' ? $dbHandles['admin'] : null)
-            ?? ($metadataContacts['admin'] !== '' ? $metadataContacts['admin'] : null)
-            ?? ($importMetadata['admin'] ?? '')
-        ));
-        $defaults['contact_tech'] = trim((string) (
-            $draftPayload['contacts']['tech']
-            ?? ($dbHandles['tech'] !== '' ? $dbHandles['tech'] : null)
-            ?? ($metadataContacts['tech'] !== '' ? $metadataContacts['tech'] : null)
-            ?? ($importMetadata['tech'] ?? '')
-        ));
-        $defaults['contact_billing'] = trim((string) (
-            $draftPayload['contacts']['billing']
-            ?? ($dbHandles['billing'] !== '' ? $dbHandles['billing'] : null)
-            ?? ($metadataContacts['billing'] !== '' ? $metadataContacts['billing'] : null)
-            ?? ($importMetadata['billing'] ?? '')
-        ));
+        $handleCandidates = [
+            'registrant' => [
+                ['value' => trim((string) ($draftPayload['registrant'] ?? '')), 'provenance' => 'Draft pending order payload'],
+                ['value' => $lastSyncRegistrant, 'provenance' => 'Live registry sync (last_sync_result.registrant)'],
+                ['value' => $dbHandles['registrant'], 'provenance' => 'Domains table handle column'],
+                ['value' => $metadataContacts['registrant'], 'provenance' => 'Metadata contacts (metadata.registrant)'],
+                ['value' => trim((string) ($importMetadata['registrant'] ?? '')), 'provenance' => 'CSV import metadata'],
+            ],
+            'admin' => [
+                ['value' => trim((string) ($draftPayload['contacts']['admin'] ?? '')), 'provenance' => 'Draft pending order payload'],
+                ['value' => $lastSyncContacts['admin'], 'provenance' => 'Live registry sync (last_sync_result.contacts.admin)'],
+                ['value' => $dbHandles['admin'], 'provenance' => 'Domains table handle column'],
+                ['value' => $metadataContacts['admin'], 'provenance' => 'Metadata contacts (metadata.contacts.admin)'],
+                ['value' => trim((string) ($importMetadata['admin'] ?? '')), 'provenance' => 'CSV import metadata'],
+            ],
+            'tech' => [
+                ['value' => trim((string) ($draftPayload['contacts']['tech'] ?? '')), 'provenance' => 'Draft pending order payload'],
+                ['value' => $lastSyncContacts['tech'], 'provenance' => 'Live registry sync (last_sync_result.contacts.tech)'],
+                ['value' => $dbHandles['tech'], 'provenance' => 'Domains table handle column'],
+                ['value' => $metadataContacts['tech'], 'provenance' => 'Metadata contacts (metadata.contacts.tech)'],
+                ['value' => trim((string) ($importMetadata['tech'] ?? '')), 'provenance' => 'CSV import metadata'],
+            ],
+            'billing' => [
+                ['value' => trim((string) ($draftPayload['contacts']['billing'] ?? '')), 'provenance' => 'Draft pending order payload'],
+                ['value' => $lastSyncContacts['billing'], 'provenance' => 'Live registry sync (last_sync_result.contacts.billing)'],
+                ['value' => $dbHandles['billing'], 'provenance' => 'Domains table handle column'],
+                ['value' => $metadataContacts['billing'], 'provenance' => 'Metadata contacts (metadata.contacts.billing)'],
+                ['value' => trim((string) ($importMetadata['billing'] ?? '')), 'provenance' => 'CSV import metadata'],
+            ],
+        ];
 
-        $nameservers = [];
-        foreach ($this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? '')) as $row) {
-            $hostname = trim((string) ($row['hostname'] ?? ''));
-            if ($hostname !== '') {
-                $nameservers[] = $hostname;
+        $targets = [
+            'registrant' => 'registrant',
+            'admin' => 'contact_admin',
+            'tech' => 'contact_tech',
+            'billing' => 'contact_billing',
+        ];
+        foreach ($targets as $role => $targetKey) {
+            foreach ($handleCandidates[$role] as $candidate) {
+                if (is_string($candidate['value']) && trim($candidate['value']) !== '') {
+                    $defaults[$targetKey] = $candidate['value'];
+                    $provenance[$targetKey] = $candidate['provenance'];
+                    break;
+                }
             }
         }
-        if ($nameservers === []) {
-            $nameservers = $this->extractNameserversFromMetadata($metadata);
+
+        $nameservers = [];
+        $nameserverProvenance = 'Not found';
+        $dbNs = [];
+        foreach ($this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? '')) as $row) {
+            $hostname = $this->normalizeNameserverHostname($row['hostname'] ?? '');
+            if ($hostname !== '') {
+                $dbNs[] = $hostname;
+            }
+        }
+        if ($dbNs !== []) {
+            $nameservers = $dbNs;
+            $nameserverProvenance = 'Persisted domain_nameservers rows';
+        } else {
+            $metadataNs = $this->extractNameserversFromMetadata($metadata);
+            if ($metadataNs !== []) {
+                $nameservers = $metadataNs;
+                if (isset($metadata['last_sync_result']['nameservers']) && is_array($metadata['last_sync_result']['nameservers']) && $metadata['last_sync_result']['nameservers'] !== []) {
+                    $nameserverProvenance = 'Live registry sync (last_sync_result.nameservers)';
+                } else {
+                    $nameserverProvenance = 'Fallback metadata.nameservers';
+                }
+            }
         }
 
         foreach (array_slice($nameservers, 0, 4) as $index => $hostname) {
-            $defaults['ns' . ($index + 1)] = trim((string) $hostname);
+            $key = 'ns' . ($index + 1);
+            $defaults[$key] = trim((string) $hostname);
+            $provenance[$key] = $nameserverProvenance;
         }
 
-        return $defaults;
+        $lastSyncTime = trim((string) ($domain['last_synced_at'] ?? ''));
+        $lastSyncSource = trim((string) ($domain['last_sync_source'] ?? ''));
+        if ($lastSyncTime === '' && isset($metadata['last_sync_result']['@generated_at'])) {
+            $lastSyncTime = trim((string) $metadata['last_sync_result']['@generated_at']);
+            $lastSyncSource = $lastSyncSource !== '' ? $lastSyncSource : 'metadata-only';
+        }
+
+        return [
+            'defaults' => $defaults,
+            'provenance' => $provenance,
+            'lastSync' => [
+                'time' => $lastSyncTime,
+                'source' => $lastSyncSource !== '' ? $lastSyncSource : 'Never live-synced yet',
+            ],
+        ];
     }
 }
