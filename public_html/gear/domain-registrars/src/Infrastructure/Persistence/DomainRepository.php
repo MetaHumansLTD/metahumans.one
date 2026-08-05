@@ -389,6 +389,110 @@ final class DomainRepository
     }
 
     /**
+     * @param array<string, mixed> $payload
+     */
+    public function upsertImportedDomain(
+        string $providerAccountId,
+        string $providerCode,
+        string $domainName,
+        array $payload = [],
+    ): array {
+        $normalizedDomain = strtolower(trim($domainName));
+        if ($normalizedDomain === '') {
+            throw new \InvalidArgumentException('Domain name is required for imports.');
+        }
+
+        $existing = $this->database->fetchOne(
+            'SELECT * FROM domains WHERE provider_account_id = :provider_account_id AND domain_name = :domain_name LIMIT 1',
+            [
+                'provider_account_id' => $providerAccountId,
+                'domain_name' => $normalizedDomain,
+            ],
+        );
+
+        $tenantId = trim((string) ($payload['tenant_id'] ?? ''));
+        $ownerType = trim((string) ($payload['owner_type'] ?? 'user'));
+        $ownerId = trim((string) ($payload['owner_id'] ?? ''));
+        $billingTenantId = trim((string) ($payload['billing_tenant_id'] ?? $tenantId));
+        $tld = str_contains($normalizedDomain, '.') ? substr($normalizedDomain, strpos($normalizedDomain, '.') + 1) : $normalizedDomain;
+
+        $metadataPatch = [
+            'import' => [
+                'source' => 'control-bulk-import',
+                'imported_domain_name' => $normalizedDomain,
+            ],
+        ];
+
+        if ($existing !== null) {
+            $metadata = $this->mergeMetadata($existing, $metadataPatch);
+            $this->database->execute(
+                'UPDATE domains
+                 SET tenant_id = :tenant_id,
+                     owner_type = :owner_type,
+                     owner_id = :owner_id,
+                     billing_mode = :billing_mode,
+                     billing_tenant_id = :billing_tenant_id,
+                     provider_code = :provider_code,
+                     registrar_status = :registrar_status,
+                     last_sync_error = NULL,
+                     metadata_json = :metadata_json,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = :id',
+                [
+                    'id' => $existing['id'],
+                    'tenant_id' => $tenantId,
+                    'owner_type' => $ownerType,
+                    'owner_id' => $ownerId,
+                    'billing_mode' => (string) ($payload['billing_mode'] ?? 'user'),
+                    'billing_tenant_id' => $billingTenantId,
+                    'provider_code' => $providerCode,
+                    'registrar_status' => (string) ($payload['registrar_status'] ?? ($existing['registrar_status'] ?? 'imported')),
+                    'metadata_json' => $metadata,
+                ],
+            );
+
+            return $this->findById((string) $existing['id']) ?? $existing;
+        }
+
+        $record = [
+            'id' => Uuid::v4(),
+            'tenant_id' => $tenantId,
+            'owner_type' => $ownerType,
+            'owner_id' => $ownerId,
+            'acting_user_id' => $payload['acting_user_id'] ?? null,
+            'acting_persona_id' => $payload['acting_persona_id'] ?? null,
+            'billing_mode' => (string) ($payload['billing_mode'] ?? 'user'),
+            'billing_tenant_id' => $billingTenantId,
+            'finance_event_ref' => null,
+            'receipt_bundle_path' => null,
+            'receipt_bundle_hash' => null,
+            'external_action_ref' => null,
+            'customer_id' => null,
+            'provider_account_id' => $providerAccountId,
+            'provider_code' => $providerCode,
+            'domain_name' => $normalizedDomain,
+            'tld' => $tld,
+            'registrar_status' => (string) ($payload['registrar_status'] ?? 'imported'),
+            'metadata_json' => json_encode($metadataPatch, JSON_UNESCAPED_SLASHES),
+        ];
+
+        $this->database->execute(
+            'INSERT INTO domains (
+                id, tenant_id, owner_type, owner_id, acting_user_id, acting_persona_id, billing_mode, billing_tenant_id,
+                finance_event_ref, receipt_bundle_path, receipt_bundle_hash, external_action_ref, customer_id,
+                provider_account_id, provider_code, domain_name, tld, registrar_status, metadata_json, created_at, updated_at
+             ) VALUES (
+                :id, :tenant_id, :owner_type, :owner_id, :acting_user_id, :acting_persona_id, :billing_mode, :billing_tenant_id,
+                :finance_event_ref, :receipt_bundle_path, :receipt_bundle_hash, :external_action_ref, :customer_id,
+                :provider_account_id, :provider_code, :domain_name, :tld, :registrar_status, :metadata_json, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+             )',
+            $record,
+        );
+
+        return $this->findById($record['id']) ?? $record;
+    }
+
+    /**
      * @param list<array<string, mixed>|string> $statuses
      */
     private function replaceStatuses(string $domainId, array $statuses, string $source): void

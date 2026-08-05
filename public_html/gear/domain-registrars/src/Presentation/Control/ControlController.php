@@ -25,7 +25,8 @@ final class ControlController
         return match ([$path, strtoupper($method)]) {
             ['/', 'GET'] => $this->renderDashboard($query),
             ['/orders', 'GET'] => $this->renderOrders(),
-            ['/domains', 'GET'] => $this->renderDomains(),
+            ['/domains', 'GET'] => $this->renderDomains($query),
+            ['/domains', 'POST'] => $this->handleDomainsImport($post),
             ['/tasks', 'GET'] => $this->renderTasks(),
             ['/providers/coza', 'GET'] => $this->renderCozaSettings($query),
             ['/providers/coza', 'POST'] => $this->handleCozaSettingsSave($post),
@@ -185,24 +186,40 @@ HTML;
         return $this->layout('Orders', '<section class="panel"><div class="panel-head"><h1>Orders</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
     }
 
-    private function renderDomains(): string
+    private function renderDomains(array $query = []): string
     {
+        $flash = trim((string) ($query['flash'] ?? ''));
+        $domains = $this->app->domainRepository()->listRecent(200);
+        $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $importForm = $this->renderDomainImportForm();
         $rows = $this->renderTable(
-            ['Provider', 'Domain', 'Status', 'Registered', 'Expires', 'Updated'],
+            ['Provider', 'Domain', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated'],
             array_map(
                 fn (array $domain): array => [
                     $this->providerDisplayName((string) ($domain['provider_code'] ?? '')),
                     (string) $domain['domain_name'],
                     (string) $domain['registrar_status'],
+                    (string) ($domain['owner_type'] ?? '-'),
+                    (string) ($domain['owner_id'] ?? '-'),
+                    (string) ($domain['tenant_id'] ?? '-'),
                     (string) ($domain['registered_at'] ?? '-'),
                     (string) ($domain['expires_at'] ?? '-'),
                     (string) $domain['updated_at'],
                 ],
-                $this->app->domainRepository()->listRecent(50),
+                $domains,
             ),
         );
 
-        return $this->layout('Domains', '<section class="panel"><div class="panel-head"><h1>Domains</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
+        return $this->layout(
+            'Domains',
+            $flashMarkup
+            . '<section class="panel"><div class="panel-head"><div><h1>Domains</h1><p class="muted">Bulk import registry domains into the local portfolio and allocate them to users or companies. This page shows locally imported records, not an automatic registry-wide portfolio feed.</p></div><a href="'
+            . $this->escape($this->basePath())
+            . '">Back to dashboard</a></div>'
+            . $importForm
+            . $rows
+            . '</section>'
+        );
     }
 
     private function renderTasks(): string
@@ -455,6 +472,70 @@ HTML;
         return $this->layout('Queue Tasks', $body);
     }
 
+    private function handleDomainsImport(array $post): string
+    {
+        $entries = $this->parseDomainImportEntries($post, $_FILES['import_file'] ?? null);
+        if ($entries === []) {
+            return $this->renderDomains(['flash' => 'No domains were detected in the pasted text or uploaded file.']);
+        }
+
+        $defaultProvider = trim((string) ($post['provider_code'] ?? 'coza'));
+        $providerAccount = $this->app->providerAccount($defaultProvider);
+        $providerAccountId = trim((string) ($providerAccount['id'] ?? ''));
+        if ($providerAccountId === '') {
+            return $this->renderDomains(['flash' => 'The selected provider account is not available for imports yet.']);
+        }
+
+        $imported = 0;
+        $skipped = [];
+        foreach ($entries as $entry) {
+            $domainName = strtolower(trim((string) ($entry['domain_name'] ?? $entry['domain'] ?? '')));
+            if ($domainName === '' || ! str_contains($domainName, '.')) {
+                $skipped[] = $domainName === '' ? '[blank]' : $domainName;
+                continue;
+            }
+
+            $providerCode = trim((string) ($entry['provider_code'] ?? $defaultProvider));
+            $accountId = $providerCode === $defaultProvider
+                ? $providerAccountId
+                : trim((string) (($this->app->providerAccount($providerCode)['id'] ?? '')));
+
+            if ($accountId === '') {
+                $skipped[] = $domainName;
+                continue;
+            }
+
+            $tenantId = trim((string) ($entry['tenant_id'] ?? ''));
+            $ownerType = trim((string) ($entry['owner_type'] ?? 'user'));
+            $ownerId = trim((string) ($entry['owner_id'] ?? ''));
+            $billingTenantId = trim((string) ($entry['billing_tenant_id'] ?? $tenantId));
+
+            $this->app->domainRepository()->upsertImportedDomain(
+                $accountId,
+                $providerCode,
+                $domainName,
+                [
+                    'tenant_id' => $tenantId,
+                    'owner_type' => $ownerType,
+                    'owner_id' => $ownerId,
+                    'billing_mode' => trim((string) ($entry['billing_mode'] ?? 'user')),
+                    'billing_tenant_id' => $billingTenantId,
+                ],
+            );
+            $imported++;
+        }
+
+        $message = sprintf('Imported %d domain%s.', $imported, $imported === 1 ? '' : 's');
+        if ($skipped !== []) {
+            $message .= ' Skipped: ' . implode(', ', array_slice($skipped, 0, 10));
+            if (count($skipped) > 10) {
+                $message .= ' and more';
+            }
+        }
+
+        return $this->renderDomains(['flash' => $message]);
+    }
+
     /**
      * @param list<string> $headers
      * @param list<list<string>> $rows
@@ -476,6 +557,58 @@ HTML;
         return '<div class="table-wrap"><table><thead><tr>' . $headCells . '</tr></thead><tbody>' . implode('', $bodyRows) . '</tbody></table></div>';
     }
 
+    private function renderDomainImportForm(): string
+    {
+        return <<<HTML
+<form method="post" action="{$this->escape($this->domainsPath())}" enctype="multipart/form-data" class="checkout-form">
+  <div class="panel panel-subtle">
+    <h2>Bulk Import Domains</h2>
+    <p class="muted">Paste one domain per line, or upload a CSV with columns like <code>domain_name</code>, <code>provider_code</code>, <code>owner_type</code>, <code>owner_id</code>, <code>tenant_id</code>, and <code>billing_tenant_id</code>.</p>
+    <div class="field-grid">
+      <label>
+        <span>Default Provider</span>
+        <select name="provider_code">
+          <option value="coza">.co.za</option>
+          <option value="netearthone">NetEarthOne</option>
+        </select>
+      </label>
+      <label>
+        <span>CSV Upload</span>
+        <input type="file" name="import_file" accept=".csv,.txt,text/csv,text/plain">
+      </label>
+      <label>
+        <span>Default Owner Type</span>
+        <select name="owner_type">
+          <option value="user">User</option>
+          <option value="company">Company</option>
+          <option value="persona">Persona</option>
+        </select>
+      </label>
+      <label>
+        <span>Default Owner ID</span>
+        <input type="text" name="owner_id" placeholder="Optional">
+      </label>
+      <label>
+        <span>Default Tenant ID</span>
+        <input type="text" name="tenant_id" placeholder="Optional">
+      </label>
+      <label>
+        <span>Default Billing Tenant ID</span>
+        <input type="text" name="billing_tenant_id" placeholder="Optional">
+      </label>
+    </div>
+    <label>
+      <span>Paste Domains or CSV Rows</span>
+      <textarea name="import_text" rows="8" placeholder="ttestthis.co.za&#10;example.org.za&#10;domain_name,owner_type,owner_id,tenant_id&#10;sample.co.za,company,company_123,tenant_123"></textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit">Import Domains</button>
+    </div>
+  </div>
+</form>
+HTML;
+    }
+
     private function taskForm(string $taskType, string $queueName, string $label): string
     {
         return <<<HTML
@@ -493,6 +626,117 @@ HTML;
   <button type="submit">Run</button>
 </form>
 HTML;
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     * @param mixed $uploadedFile
+     * @return list<array<string, string>>
+     */
+    private function parseDomainImportEntries(array $post, mixed $uploadedFile): array
+    {
+        $defaultProvider = trim((string) ($post['provider_code'] ?? 'coza'));
+        $defaultOwnerType = trim((string) ($post['owner_type'] ?? 'user'));
+        $defaultOwnerId = trim((string) ($post['owner_id'] ?? ''));
+        $defaultTenantId = trim((string) ($post['tenant_id'] ?? ''));
+        $defaultBillingTenantId = trim((string) ($post['billing_tenant_id'] ?? $defaultTenantId));
+
+        $chunks = [];
+        $pasted = trim((string) ($post['import_text'] ?? ''));
+        if ($pasted !== '') {
+            $chunks[] = $pasted;
+        }
+
+        if (is_array($uploadedFile) && (int) ($uploadedFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $tmpPath = (string) ($uploadedFile['tmp_name'] ?? '');
+            if ($tmpPath !== '' && is_file($tmpPath)) {
+                $fileContents = file_get_contents($tmpPath);
+                if (is_string($fileContents) && trim($fileContents) !== '') {
+                    $chunks[] = $fileContents;
+                }
+            }
+        }
+
+        if ($chunks === []) {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($chunks as $chunk) {
+            $lines = preg_split('/\r\n|\r|\n/', $chunk) ?: [];
+            $headerMap = null;
+
+            foreach ($lines as $line) {
+                $trimmedLine = trim((string) $line);
+                if ($trimmedLine === '') {
+                    continue;
+                }
+
+                $columns = array_map('trim', str_getcsv($trimmedLine));
+                if ($columns === []) {
+                    continue;
+                }
+
+                if ($headerMap === null && $this->isDomainImportHeader($columns)) {
+                    $headerMap = array_map(
+                        static fn (string $column): string => strtolower(trim($column)),
+                        $columns,
+                    );
+                    continue;
+                }
+
+                $entry = [
+                    'provider_code' => $defaultProvider,
+                    'owner_type' => $defaultOwnerType,
+                    'owner_id' => $defaultOwnerId,
+                    'tenant_id' => $defaultTenantId,
+                    'billing_tenant_id' => $defaultBillingTenantId,
+                ];
+
+                if ($headerMap !== null) {
+                    foreach ($headerMap as $index => $name) {
+                        $entry[$name] = trim((string) ($columns[$index] ?? ''));
+                    }
+                    if (($entry['domain_name'] ?? '') === '' && ($entry['domain'] ?? '') !== '') {
+                        $entry['domain_name'] = (string) $entry['domain'];
+                    }
+                } else {
+                    $entry['domain_name'] = trim((string) ($columns[0] ?? ''));
+                    if (isset($columns[1]) && trim((string) $columns[1]) !== '') {
+                        $entry['owner_type'] = trim((string) $columns[1]);
+                    }
+                    if (isset($columns[2]) && trim((string) $columns[2]) !== '') {
+                        $entry['owner_id'] = trim((string) $columns[2]);
+                    }
+                    if (isset($columns[3]) && trim((string) $columns[3]) !== '') {
+                        $entry['tenant_id'] = trim((string) $columns[3]);
+                    }
+                    if (isset($columns[4]) && trim((string) $columns[4]) !== '') {
+                        $entry['billing_tenant_id'] = trim((string) $columns[4]);
+                    }
+                    if (isset($columns[5]) && trim((string) $columns[5]) !== '') {
+                        $entry['provider_code'] = trim((string) $columns[5]);
+                    }
+                }
+
+                $entries[] = $entry;
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    private function isDomainImportHeader(array $columns): bool
+    {
+        $normalized = array_map(
+            static fn (string $column): string => strtolower(trim($column)),
+            $columns,
+        );
+
+        return in_array('domain_name', $normalized, true) || in_array('domain', $normalized, true);
     }
 
     private function renderNotFound(): string
