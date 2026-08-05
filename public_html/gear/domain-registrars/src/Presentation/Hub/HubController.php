@@ -415,6 +415,7 @@ HTML;
             return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
+        $domain = $this->ensureDomainSyncedForManagement($domain);
         $this->rememberManagedDomain($domain);
 
         $domainName = (string) ($domain['domain_name'] ?? '');
@@ -462,6 +463,7 @@ HTML;
             return $this->layout('Cancel Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
+        $domain = $this->ensureDomainSyncedForManagement($domain);
         $this->rememberManagedDomain($domain);
 
         $domainName = (string) ($domain['domain_name'] ?? '');
@@ -504,6 +506,7 @@ HTML;
             return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
+        $domain = $this->ensureDomainSyncedForManagement($domain);
         $this->rememberManagedDomain($domain);
 
         $domainName = (string) ($domain['domain_name'] ?? '');
@@ -1701,6 +1704,130 @@ CSS;
     }
 
     /**
+     * @param array<string, mixed> $domain
+     * @return array<string, mixed>
+     */
+    private function ensureDomainSyncedForManagement(array $domain): array
+    {
+        $domainId = (string) ($domain['id'] ?? '');
+        if ($domainId === '') {
+            return $domain;
+        }
+
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $providerCode !== '' ? $this->app->provider($providerCode) : null;
+        if (! $provider instanceof DomainPortfolioSyncInterface) {
+            return $domain;
+        }
+
+        $storedNameservers = $this->app->domainRepository()->listNameservers($domainId);
+        $contactHandles = array_filter([
+            trim((string) ($domain['registrant_handle'] ?? '')),
+            trim((string) ($domain['admin_handle'] ?? '')),
+            trim((string) ($domain['tech_handle'] ?? '')),
+            trim((string) ($domain['billing_handle'] ?? '')),
+        ]);
+
+        $metadata = [];
+        if (is_string($domain['metadata_json'] ?? null) && trim((string) $domain['metadata_json']) !== '') {
+            $decoded = json_decode((string) $domain['metadata_json'], true);
+            if (is_array($decoded)) {
+                $metadata = $decoded;
+            }
+        }
+
+        $metadataNameservers = $this->extractNameserversFromMetadata($metadata);
+        $metadataContacts = $this->extractContactsFromMetadata($metadata);
+
+        $hasRegistryData =
+            $storedNameservers !== []
+            || $metadataNameservers !== []
+            || count($contactHandles) >= 2
+            || (
+                $metadataContacts['registrant'] !== ''
+                && ($metadataContacts['admin'] !== '' || $metadataContacts['tech'] !== '')
+            );
+
+        if ($hasRegistryData) {
+            return $domain;
+        }
+
+        $sync = $provider->syncDomain(
+            (string) ($domain['domain_name'] ?? ''),
+            new SyncContext($providerCode, 'hub-on-demand-management-sync', true),
+        );
+        if (($sync['ok'] ?? true) === false) {
+            return $domain;
+        }
+
+        $this->app->domainRepository()->updateFromSync($domainId, $sync);
+
+        return $this->resolveManagedDomain([
+            'domain_id' => $domainId,
+            'domain_name' => (string) ($domain['domain_name'] ?? ''),
+        ]) ?? $domain;
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @return list<string>
+     */
+    private function extractNameserversFromMetadata(array $metadata): array
+    {
+        $candidates = [
+            $metadata['nameservers'] ?? null,
+            $metadata['last_sync_result']['nameservers'] ?? null,
+            $metadata['last_registration_result']['nameservers'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (! is_array($candidate)) {
+                continue;
+            }
+
+            $hostnames = [];
+            foreach ($candidate as $entry) {
+                if (is_array($entry)) {
+                    $hostname = trim((string) ($entry['hostname'] ?? ''));
+                } else {
+                    $hostname = trim((string) $entry);
+                }
+                if ($hostname !== '') {
+                    $hostnames[] = $hostname;
+                }
+            }
+
+            if ($hostnames !== []) {
+                return $hostnames;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @return array{registrant: string, admin: string, tech: string, billing: string}
+     */
+    private function extractContactsFromMetadata(array $metadata): array
+    {
+        $contacts = is_array($metadata['contacts'] ?? null)
+            ? $metadata['contacts']
+            : (is_array($metadata['last_sync_result']['contacts'] ?? null)
+                ? $metadata['last_sync_result']['contacts']
+                : (is_array($metadata['last_registration_result']['contacts'] ?? null)
+                    ? $metadata['last_registration_result']['contacts']
+                    : []));
+
+        return [
+            'registrant' => trim((string) ($metadata['registrant'] ?? ($metadata['last_sync_result']['registrant'] ?? ($metadata['last_registration_result']['registrant'] ?? '')))),
+            'admin' => trim((string) ($contacts['admin'] ?? '')),
+            'tech' => trim((string) ($contacts['tech'] ?? '')),
+            'billing' => trim((string) ($contacts['billing'] ?? '')),
+        ];
+    }
+
+    /**
      * @param array{success: list<string>, error: list<string>} $flashes
      */
     private function renderFlashMessages(array $flashes): string
@@ -1787,16 +1914,43 @@ CSS;
         }
 
         $draftPayload = is_array($metadata['draft_payload'] ?? null) ? $metadata['draft_payload'] : [];
-        $contacts = is_array($metadata['contacts'] ?? null) ? $metadata['contacts'] : [];
         $importMetadata = is_array($metadata['import'] ?? null) ? $metadata['import'] : [];
-        $defaults['registrant'] = trim((string) ($draftPayload['registrant'] ?? ($metadata['registrant'] ?? ($importMetadata['registrant'] ?? ''))));
-        $defaults['contact_admin'] = trim((string) ($draftPayload['contacts']['admin'] ?? ($contacts['admin'] ?? ($importMetadata['admin'] ?? ''))));
-        $defaults['contact_tech'] = trim((string) ($draftPayload['contacts']['tech'] ?? ($contacts['tech'] ?? ($importMetadata['tech'] ?? ''))));
-        $defaults['contact_billing'] = trim((string) ($draftPayload['contacts']['billing'] ?? ($contacts['billing'] ?? ($importMetadata['billing'] ?? ''))));
+        $metadataContacts = $this->extractContactsFromMetadata($metadata);
 
-        $nameservers = $this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? ''));
-        foreach (array_slice($nameservers, 0, 4) as $index => $nameserver) {
-            $defaults['ns' . ($index + 1)] = trim((string) ($nameserver['hostname'] ?? ''));
+        $defaults['registrant'] = trim((string) (
+            $draftPayload['registrant']
+            ?? ($metadataContacts['registrant'] !== '' ? $metadataContacts['registrant'] : null)
+            ?? ($importMetadata['registrant'] ?? '')
+        ));
+        $defaults['contact_admin'] = trim((string) (
+            $draftPayload['contacts']['admin']
+            ?? ($metadataContacts['admin'] !== '' ? $metadataContacts['admin'] : null)
+            ?? ($importMetadata['admin'] ?? '')
+        ));
+        $defaults['contact_tech'] = trim((string) (
+            $draftPayload['contacts']['tech']
+            ?? ($metadataContacts['tech'] !== '' ? $metadataContacts['tech'] : null)
+            ?? ($importMetadata['tech'] ?? '')
+        ));
+        $defaults['contact_billing'] = trim((string) (
+            $draftPayload['contacts']['billing']
+            ?? ($metadataContacts['billing'] !== '' ? $metadataContacts['billing'] : null)
+            ?? ($importMetadata['billing'] ?? '')
+        ));
+
+        $nameservers = [];
+        foreach ($this->app->domainRepository()->listNameservers((string) ($domain['id'] ?? '')) as $row) {
+            $hostname = trim((string) ($row['hostname'] ?? ''));
+            if ($hostname !== '') {
+                $nameservers[] = $hostname;
+            }
+        }
+        if ($nameservers === []) {
+            $nameservers = $this->extractNameserversFromMetadata($metadata);
+        }
+
+        foreach (array_slice($nameservers, 0, 4) as $index => $hostname) {
+            $defaults['ns' . ($index + 1)] = trim((string) $hostname);
         }
 
         return $defaults;
