@@ -409,6 +409,7 @@ HTML;
 
     private function renderRenewalPage(array $query): string
     {
+        $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
@@ -419,12 +420,14 @@ HTML;
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
         $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
+        $flashMarkup = $this->renderFlashMessages($flash);
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
     <p class="eyebrow">Live Renewal</p>
     <h1>Renew {$this->escape($domainName)}</h1>
     <p class="lead">This submits a live registrar renewal from the website without charging. It uses the expiry date already stored for this domain.</p>
+    {$flashMarkup}
     <form method="post" action="{$this->escape($this->renewPath())}" class="checkout-form">
       <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
@@ -453,6 +456,7 @@ HTML;
 
     private function renderCancellationPage(array $query): string
     {
+        $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Cancel Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
@@ -462,12 +466,14 @@ HTML;
 
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
+        $flashMarkup = $this->renderFlashMessages($flash);
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
     <p class="eyebrow">Cancellation Request</p>
     <h1>Cancel {$this->escape($domainName)}</h1>
     <p class="lead">This saves a cancellation or non-renewal request in the account so it can be reviewed and actioned safely.</p>
+    {$flashMarkup}
     <form method="post" action="{$this->escape($this->cancelPath())}" class="checkout-form">
       <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
@@ -492,6 +498,7 @@ HTML;
 
     private function renderUpdatePage(array $query): string
     {
+        $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
@@ -502,12 +509,14 @@ HTML;
         $domainName = (string) ($domain['domain_name'] ?? '');
         $domainId = (string) ($domain['id'] ?? '');
         $defaults = $this->domainUpdateDefaults($domain);
+        $flashMarkup = $this->renderFlashMessages($flash);
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
     <p class="eyebrow">Live Nameserver Update</p>
     <h1>Edit {$this->escape($domainName)}</h1>
     <p class="lead">Nameserver changes from this page are submitted live to the registrar. The registrant, admin, tech, and billing values shown here are registry handle IDs for reference and are not full contact profiles.</p>
+    {$flashMarkup}
     <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
       <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
@@ -640,13 +649,17 @@ HTML;
     {
         $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
-            return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError('The requested domain is not available in this account.');
+            $this->redirectNow($this->managePath());
         }
 
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
         $providerCode = trim((string) ($domain['provider_code'] ?? ''));
         $provider = $this->app->provider($providerCode);
         if (! $provider instanceof DomainMutationInterface) {
-            return $this->layout('Renew Domain', '<section class="panel"><h1>Live renewal is not available</h1><p class="lead">' . $this->escape($this->providerDisplayName($providerCode)) . ' does not support website renewals yet.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError($this->providerDisplayName($providerCode) . ' does not support website renewals yet.');
+            $this->redirectNow($this->buildManagedUrl($this->renewPath(), $domainId, $domainName));
         }
 
         $periodYears = max(1, (int) ($post['period_years'] ?? 1));
@@ -668,7 +681,8 @@ HTML;
         }
 
         if ($currentExpiryDate === null) {
-            return $this->layout('Renew Domain', '<section class="panel"><h1>Expiry date required</h1><p class="lead">The current expiry date is not stored yet for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '. Sync the domain first in control, then try the website renewal again.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError('The current expiry date is not stored yet for ' . $domainName . '. Sync the domain first in control, then try the website renewal again.');
+            $this->redirectNow($this->buildManagedUrl($this->renewPath(), $domainId, $domainName));
         }
 
         $result = $provider->renewDomain(
@@ -678,7 +692,8 @@ HTML;
         );
 
         if (! ($result['ok'] ?? false)) {
-            return $this->layout('Renew Domain', '<section class="panel"><h1>Renewal failed</h1><p class="lead">' . $this->escape((string) ($result['message'] ?? 'The live renewal failed.')) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Try Again</a></div></section>');
+            $this->flashError((string) ($result['message'] ?? 'The live renewal failed.'));
+            $this->redirectNow($this->buildManagedUrl($this->renewPath(), $domainId, $domainName));
         }
 
         if ($provider instanceof DomainPortfolioSyncInterface) {
@@ -695,16 +710,20 @@ HTML;
             }
         }
 
-        return $this->layout('Renewal Complete', '<section class="panel"><p class="eyebrow">Renewal Complete</p><h1>' . $this->escape((string) ($domain['domain_name'] ?? '')) . ' renewed successfully</h1><p class="lead">The domain was renewed live from the website without billing. Current expiry: ' . $this->escape($this->formatDateDisplay((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? 'Not yet synced'))) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Renewal</a></div></section>');
+        $this->flashSuccess($domainName . ' renewed successfully. Current expiry: ' . $this->formatDateDisplay((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? 'Not yet synced')) . '.');
+        $this->redirectNow($this->buildManagedUrl($this->renewPath(), $domainId, $domainName));
     }
 
     private function handleCancellationSubmit(array $post): string
     {
         $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
-            return $this->layout('Cancellation Saved', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError('The requested domain is not available in this account.');
+            $this->redirectNow($this->managePath());
         }
 
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
         $tenantContext = $this->app->tenantContext();
         $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
         $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
@@ -723,7 +742,8 @@ HTML;
             1,
         );
 
-        return $this->layout('Cancellation Saved', '<section class="panel"><p class="eyebrow">Cancellation Saved</p><h1>Cancellation request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->cancelPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Cancellation</a></div></section>');
+        $this->flashSuccess('Cancellation request created. Order ' . ((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $domainName . '.');
+        $this->redirectNow($this->buildManagedUrl($this->cancelPath(), $domainId, $domainName));
     }
 
     private function handleOrderCancel(array $post): string
@@ -733,17 +753,24 @@ HTML;
         $orderId = trim((string) ($post['order_id'] ?? ''));
         if ($orderId !== '' && $tenantId !== '') {
             $this->app->orderRepository()->cancelOpenOrder($orderId, $tenantId);
+            $this->flashSuccess('The selected open order has been cancelled for this tenant account.');
+        } else {
+            $this->flashError('Unable to cancel the requested order.');
         }
 
-        return $this->layout('Order Cancelled', '<section class="panel"><h1>Order updated</h1><p class="lead">The selected open order has been cancelled for this tenant account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        $this->redirectNow($this->managePath());
     }
 
     private function handleUpdateSubmit(array $post): string
     {
         $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
-            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError('The requested domain is not available in this account.');
+            $this->redirectNow($this->managePath());
         }
+
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
 
         $nameservers = [];
         foreach (['ns1', 'ns2', 'ns3', 'ns4'] as $field) {
@@ -762,16 +789,19 @@ HTML;
         $providerCode = trim((string) ($domain['provider_code'] ?? ''));
         $provider = $this->app->provider($providerCode);
         if (! $provider instanceof DomainMutationInterface) {
-            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Live updates are not available</h1><p class="lead">' . $this->escape($this->providerDisplayName($providerCode)) . ' does not support website nameserver changes yet.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+            $this->flashError($this->providerDisplayName($providerCode) . ' does not support website nameserver changes yet.');
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
         if ($nameservers === []) {
-            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>No nameservers supplied</h1><p class="lead">Enter at least one nameserver before submitting the website update.</p><a class="button button-primary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Back to Edit</a></section>');
+            $this->flashError('Enter at least one nameserver before submitting the website update.');
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
         $result = $provider->updateNameservers((string) ($domain['domain_name'] ?? ''), $nameservers);
         if (! ($result['ok'] ?? false)) {
-            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Nameserver update failed</h1><p class="lead">' . $this->escape((string) ($result['message'] ?? 'The live nameserver update failed.')) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Back to Edit</a></div></section>');
+            $this->flashError((string) ($result['message'] ?? 'The live nameserver update failed.'));
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
         if ($provider instanceof DomainPortfolioSyncInterface) {
@@ -789,8 +819,8 @@ HTML;
         }
 
         $contactNote = $this->buildHandleReferenceNotice(trim((string) ($post['registrant'] ?? '')), $contacts);
-
-        return $this->layout('Update Complete', '<section class="panel"><p class="eyebrow">Update Complete</p><h1>Nameservers updated for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '</h1><p class="lead">The website submitted the nameserver update live to the registrar.' . $this->escape($contactNote) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Edit</a></div></section>');
+        $this->flashSuccess('Nameservers updated for ' . $domainName . '.' . $contactNote);
+        $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
     }
 
     /**
@@ -1524,7 +1554,19 @@ CSS;
         $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
         $ownerId = (string) ($tenantContext['owner_id'] ?? $tenantId);
 
-        $domainId = trim((string) ($payload['domain_id'] ?? ''));
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+        $queryString = (string) parse_url($requestUri, PHP_URL_QUERY);
+        $queryParams = [];
+        if ($queryString !== '') {
+            parse_str($queryString, $queryParams);
+        }
+        $superGlobals = $_REQUEST ?? [];
+        if (! is_array($superGlobals)) {
+            $superGlobals = [];
+        }
+        $merged = array_replace($superGlobals, $queryParams, $payload);
+
+        $domainId = trim((string) ($merged['domain_id'] ?? ''));
         if ($domainId !== '') {
             $domain = $this->app->domainRepository()->findById($domainId);
             if ($domain !== null && $this->domainBelongsToAccount($domain, $tenantId, $ownerType, $ownerId)) {
@@ -1532,7 +1574,7 @@ CSS;
             }
         }
 
-        $domainName = strtolower(trim((string) ($payload['domain'] ?? $payload['domain_name'] ?? '')));
+        $domainName = strtolower(trim((string) ($merged['domain'] ?? $merged['domain_name'] ?? '')));
         if ($domainName !== '') {
             $domain = $this->app->domainRepository()->findForAccountByName($tenantId, $ownerType, $ownerId, $domainName);
             if ($domain !== null) {
@@ -1591,6 +1633,87 @@ CSS;
 
         $_SESSION['mh_hub_selected_domain_id'] = (string) ($domain['id'] ?? '');
         $_SESSION['mh_hub_selected_domain_name'] = (string) ($domain['domain_name'] ?? '');
+    }
+
+    private function buildManagedUrl(string $basePath, string $domainId, string $domainName): string
+    {
+        $separator = str_contains($basePath, '?') ? '&' : '?';
+        $query = [];
+        if ($domainId !== '') {
+            $query['domain_id'] = $domainId;
+        }
+        if ($domainName !== '' && $query === []) {
+            $query['domain'] = $domainName;
+        }
+
+        return $query === [] ? $basePath : $basePath . $separator . http_build_query($query);
+    }
+
+    private function redirectNow(string $url): never
+    {
+        header('Location: ' . $url, true, 303);
+        exit;
+    }
+
+    /**
+     * @return array{success: list<string>, error: list<string>}
+     */
+    private function popFlashMessages(): array
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return ['success' => [], 'error' => []];
+        }
+
+        $success = $_SESSION['mh_hub_flash_success'] ?? [];
+        $error = $_SESSION['mh_hub_flash_error'] ?? [];
+        unset($_SESSION['mh_hub_flash_success'], $_SESSION['mh_hub_flash_error']);
+
+        return [
+            'success' => is_array($success) ? $success : [],
+            'error' => is_array($error) ? $error : [],
+        ];
+    }
+
+    private function flashSuccess(string $message): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        if (! isset($_SESSION['mh_hub_flash_success']) || ! is_array($_SESSION['mh_hub_flash_success'])) {
+            $_SESSION['mh_hub_flash_success'] = [];
+        }
+
+        $_SESSION['mh_hub_flash_success'][] = $message;
+    }
+
+    private function flashError(string $message): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        if (! isset($_SESSION['mh_hub_flash_error']) || ! is_array($_SESSION['mh_hub_flash_error'])) {
+            $_SESSION['mh_hub_flash_error'] = [];
+        }
+
+        $_SESSION['mh_hub_flash_error'][] = $message;
+    }
+
+    /**
+     * @param array{success: list<string>, error: list<string>} $flashes
+     */
+    private function renderFlashMessages(array $flashes): string
+    {
+        $parts = [];
+        foreach ($flashes['success'] as $message) {
+            $parts[] = '<div class="panel panel-subtle" style="margin-bottom:18px;"><p class="status status-available" style="width:auto;">' . $this->escape($message) . '</p></div>';
+        }
+        foreach ($flashes['error'] as $message) {
+            $parts[] = '<div class="panel panel-subtle" style="margin-bottom:18px;"><p class="status status-error" style="width:auto;">' . $this->escape($message) . '</p></div>';
+        }
+
+        return implode('', $parts);
     }
 
     /**
