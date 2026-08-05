@@ -861,9 +861,47 @@ HTML;
         }
         $targetHostnames = array_values(array_unique($targetHostnames));
 
-        $result = $provider->updateNameservers((string) ($domain['domain_name'] ?? ''), $nameservers);
+        $metadata = $this->parseDomainMetadata($domain);
+        $authCode = null;
+        if (is_array($metadata)) {
+            if (isset($metadata['auth_code']) && is_string($metadata['auth_code']) && trim($metadata['auth_code']) !== '') {
+                $authCode = trim($metadata['auth_code']);
+            } elseif (isset($metadata['registration_auth_code']) && is_string($metadata['registration_auth_code']) && trim($metadata['registration_auth_code']) !== '') {
+                $authCode = trim($metadata['registration_auth_code']);
+            } elseif (isset($metadata['last_registration_result']) && is_array($metadata['last_registration_result'])) {
+                $raw = $metadata['last_registration_result']['raw'] ?? null;
+                if (is_array($raw)) {
+                    if (isset($raw['auth_info']) && is_string($raw['auth_info']) && trim($raw['auth_info']) !== '') {
+                        $authCode = trim($raw['auth_info']);
+                    } elseif (isset($raw['authCode']) && is_string($raw['authCode']) && trim($raw['authCode']) !== '') {
+                        $authCode = trim($raw['authCode']);
+                    }
+                }
+            }
+        }
+
+        $isCoZa = strcasecmp(substr($domainName, -6), '.co.za') === 0 || strcasecmp($providerCode, 'coza') === 0;
+
+        $mutationOptions = [];
+        if ($authCode !== null) {
+            $mutationOptions['auth_info'] = $authCode;
+        }
+        $mutationOptions['require_host_objects'] = $isCoZa;
+
+        $result = $provider->updateNameservers((string) ($domain['domain_name'] ?? ''), $nameservers, $mutationOptions);
         if (! ($result['ok'] ?? false)) {
-            $this->flashError((string) ($result['message'] ?? 'The live nameserver update failed.'));
+            $base = (string) ($result['message'] ?? 'The live nameserver update failed.');
+            $extra = [];
+            if (isset($result['missing_host_objects']) && is_array($result['missing_host_objects']) && $result['missing_host_objects'] !== []) {
+                $extra[] = 'Missing host objects: ' . implode(', ', $result['missing_host_objects']) . '. Register these nameserver host objects in your ZACR registrar account first.';
+            }
+            if ($isCoZa && $authCode === null) {
+                $extra[] = 'No domain auth code is stored for ' . $domainName . '; without the auth code the registry may silently accept but not apply the update. Store the auth code in the domain record (metadata.auth_code) via the control side, or request a fresh auth code from the registry.';
+            }
+            if ($extra !== []) {
+                $base = rtrim($base, '.') . '. ' . implode(' ', $extra);
+            }
+            $this->flashError($base);
             $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
@@ -1928,6 +1966,34 @@ CSS;
         }
 
         return $hostname;
+    }
+
+    /**
+     * @param array<string, mixed>|null $domain
+     * @return array<string, mixed>
+     */
+    private function parseDomainMetadata(?array $domain): array
+    {
+        if (! is_array($domain)) {
+            return [];
+        }
+
+        $raw = $domain['metadata_json'] ?? null;
+        if (! is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return $decoded;
     }
 
     private function flashSuccess(string $message): void

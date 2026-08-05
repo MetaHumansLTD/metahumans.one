@@ -101,11 +101,12 @@ final class EppClient
 
     /**
      * @param list<array{hostname: string, ipv4?: string|null, ipv6?: string|null}> $nameservers
+     * @param array{auth_info?: string|null, require_host_objects?: bool} $options
      * @return array<string, mixed>
      */
-    public function updateNameservers(string $domainName, array $nameservers): array
+    public function updateNameservers(string $domainName, array $nameservers, array $options = []): array
     {
-        return $this->withAuthenticatedSession(function () use ($domainName, $nameservers): array {
+        return $this->withAuthenticatedSession(function () use ($domainName, $nameservers, $options): array {
             $current = $this->domainInfoInSession($domainName);
             $currentHostnames = $this->normalizeNameserverHostnames($current['nameservers'] ?? []);
             $targetHostnames = $this->normalizeNameserverHostnames($nameservers);
@@ -120,8 +121,37 @@ final class EppClient
                 ];
             }
 
+            $toAdd = array_values(array_diff($targetHostnames, $currentHostnames));
+            $requireHostObjects = array_key_exists('require_host_objects', $options)
+                ? (bool) $options['require_host_objects']
+                : true;
+
+            if ($requireHostObjects && $toAdd !== []) {
+                $missing = [];
+                foreach ($toAdd as $hostname) {
+                    $info = $this->hostInfoInSession($hostname);
+                    if (! ($info['ok'] ?? false)) {
+                        $missing[] = $hostname . ' (' . ($info['message'] ?? 'host:info failed') . ')';
+                    }
+                }
+
+                if ($missing !== []) {
+                    return [
+                        'ok' => false,
+                        'code' => 2303,
+                        'message' => 'One or more nameserver hostnames are not yet registered as host objects at the registry. Register these host objects with the registrar account first, then retry the domain nameserver update. Missing: ' . implode(', ', $missing) . '.',
+                        'missing_host_objects' => $missing,
+                        'current_nameservers' => $currentHostnames,
+                    ];
+                }
+            }
+
+            $authInfo = array_key_exists('auth_info', $options) && is_string($options['auth_info']) && trim($options['auth_info']) !== ''
+                ? trim($options['auth_info'])
+                : null;
+
             $response = $this->sendAuthenticatedCommand(
-                $this->buildDomainUpdateNameserversDocument($domainName, $current['nameservers'] ?? [], $nameservers),
+                $this->buildDomainUpdateNameserversDocument($domainName, $current['nameservers'] ?? [], $nameservers, $authInfo),
             );
 
             $parsed = $this->parseGenericResponse($response);
@@ -194,6 +224,24 @@ final class EppClient
         $response = $this->sendAuthenticatedCommand($this->buildDomainInfoDocument($domainName));
 
         return $this->parseDomainInfoResponse($response);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function hostInfoInSession(string $hostname): array
+    {
+        try {
+            $response = $this->sendAuthenticatedCommand($this->buildHostInfoDocument($hostname));
+        } catch (\Throwable $exception) {
+            return [
+                'ok' => false,
+                'code' => 2400,
+                'message' => $exception->getMessage(),
+            ];
+        }
+
+        return $this->parseHostInfoResponse($response);
     }
 
     /**
@@ -490,6 +538,21 @@ final class EppClient
         return $document;
     }
 
+    private function buildHostInfoDocument(string $hostname): DOMDocument
+    {
+        $document = $this->newBaseDocument();
+        $command = $document->createElement('command');
+        $info = $document->createElement('info');
+        $hostInfo = $document->createElementNS('urn:ietf:params:xml:ns:host-1.0', 'host:info');
+        $hostInfo->appendChild($document->createElementNS('urn:ietf:params:xml:ns:host-1.0', 'host:name', strtolower(trim($hostname))));
+        $info->appendChild($hostInfo);
+        $command->appendChild($info);
+        $command->appendChild($this->createClientTransactionId($document));
+        $document->documentElement?->appendChild($command);
+
+        return $document;
+    }
+
     private function buildDomainCheckDocument(string $domainName): DOMDocument
     {
         $document = $this->newBaseDocument();
@@ -662,6 +725,7 @@ final class EppClient
         string $domainName,
         array $currentNameservers,
         array $targetNameservers,
+        ?string $authInfo = null,
     ): DOMDocument {
         $currentHostnames = $this->normalizeNameserverHostnames($currentNameservers);
         $targetHostnames = $this->normalizeNameserverHostnames($targetNameservers);
@@ -695,8 +759,13 @@ final class EppClient
             $domainUpdate->appendChild($remove);
         }
 
-        $change = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:chg');
-        $domainUpdate->appendChild($change);
+        if ($authInfo !== null) {
+            $change = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:chg');
+            $authInfoElement = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:authInfo');
+            $authInfoElement->appendChild($document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:pw', $authInfo));
+            $change->appendChild($authInfoElement);
+            $domainUpdate->appendChild($change);
+        }
 
         $update->appendChild($domainUpdate);
         $command->appendChild($update);
@@ -914,11 +983,56 @@ final class EppClient
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseHostInfoResponse(DOMDocument $document): array
+    {
+        $generic = $this->parseGenericResponse($document);
+        if (! $generic['ok']) {
+            return $generic;
+        }
+
+        $xpath = $this->xpath($document);
+        $hostname = $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/host:infData/host:name');
+        $roid = $this->xpathValue($xpath, '/epp:epp/epp:response/epp:resData/host:infData/host:roid');
+
+        $ipv4Nodes = $xpath->query('/epp:epp/epp:response/epp:resData/host:infData/host:addr[@ip="v4"]');
+        $ipv6Nodes = $xpath->query('/epp:epp/epp:response/epp:resData/host:infData/host:addr[@ip="v6"]');
+
+        $ipv4 = [];
+        if ($ipv4Nodes !== false) {
+            foreach ($ipv4Nodes as $node) {
+                $ip = trim($node->textContent);
+                if ($ip !== '') {
+                    $ipv4[] = $ip;
+                }
+            }
+        }
+        $ipv6 = [];
+        if ($ipv6Nodes !== false) {
+            foreach ($ipv6Nodes as $node) {
+                $ip = trim($node->textContent);
+                if ($ip !== '') {
+                    $ipv6[] = $ip;
+                }
+            }
+        }
+
+        return $generic + [
+            'hostname' => $hostname,
+            'roid' => $roid,
+            'ipv4' => $ipv4,
+            'ipv6' => $ipv6,
+        ];
+    }
+
     private function xpath(DOMDocument $document): DOMXPath
     {
         $xpath = new DOMXPath($document);
         $xpath->registerNamespace('epp', 'urn:ietf:params:xml:ns:epp-1.0');
         $xpath->registerNamespace('domain', 'urn:ietf:params:xml:ns:domain-1.0');
+        $xpath->registerNamespace('host', 'urn:ietf:params:xml:ns:host-1.0');
 
         return $xpath;
     }

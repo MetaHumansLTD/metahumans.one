@@ -154,9 +154,14 @@ final class CoZaProvider implements RegistrarProviderInterface, DomainPortfolioS
         return $this->client->renewDomain($domainName, $periodYears, $options);
     }
 
-    public function updateNameservers(string $domainName, array $nameservers): array
+    /**
+     * @param list<array{hostname: string, ipv4?: string|null, ipv6?: string|null}> $nameservers
+     * @param array{auth_info?: string|null} $options
+     * @return array<string, mixed>
+     */
+    public function updateNameservers(string $domainName, array $nameservers, array $options = []): array
     {
-        return $this->client->updateNameservers($domainName, $nameservers);
+        return $this->client->updateNameservers($domainName, $nameservers, $options);
     }
 
     /**

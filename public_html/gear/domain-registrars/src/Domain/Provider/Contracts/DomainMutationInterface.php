@@ -20,9 +20,10 @@ interface DomainMutationInterface
 
     /**
      * @param list<array{hostname: string, ipv4?: string|null, ipv6?: string|null}> $nameservers
+     * @param array{auth_info?: string|null, require_host_objects?: bool} $options
      * @return array<string, mixed>
      */
-    public function updateNameservers(string $domainName, array $nameservers): array;
+    public function updateNameservers(string $domainName, array $nameservers, array $options = []): array;
 
     /**
      * $registrant is the raw registry registrant handle ID (optional for some TLDs).

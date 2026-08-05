@@ -198,14 +198,27 @@ final class DomainRepository
     public function markRegistered(string $domainId, array $providerResult): void
     {
         $existing = $this->findById($domainId);
+        $registrationAuthCode = null;
+        if (isset($providerResult['raw']) && is_array($providerResult['raw'])) {
+            if (isset($providerResult['raw']['auth_info']) && is_string($providerResult['raw']['auth_info']) && trim($providerResult['raw']['auth_info']) !== '') {
+                $registrationAuthCode = trim($providerResult['raw']['auth_info']);
+            } elseif (isset($providerResult['raw']['authCode']) && is_string($providerResult['raw']['authCode']) && trim($providerResult['raw']['authCode']) !== '') {
+                $registrationAuthCode = trim($providerResult['raw']['authCode']);
+            }
+        }
+        $metadataPatch = [
+            'last_registration_result' => $providerResult,
+            'registrant' => $providerResult['registrant'] ?? null,
+            'contacts' => is_array($providerResult['contacts'] ?? null) ? $providerResult['contacts'] : [],
+            'raw' => $providerResult['raw'] ?? null,
+        ];
+        if ($registrationAuthCode !== null) {
+            $metadataPatch['auth_code'] = $registrationAuthCode;
+            $metadataPatch['registration_auth_code'] = $registrationAuthCode;
+        }
         $metadata = $this->mergeMetadata(
             $existing,
-            [
-                'last_registration_result' => $providerResult,
-                'registrant' => $providerResult['registrant'] ?? null,
-                'contacts' => is_array($providerResult['contacts'] ?? null) ? $providerResult['contacts'] : [],
-                'raw' => $providerResult['raw'] ?? null,
-            ],
+            $metadataPatch,
         );
 
         $this->database->execute(
