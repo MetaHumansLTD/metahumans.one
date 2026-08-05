@@ -6,6 +6,8 @@ namespace App\Presentation\Hub;
 
 use App\Application;
 use App\Domain\Provider\Contracts\AvailabilityCheckInterface;
+use App\Domain\Provider\Contracts\DomainMutationInterface;
+use App\Domain\Provider\Contracts\DomainPortfolioSyncInterface;
 use App\Domain\Sync\SyncContext;
 use InvalidArgumentException;
 use Throwable;
@@ -212,22 +214,20 @@ HTML;
             $items = [];
             foreach ($domains as $domain) {
                 $domainName = (string) ($domain['domain_name'] ?? '');
+                $domainId = (string) ($domain['id'] ?? '');
                 $status = (string) ($domain['registrar_status'] ?? 'active');
                 $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
                 $expiresLabel = $expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced';
                 $items[] = sprintf(
-                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside"><a class="button button-primary" href="%s?domain=%s">Renew</a><a class="button button-secondary" href="%s?domain=%s">Edit Settings</a><a class="button button-muted" href="%s?domain=%s">Cancel</a></div></article>',
+                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside">%s%s%s</div></article>',
                     $this->escape($this->statusClassForDomain($status)),
                     $this->escape($this->domainStatusLabel($status)),
                     $this->escape($domainName),
                     $this->escape($this->providerDisplayName((string) ($domain['provider_code'] ?? ''))),
                     $this->escape($expiresLabel),
-                    $this->escape($this->renewPath()),
-                    $this->escape(rawurlencode($domainName)),
-                    $this->escape($this->editPath()),
-                    $this->escape(rawurlencode($domainName)),
-                    $this->escape($this->cancelPath()),
-                    $this->escape(rawurlencode($domainName)),
+                    $this->manageActionForm($this->renewPath(), 'Renew', 'button button-primary', $domainId, $domainName),
+                    $this->manageActionForm($this->editPath(), 'Edit Settings', 'button button-secondary', $domainId, $domainName),
+                    $this->manageActionForm($this->cancelPath(), 'Cancel', 'button button-muted', $domainId, $domainName),
                 );
             }
             $domainCards = implode('', $items);
@@ -406,20 +406,22 @@ HTML;
 
     private function renderRenewalPage(array $query): string
     {
-        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
         $domainName = (string) ($domain['domain_name'] ?? '');
+        $domainId = (string) ($domain['id'] ?? '');
         $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
-    <p class="eyebrow">Renewal Request</p>
+    <p class="eyebrow">Live Renewal</p>
     <h1>Renew {$this->escape($domainName)}</h1>
-    <p class="lead">This saves a renewal request into the tenant account so it can be processed cleanly from the platform flow.</p>
+    <p class="lead">This submits a live registrar renewal from the website without charging. It uses the expiry date already stored for this domain.</p>
     <form method="post" action="{$this->escape($this->renewPath())}" class="checkout-form">
+      <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
       <div class="field-grid">
         <label><span>Current Expiry</span><input type="text" value="{$this->escape($expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced')}" disabled></label>
@@ -427,7 +429,7 @@ HTML;
       </div>
       <label><span>Notes</span><textarea name="notes" rows="4" placeholder="Optional renewal notes for control review"></textarea></label>
       <div class="submit-row">
-        <button type="submit" class="button button-primary">Save Renewal Request</button>
+        <button type="submit" class="button button-primary">Renew Domain Now</button>
         <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
       </div>
     </form>
@@ -446,12 +448,13 @@ HTML;
 
     private function renderCancellationPage(array $query): string
     {
-        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Cancel Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
         $domainName = (string) ($domain['domain_name'] ?? '');
+        $domainId = (string) ($domain['id'] ?? '');
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
@@ -459,6 +462,7 @@ HTML;
     <h1>Cancel {$this->escape($domainName)}</h1>
     <p class="lead">This saves a cancellation or non-renewal request in the account so it can be reviewed and actioned safely.</p>
     <form method="post" action="{$this->escape($this->cancelPath())}" class="checkout-form">
+      <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
       <label><span>Reason</span><textarea name="reason" rows="5" placeholder="Explain whether this is a deletion request, a stop-renewal request, or another cancellation instruction"></textarea></label>
       <div class="submit-row">
@@ -481,29 +485,31 @@ HTML;
 
     private function renderUpdatePage(array $query): string
     {
-        $domain = $this->findManagedDomain((string) ($query['domain'] ?? ''));
+        $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
             return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">Open <a href="' . $this->escape($this->managePath()) . '">My Domains</a> and choose a domain from your account list.</p></section>');
         }
 
         $domainName = (string) ($domain['domain_name'] ?? '');
+        $domainId = (string) ($domain['id'] ?? '');
         $defaults = $this->domainUpdateDefaults($domain);
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
-    <p class="eyebrow">Domain Update Request</p>
+    <p class="eyebrow">Live Nameserver Update</p>
     <h1>Edit {$this->escape($domainName)}</h1>
-    <p class="lead">Clients can submit nameserver and contact update requests here. These requests are saved in the account flow for registrar processing.</p>
+    <p class="lead">Nameserver changes from this page are submitted live to the registrar. The registrant, admin, tech, and billing values shown here are registry handle IDs for reference and are not full contact profiles.</p>
     <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
+      <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
 
       <div class="panel panel-subtle">
-        <h2>Registrant and Contact Handles</h2>
+        <h2>Registry Handle IDs</h2>
         <div class="field-grid">
-          <label><span>Registrant</span><input type="text" name="registrant" value="{$this->escape($defaults['registrant'])}" placeholder="REG-123"></label>
-          <label><span>Admin Contact</span><input type="text" name="contact_admin" value="{$this->escape($defaults['contact_admin'])}" placeholder="ADM-123"></label>
-          <label><span>Tech Contact</span><input type="text" name="contact_tech" value="{$this->escape($defaults['contact_tech'])}" placeholder="TEC-123"></label>
-          <label><span>Billing Contact</span><input type="text" name="contact_billing" value="{$this->escape($defaults['contact_billing'])}" placeholder="BIL-123"></label>
+          <label><span>Registrant Handle</span><input type="text" name="registrant" value="{$this->escape($defaults['registrant'])}" placeholder="REG-123"></label>
+          <label><span>Admin Handle</span><input type="text" name="contact_admin" value="{$this->escape($defaults['contact_admin'])}" placeholder="ADM-123"></label>
+          <label><span>Tech Handle</span><input type="text" name="contact_tech" value="{$this->escape($defaults['contact_tech'])}" placeholder="TEC-123"></label>
+          <label><span>Billing Handle</span><input type="text" name="contact_billing" value="{$this->escape($defaults['contact_billing'])}" placeholder="BIL-123"></label>
         </div>
       </div>
 
@@ -519,7 +525,7 @@ HTML;
 
       <label><span>Notes</span><textarea name="notes" rows="4" placeholder="Optional notes for the registrar team">{$this->escape($defaults['notes'])}</textarea></label>
       <div class="submit-row">
-        <button type="submit" class="button button-primary">Save Update Request</button>
+        <button type="submit" class="button button-primary">Update Nameservers Now</button>
         <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
       </div>
     </form>
@@ -623,37 +629,69 @@ HTML;
 
     private function handleRenewalSubmit(array $post): string
     {
-        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
             return $this->layout('Renew Domain', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
         }
 
-        $tenantContext = $this->app->tenantContext();
-        $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
-        $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
-        $periodYears = max(1, (int) ($post['period_years'] ?? 1));
-        $payload = array_replace($tenantContext, [
-            'domain_name' => (string) ($domain['domain_name'] ?? ''),
-            'notes' => trim((string) ($post['notes'] ?? '')),
-            'requested_action' => 'renew',
-            'current_expiry_date' => $domain['expires_at'] ?? null,
-        ]);
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $this->app->provider($providerCode);
+        if (! $provider instanceof DomainMutationInterface) {
+            return $this->layout('Renew Domain', '<section class="panel"><h1>Live renewal is not available</h1><p class="lead">' . $this->escape($this->providerDisplayName($providerCode)) . ' does not support website renewals yet.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
 
-        $order = $this->app->orderRepository()->createDomainActionOrder(
-            $domain,
-            $customerEmail,
-            'renew',
-            'draft',
-            $payload,
+        $periodYears = max(1, (int) ($post['period_years'] ?? 1));
+        $currentExpiryDate = $this->normalizeDateOnly((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? ''));
+
+        if ($currentExpiryDate === null && $provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'hub-pre-renew-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->resolveManagedDomain([
+                    'domain_id' => (string) ($domain['id'] ?? ''),
+                    'domain_name' => (string) ($domain['domain_name'] ?? ''),
+                ]) ?? $domain;
+                $currentExpiryDate = $this->normalizeDateOnly((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? ''));
+            }
+        }
+
+        if ($currentExpiryDate === null) {
+            return $this->layout('Renew Domain', '<section class="panel"><h1>Expiry date required</h1><p class="lead">The current expiry date is not stored yet for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '. Sync the domain first in control, then try the website renewal again.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
+
+        $result = $provider->renewDomain(
+            (string) ($domain['domain_name'] ?? ''),
             $periodYears,
+            ['current_expiry_date' => $currentExpiryDate],
         );
 
-        return $this->layout('Renewal Saved', '<section class="panel"><p class="eyebrow">Renewal Saved</p><h1>Renewal request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Renewal</a></div></section>');
+        if (! ($result['ok'] ?? false)) {
+            return $this->layout('Renew Domain', '<section class="panel"><h1>Renewal failed</h1><p class="lead">' . $this->escape((string) ($result['message'] ?? 'The live renewal failed.')) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Try Again</a></div></section>');
+        }
+
+        if ($provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'hub-post-renew-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->resolveManagedDomain([
+                    'domain_id' => (string) ($domain['id'] ?? ''),
+                    'domain_name' => (string) ($domain['domain_name'] ?? ''),
+                ]) ?? $domain;
+            }
+        }
+
+        return $this->layout('Renewal Complete', '<section class="panel"><p class="eyebrow">Renewal Complete</p><h1>' . $this->escape((string) ($domain['domain_name'] ?? '')) . ' renewed successfully</h1><p class="lead">The domain was renewed live from the website without billing. Current expiry: ' . $this->escape($this->formatDateDisplay((string) ($domain['expires_at'] ?? $domain['renewal_due_at'] ?? 'Not yet synced'))) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->renewPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Renewal</a></div></section>');
     }
 
     private function handleCancellationSubmit(array $post): string
     {
-        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
             return $this->layout('Cancellation Saved', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
         }
@@ -676,7 +714,7 @@ HTML;
             1,
         );
 
-        return $this->layout('Cancellation Saved', '<section class="panel"><p class="eyebrow">Cancellation Saved</p><h1>Cancellation request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->cancelPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Cancellation</a></div></section>');
+        return $this->layout('Cancellation Saved', '<section class="panel"><p class="eyebrow">Cancellation Saved</p><h1>Cancellation request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->cancelPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Cancellation</a></div></section>');
     }
 
     private function handleOrderCancel(array $post): string
@@ -693,14 +731,10 @@ HTML;
 
     private function handleUpdateSubmit(array $post): string
     {
-        $domain = $this->findManagedDomain((string) ($post['domain_name'] ?? ''));
+        $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
             return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Domain not found</h1><p class="lead">The requested domain is not available in this account.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
         }
-
-        $tenantContext = $this->app->tenantContext();
-        $customer = $this->app->customerRepository()->findById((string) ($domain['customer_id'] ?? ''));
-        $customerEmail = trim((string) ($customer['email'] ?? ($tenantContext['acting_user_id'] ?? '')));
 
         $nameservers = [];
         foreach (['ns1', 'ns2', 'ns3', 'ns4'] as $field) {
@@ -716,25 +750,38 @@ HTML;
             'billing' => trim((string) ($post['contact_billing'] ?? '')),
         ], static fn (string $value): bool => $value !== '');
 
-        $payload = array_replace($tenantContext, [
-            'domain_name' => (string) ($domain['domain_name'] ?? ''),
-            'requested_action' => 'update',
-            'registrant' => trim((string) ($post['registrant'] ?? '')),
-            'contacts' => $contacts,
-            'nameservers' => $nameservers,
-            'notes' => trim((string) ($post['notes'] ?? '')),
-        ]);
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $this->app->provider($providerCode);
+        if (! $provider instanceof DomainMutationInterface) {
+            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Live updates are not available</h1><p class="lead">' . $this->escape($this->providerDisplayName($providerCode)) . ' does not support website nameserver changes yet.</p><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a></section>');
+        }
 
-        $order = $this->app->orderRepository()->createDomainActionOrder(
-            $domain,
-            $customerEmail,
-            'update',
-            'draft',
-            $payload,
-            1,
-        );
+        if ($nameservers === []) {
+            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>No nameservers supplied</h1><p class="lead">Enter at least one nameserver before submitting the website update.</p><a class="button button-primary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Back to Edit</a></section>');
+        }
 
-        return $this->layout('Update Saved', '<section class="panel"><p class="eyebrow">Update Saved</p><h1>Domain update request created</h1><p class="lead">Order ' . $this->escape((string) ($order['order_number'] ?? '')) . ' has been saved for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '. It includes nameserver and contact changes for control review.</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain=' . $this->escape(rawurlencode((string) ($domain['domain_name'] ?? ''))) . '">Stay on Edit</a></div></section>');
+        $result = $provider->updateNameservers((string) ($domain['domain_name'] ?? ''), $nameservers);
+        if (! ($result['ok'] ?? false)) {
+            return $this->layout('Edit Domain Settings', '<section class="panel"><h1>Nameserver update failed</h1><p class="lead">' . $this->escape((string) ($result['message'] ?? 'The live nameserver update failed.')) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Back to Edit</a></div></section>');
+        }
+
+        if ($provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'hub-post-nameserver-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->resolveManagedDomain([
+                    'domain_id' => (string) ($domain['id'] ?? ''),
+                    'domain_name' => (string) ($domain['domain_name'] ?? ''),
+                ]) ?? $domain;
+            }
+        }
+
+        $contactNote = $this->buildHandleReferenceNotice(trim((string) ($post['registrant'] ?? '')), $contacts);
+
+        return $this->layout('Update Complete', '<section class="panel"><p class="eyebrow">Update Complete</p><h1>Nameservers updated for ' . $this->escape((string) ($domain['domain_name'] ?? '')) . '</h1><p class="lead">The website submitted the nameserver update live to the registrar.' . $this->escape($contactNote) . '</p><div class="result-actions"><a class="button button-primary" href="' . $this->escape($this->managePath()) . '">Back to My Domains</a><a class="button button-secondary" href="' . $this->escape($this->editPath()) . '?domain_id=' . $this->escape(rawurlencode((string) ($domain['id'] ?? ''))) . '">Stay on Edit</a></div></section>');
     }
 
     /**
@@ -1461,32 +1508,61 @@ CSS;
         };
     }
 
-    private function findManagedDomain(string $domainName): ?array
+    private function resolveManagedDomain(array $payload): ?array
     {
-        $domainName = strtolower(trim($domainName));
-        if ($domainName === '') {
-            return null;
-        }
-
-        $domain = $this->app->domainRepository()->findByName($domainName);
-        if ($domain === null) {
-            return null;
-        }
-
         $tenantContext = $this->app->tenantContext();
         $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
         $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
         $ownerId = (string) ($tenantContext['owner_id'] ?? $tenantId);
 
+        $domainId = trim((string) ($payload['domain_id'] ?? ''));
+        if ($domainId !== '') {
+            $domain = $this->app->domainRepository()->findById($domainId);
+            if ($domain !== null && $this->domainBelongsToAccount($domain, $tenantId, $ownerType, $ownerId)) {
+                return $domain;
+            }
+        }
+
+        $domainName = strtolower(trim((string) ($payload['domain'] ?? $payload['domain_name'] ?? '')));
+        if ($domainName === '') {
+            return null;
+        }
+
+        return $this->app->domainRepository()->findForAccountByName($tenantId, $ownerType, $ownerId, $domainName);
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     */
+    private function domainBelongsToAccount(array $domain, string $tenantId, string $ownerType, string $ownerId): bool
+    {
         if ((string) ($domain['tenant_id'] ?? '') === $tenantId) {
-            return $domain;
+            return true;
         }
 
-        if ((string) ($domain['owner_type'] ?? '') === $ownerType && (string) ($domain['owner_id'] ?? '') === $ownerId) {
-            return $domain;
+        return (string) ($domain['owner_type'] ?? '') === $ownerType
+            && (string) ($domain['owner_id'] ?? '') === $ownerId;
+    }
+
+    private function manageActionForm(string $action, string $label, string $buttonClass, string $domainId, string $domainName): string
+    {
+        return '<form method="get" action="' . $this->escape($action) . '" class="inline-form">'
+            . '<input type="hidden" name="domain_id" value="' . $this->escape($domainId) . '">'
+            . '<input type="hidden" name="domain" value="' . $this->escape($domainName) . '">'
+            . '<button type="submit" class="' . $this->escape($buttonClass) . '">' . $this->escape($label) . '</button>'
+            . '</form>';
+    }
+
+    /**
+     * @param array<string, string> $contacts
+     */
+    private function buildHandleReferenceNotice(string $registrant, array $contacts): string
+    {
+        if ($registrant === '' && $contacts === []) {
+            return '';
         }
 
-        return null;
+        return ' Registry handle fields are currently reference-only in this website flow, so registrant/admin/tech/billing handle edits were not sent live.';
     }
 
     private function statusClassForDomain(string $status): string

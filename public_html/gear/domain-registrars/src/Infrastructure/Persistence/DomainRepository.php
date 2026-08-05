@@ -328,6 +328,30 @@ final class DomainRepository
         );
     }
 
+    public function findForAccountByName(string $tenantId, string $ownerType, string $ownerId, string $domainName): ?array
+    {
+        return $this->database->fetchOne(
+            'SELECT *
+             FROM domains
+             WHERE domain_name = :domain_name
+               AND (
+                    tenant_id = :tenant_id
+                    OR (owner_type = :owner_type AND owner_id = :owner_id)
+               )
+             ORDER BY
+                CASE WHEN tenant_id = :tenant_id THEN 0 ELSE 1 END,
+                updated_at DESC,
+                created_at DESC
+             LIMIT 1',
+            [
+                'domain_name' => strtolower($domainName),
+                'tenant_id' => $tenantId,
+                'owner_type' => $ownerType,
+                'owner_id' => $ownerId,
+            ],
+        );
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
