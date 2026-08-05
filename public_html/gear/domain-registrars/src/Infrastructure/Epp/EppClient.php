@@ -107,11 +107,82 @@ final class EppClient
     {
         return $this->withAuthenticatedSession(function () use ($domainName, $nameservers): array {
             $current = $this->domainInfoInSession($domainName);
+            $currentHostnames = $this->normalizeNameserverHostnames($current['nameservers'] ?? []);
+            $targetHostnames = $this->normalizeNameserverHostnames($nameservers);
+
+            if ($currentHostnames === $targetHostnames && $targetHostnames !== []) {
+                return [
+                    'ok' => true,
+                    'no_change' => true,
+                    'code' => 1000,
+                    'message' => 'The nameservers already match the requested nameservers; no registrar update was submitted.',
+                    'current_nameservers' => $currentHostnames,
+                ];
+            }
+
             $response = $this->sendAuthenticatedCommand(
-                $this->buildDomainUpdateNameserversDocument($domainName, $current['nameservers'], $nameservers),
+                $this->buildDomainUpdateNameserversDocument($domainName, $current['nameservers'] ?? [], $nameservers),
             );
 
-            return $this->parseGenericResponse($response);
+            $parsed = $this->parseGenericResponse($response);
+            $parsed['current_nameservers'] ??= $currentHostnames;
+
+            return $parsed;
+        });
+    }
+
+    /**
+     * @param array{registrant?: string|null, admin?: string|null, tech?: string|null, billing?: string|null} $contacts
+     * @return array<string, mixed>
+     */
+    public function updateContacts(string $domainName, array $contacts): array
+    {
+        return $this->withAuthenticatedSession(function () use ($domainName, $contacts): array {
+            $current = $this->domainInfoInSession($domainName);
+            $currentRegistrant = trim((string) ($current['registrant'] ?? ''));
+            $currentContacts = is_array($current['contacts'] ?? null) ? $current['contacts'] : [];
+
+            $nextRegistrant = isset($contacts['registrant']) ? trim((string) $contacts['registrant']) : $currentRegistrant;
+            $nextContacts = [
+                'admin' => isset($contacts['admin']) ? trim((string) $contacts['admin']) : (string) ($currentContacts['admin'] ?? ''),
+                'tech' => isset($contacts['tech']) ? trim((string) $contacts['tech']) : (string) ($currentContacts['tech'] ?? ''),
+                'billing' => isset($contacts['billing']) ? trim((string) $contacts['billing']) : (string) ($currentContacts['billing'] ?? ''),
+            ];
+
+            $normalizedCurrentContacts = [
+                'registrant' => $currentRegistrant,
+                'admin' => trim((string) ($currentContacts['admin'] ?? '')),
+                'tech' => trim((string) ($currentContacts['tech'] ?? '')),
+                'billing' => trim((string) ($currentContacts['billing'] ?? '')),
+            ];
+            $normalizedNextContacts = [
+                'registrant' => $nextRegistrant,
+                'admin' => trim((string) $nextContacts['admin']),
+                'tech' => trim((string) $nextContacts['tech']),
+                'billing' => trim((string) $nextContacts['billing']),
+            ];
+
+            if (
+                $normalizedCurrentContacts === $normalizedNextContacts
+                && ($normalizedNextContacts['registrant'] !== '' || $normalizedNextContacts['admin'] !== '' || $normalizedNextContacts['tech'] !== '' || $normalizedNextContacts['billing'] !== '')
+            ) {
+                return [
+                    'ok' => true,
+                    'no_change' => true,
+                    'code' => 1000,
+                    'message' => 'The registry handles already match the requested values; no registrar update was submitted.',
+                    'current_contacts' => $normalizedCurrentContacts,
+                ];
+            }
+
+            $response = $this->sendAuthenticatedCommand(
+                $this->buildDomainUpdateContactsDocument($domainName, $current, $nextRegistrant, $nextContacts),
+            );
+
+            $parsed = $this->parseGenericResponse($response);
+            $parsed['current_contacts'] ??= $normalizedCurrentContacts;
+
+            return $parsed;
         });
     }
 
@@ -493,6 +564,70 @@ final class EppClient
     }
 
     /**
+     * @param array<string, mixed> $currentInfo
+     * @param array{admin?: string|null, tech?: string|null, billing?: string|null} $targetContacts
+     */
+    private function buildDomainUpdateContactsDocument(
+        string $domainName,
+        array $currentInfo,
+        string $targetRegistrant,
+        array $targetContacts,
+    ): DOMDocument {
+        $currentContacts = is_array($currentInfo['contacts'] ?? null) ? $currentInfo['contacts'] : [];
+        $currentRegistrant = trim((string) ($currentInfo['registrant'] ?? ''));
+        $document = $this->newBaseDocument();
+        $command = $document->createElement('command');
+        $update = $document->createElement('update');
+        $domainUpdate = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:update');
+        $domainUpdate->appendChild($document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:name', $domainName));
+
+        $add = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:add');
+        $rem = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:rem');
+        $hasAdd = false;
+        $hasRem = false;
+
+        foreach (['admin', 'tech', 'billing'] as $role) {
+            $currentHandle = trim((string) ($currentContacts[$role] ?? ''));
+            $nextHandle = trim((string) ($targetContacts[$role] ?? ''));
+            if ($nextHandle === '' || $nextHandle === $currentHandle) {
+                continue;
+            }
+            if ($currentHandle !== '') {
+                $contactNode = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:contact', $currentHandle);
+                $contactNode->setAttribute('type', $role);
+                $rem->appendChild($contactNode);
+                $hasRem = true;
+            }
+            if ($nextHandle !== '') {
+                $contactNode = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:contact', $nextHandle);
+                $contactNode->setAttribute('type', $role);
+                $add->appendChild($contactNode);
+                $hasAdd = true;
+            }
+        }
+
+        if ($hasAdd) {
+            $domainUpdate->appendChild($add);
+        }
+        if ($hasRem) {
+            $domainUpdate->appendChild($rem);
+        }
+
+        $change = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:chg');
+        if ($targetRegistrant !== '' && $targetRegistrant !== $currentRegistrant) {
+            $change->appendChild($document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:registrant', $targetRegistrant));
+        }
+        $domainUpdate->appendChild($change);
+
+        $update->appendChild($domainUpdate);
+        $command->appendChild($update);
+        $command->appendChild($this->createClientTransactionId($document));
+        $document->documentElement?->appendChild($command);
+
+        return $document;
+    }
+
+    /**
      * @param array<string, mixed> $options
      */
     private function buildDomainRenewDocument(string $domainName, int $periodYears, array $options): DOMDocument
@@ -559,6 +694,9 @@ final class EppClient
             $remove->appendChild($ns);
             $domainUpdate->appendChild($remove);
         }
+
+        $change = $document->createElementNS('urn:ietf:params:xml:ns:domain-1.0', 'domain:chg');
+        $domainUpdate->appendChild($change);
 
         $update->appendChild($domainUpdate);
         $command->appendChild($update);

@@ -516,13 +516,14 @@ HTML;
         $body = <<<HTML
 <section class="checkout">
   <div class="checkout__main panel">
-    <p class="eyebrow">Live Nameserver Update</p>
+    <p class="eyebrow">Live Domain Settings</p>
     <h1>Edit {$this->escape($domainName)}</h1>
-    <p class="lead">Nameserver changes from this page are submitted live to the registrar. The registrant, admin, tech, and billing values shown here are registry handle IDs for reference and are not full contact profiles.</p>
+    <p class="lead">Nameserver and registry handle changes from this page are submitted live to the registrar. The values shown here are registry handle IDs for reference and are not full contact profiles.</p>
     {$flashMarkup}
     <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
       <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
       <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
+      <input type="hidden" name="action" value="update_handles">
 
       <div class="panel panel-subtle">
         <h2>Registry Handle IDs</h2>
@@ -533,6 +534,19 @@ HTML;
           <label><span>Billing Handle</span><input type="text" name="contact_billing" value="{$this->escape($defaults['contact_billing'])}" placeholder="BIL-123"></label>
         </div>
       </div>
+
+      <div class="submit-row">
+        <button type="submit" class="button button-primary">Update Registry Handles</button>
+        <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
+      </div>
+    </form>
+
+    <hr class="divider">
+
+    <form method="post" action="{$this->escape($this->editPath())}" class="checkout-form">
+      <input type="hidden" name="domain_id" value="{$this->escape($domainId)}">
+      <input type="hidden" name="domain_name" value="{$this->escape($domainName)}">
+      <input type="hidden" name="action" value="update_nameservers">
 
       <div class="panel panel-subtle">
         <h2>Nameservers</h2>
@@ -546,7 +560,7 @@ HTML;
 
       <label><span>Notes</span><textarea name="notes" rows="4" placeholder="Optional notes for the registrar team">{$this->escape($defaults['notes'])}</textarea></label>
       <div class="submit-row">
-        <button type="submit" class="button button-primary">Update Nameservers Now</button>
+        <button type="submit" class="button button-primary">Update Nameservers</button>
         <a class="button button-secondary" href="{$this->escape($this->managePath())}">Back to My Domains</a>
       </div>
     </form>
@@ -766,6 +780,16 @@ HTML;
 
     private function handleUpdateSubmit(array $post): string
     {
+        $action = strtolower(trim((string) ($post['action'] ?? '')));
+        if ($action === 'update_handles') {
+            return $this->handleUpdateHandlesSubmit($post);
+        }
+
+        return $this->handleUpdateNameserversSubmit($post);
+    }
+
+    private function handleUpdateNameserversSubmit(array $post): string
+    {
         $domain = $this->resolveManagedDomain($post);
         if ($domain === null) {
             $this->flashError('The requested domain is not available in this account.');
@@ -787,18 +811,6 @@ HTML;
             }
         }
 
-        $contacts = [];
-        foreach (['admin' => 'contact_admin', 'tech' => 'contact_tech', 'billing' => 'contact_billing'] as $role => $field) {
-            $raw = $post[$field] ?? '';
-            if (is_array($raw)) {
-                $raw = $raw[0] ?? '';
-            }
-            $handle = trim((string) $raw);
-            if ($handle !== '') {
-                $contacts[$role] = $handle;
-            }
-        }
-
         $providerCode = trim((string) ($domain['provider_code'] ?? ''));
         $provider = $this->app->provider($providerCode);
         if (! $provider instanceof DomainMutationInterface) {
@@ -817,6 +829,11 @@ HTML;
             $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
+        if (($result['no_change'] ?? false) === true) {
+            $this->flashSuccess((string) ($result['message'] ?? ('The nameservers for ' . $domainName . ' were already the requested values.')));
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
         if ($provider instanceof DomainPortfolioSyncInterface) {
             $sync = $provider->syncDomain(
                 (string) ($domain['domain_name'] ?? ''),
@@ -831,8 +848,98 @@ HTML;
             }
         }
 
-        $contactNote = $this->buildHandleReferenceNotice(trim((string) ($post['registrant'] ?? '')), $contacts);
-        $this->flashSuccess('Nameservers updated for ' . $domainName . '.' . $contactNote);
+        $appliedHostnames = [];
+        foreach ($this->app->domainRepository()->listNameservers($domainId) as $row) {
+            $hostname = trim((string) ($row['hostname'] ?? ''));
+            if ($hostname !== '') {
+                $appliedHostnames[] = $hostname;
+            }
+        }
+        $appliedNote = $appliedHostnames === [] ? '' : (' Current stored nameservers: ' . implode(', ', $appliedHostnames) . '.');
+        $this->flashSuccess('Nameservers updated for ' . $domainName . '.' . $appliedNote);
+        $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+    }
+
+    private function handleUpdateHandlesSubmit(array $post): string
+    {
+        $domain = $this->resolveManagedDomain($post);
+        if ($domain === null) {
+            $this->flashError('The requested domain is not available in this account.');
+            $this->redirectNow($this->managePath());
+        }
+
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
+
+        $registrantRaw = $post['registrant'] ?? '';
+        if (is_array($registrantRaw)) {
+            $registrantRaw = $registrantRaw[0] ?? '';
+        }
+        $registrant = trim((string) $registrantRaw);
+
+        $contacts = [];
+        foreach (['admin' => 'contact_admin', 'tech' => 'contact_tech', 'billing' => 'contact_billing'] as $role => $field) {
+            $raw = $post[$field] ?? '';
+            if (is_array($raw)) {
+                $raw = $raw[0] ?? '';
+            }
+            $handle = trim((string) $raw);
+            if ($handle !== '') {
+                $contacts[$role] = $handle;
+            }
+        }
+
+        if ($registrant === '' && $contacts === []) {
+            $this->flashError('Enter at least one registry handle before submitting the handle update.');
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        $providerCode = trim((string) ($domain['provider_code'] ?? ''));
+        $provider = $this->app->provider($providerCode);
+        if (! $provider instanceof DomainMutationInterface) {
+            $this->flashError($this->providerDisplayName($providerCode) . ' does not support website registry handle changes yet.');
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        $result = $provider->updateContacts((string) ($domain['domain_name'] ?? ''), [
+            'registrant' => $registrant !== '' ? $registrant : null,
+            'admin' => $contacts['admin'] ?? null,
+            'tech' => $contacts['tech'] ?? null,
+            'billing' => $contacts['billing'] ?? null,
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            $this->flashError((string) ($result['message'] ?? 'The live registry handle update failed.'));
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        if (($result['no_change'] ?? false) === true) {
+            $this->flashSuccess((string) ($result['message'] ?? ('The registry handles for ' . $domainName . ' were already the requested values.')));
+            $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
+        }
+
+        if ($provider instanceof DomainPortfolioSyncInterface) {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'hub-post-handles-sync', true),
+            );
+            if (($sync['ok'] ?? true) !== false) {
+                $this->app->domainRepository()->updateFromSync((string) ($domain['id'] ?? ''), $sync);
+                $domain = $this->resolveManagedDomain([
+                    'domain_id' => (string) ($domain['id'] ?? ''),
+                    'domain_name' => (string) ($domain['domain_name'] ?? ''),
+                ]) ?? $domain;
+            }
+        }
+
+        $updated = [];
+        if ($registrant !== '') {
+            $updated[] = 'registrant=' . $registrant;
+        }
+        foreach ($contacts as $role => $handle) {
+            $updated[] = $role . '=' . $handle;
+        }
+        $this->flashSuccess('Registry handles updated for ' . $domainName . ': ' . implode(', ', $updated) . '.');
         $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
     }
 
@@ -1878,18 +1985,6 @@ CSS;
         return implode('', $parts);
     }
 
-    /**
-     * @param array<string, string> $contacts
-     */
-    private function buildHandleReferenceNotice(string $registrant, array $contacts): string
-    {
-        if ($registrant === '' && $contacts === []) {
-            return '';
-        }
-
-        return ' Registry handle fields are currently reference-only in this website flow, so registrant/admin/tech/billing handle edits were not sent live.';
-    }
-
     private function statusClassForDomain(string $status): string
     {
         return match (strtolower(trim($status))) {
@@ -1952,23 +2047,34 @@ CSS;
         $importMetadata = is_array($metadata['import'] ?? null) ? $metadata['import'] : [];
         $metadataContacts = $this->extractContactsFromMetadata($metadata);
 
+        $dbHandles = [
+            'registrant' => trim((string) ($domain['registrant_handle'] ?? '')),
+            'admin' => trim((string) ($domain['admin_handle'] ?? '')),
+            'tech' => trim((string) ($domain['tech_handle'] ?? '')),
+            'billing' => trim((string) ($domain['billing_handle'] ?? '')),
+        ];
+
         $defaults['registrant'] = trim((string) (
             $draftPayload['registrant']
+            ?? ($dbHandles['registrant'] !== '' ? $dbHandles['registrant'] : null)
             ?? ($metadataContacts['registrant'] !== '' ? $metadataContacts['registrant'] : null)
             ?? ($importMetadata['registrant'] ?? '')
         ));
         $defaults['contact_admin'] = trim((string) (
             $draftPayload['contacts']['admin']
+            ?? ($dbHandles['admin'] !== '' ? $dbHandles['admin'] : null)
             ?? ($metadataContacts['admin'] !== '' ? $metadataContacts['admin'] : null)
             ?? ($importMetadata['admin'] ?? '')
         ));
         $defaults['contact_tech'] = trim((string) (
             $draftPayload['contacts']['tech']
+            ?? ($dbHandles['tech'] !== '' ? $dbHandles['tech'] : null)
             ?? ($metadataContacts['tech'] !== '' ? $metadataContacts['tech'] : null)
             ?? ($importMetadata['tech'] ?? '')
         ));
         $defaults['contact_billing'] = trim((string) (
             $draftPayload['contacts']['billing']
+            ?? ($dbHandles['billing'] !== '' ? $dbHandles['billing'] : null)
             ?? ($metadataContacts['billing'] !== '' ? $metadataContacts['billing'] : null)
             ?? ($importMetadata['billing'] ?? '')
         ));

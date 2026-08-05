@@ -244,12 +244,13 @@ final class DomainRepository
     public function updateFromSync(string $domainId, array $syncResult): void
     {
         $existing = $this->findById($domainId);
+        $contacts = is_array($syncResult['contacts'] ?? null) ? $syncResult['contacts'] : [];
         $metadata = $this->mergeMetadata(
             $existing,
             [
                 'last_sync_result' => $syncResult,
                 'registrant' => $syncResult['registrant'] ?? null,
-                'contacts' => is_array($syncResult['contacts'] ?? null) ? $syncResult['contacts'] : [],
+                'contacts' => $contacts,
                 'raw' => $syncResult['raw'] ?? null,
             ],
         );
@@ -268,6 +269,10 @@ final class DomainRepository
                  renewal_due_at = COALESCE(:renewal_due_at, renewal_due_at),
                  grace_period_ends_at = COALESCE(:grace_period_ends_at, grace_period_ends_at),
                  redemption_period_ends_at = COALESCE(:redemption_period_ends_at, redemption_period_ends_at),
+                 registrant_handle = COALESCE(:registrant_handle, registrant_handle),
+                 admin_handle = COALESCE(:admin_handle, admin_handle),
+                 tech_handle = COALESCE(:tech_handle, tech_handle),
+                 billing_handle = COALESCE(:billing_handle, billing_handle),
                  last_synced_at = CURRENT_TIMESTAMP,
                  last_sync_source = :last_sync_source,
                  last_sync_error = NULL,
@@ -288,6 +293,10 @@ final class DomainRepository
                     'renewal_due_at' => $this->nullableTimestampString($syncResult['renewal_due_at'] ?? $syncResult['expires_at'] ?? null),
                     'grace_period_ends_at' => $this->nullableTimestampString($syncResult['grace_period_ends_at'] ?? null),
                     'redemption_period_ends_at' => $this->nullableTimestampString($syncResult['redemption_period_ends_at'] ?? null),
+                'registrant_handle' => $syncResult['registrant'] ?? null,
+                'admin_handle' => is_string($contacts['admin'] ?? null) ? (string) $contacts['admin'] : null,
+                'tech_handle' => is_string($contacts['tech'] ?? null) ? (string) $contacts['tech'] : null,
+                'billing_handle' => is_string($contacts['billing'] ?? null) ? (string) $contacts['billing'] : null,
                 'last_sync_source' => $syncResult['provider'] ?? 'worker',
                 'metadata_json' => $metadata,
             ],
