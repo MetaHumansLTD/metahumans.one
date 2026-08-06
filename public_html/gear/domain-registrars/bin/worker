@@ -5,6 +5,19 @@ declare(strict_types=1);
 /** @var \App\Application $app */
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
+try {
+    $app->enableRegistrarPoolMode();
+} catch (Throwable) {
+    try {
+        $app->sharedSchemaLoader()->load();
+    } catch (Throwable) {
+    }
+    try {
+        $app->tenantSchemaLoader()->load();
+    } catch (Throwable) {
+    }
+}
+
 $args = $argv ?? [];
 $args = is_array($args) ? $args : [];
 

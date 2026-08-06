@@ -109,6 +109,32 @@ final class Application
         return new SchemaLoader($this->tenantDatabase(), $this->rootPath . '/database/tenant-schema.sql');
     }
 
+    public function enableRegistrarPoolMode(): void
+    {
+        $shared = $this->sharedDatabase();
+        (new SchemaLoader($shared, $this->rootPath . '/database/shared-schema.sql'))->load();
+        (new SchemaLoader($shared, $this->rootPath . '/database/tenant-schema.sql'))->load();
+
+        $this->tenantSchemaLoaded['__default__'] = true;
+        $this->tenantSchemaLoaded['__pool__'] = true;
+        $this->tenantDatabases['__default__'] = $shared;
+        $this->tenantDatabases['__pool__'] = $shared;
+        if (is_string($this->resolvedTenantDbConfigId()) && $this->resolvedTenantDbConfigId() !== '') {
+            $this->tenantDatabases[$this->resolvedTenantDbConfigId()] = $shared;
+            $this->tenantSchemaLoaded[$this->resolvedTenantDbConfigId()] = true;
+        }
+
+        $this->providerAccountRepository = new ProviderAccountRepository($shared);
+        $this->customerRepository = new CustomerRepository($shared);
+        $this->domainRepository = new DomainRepository($shared);
+        $this->orderRepository = new OrderRepository($shared);
+        $this->taskQueueRepository = new TaskQueueRepository($shared);
+        $this->dashboardRepository = new DashboardRepository($shared);
+        $this->pricingRepository = new PricingRepository($shared);
+        $this->orderService = new OrderService($shared, $this);
+        $this->workerService = new WorkerService($shared, $this);
+    }
+
     public function providerAccountRepository(): ProviderAccountRepository
     {
         return $this->providerAccountRepository ??= new ProviderAccountRepository($this->sharedDatabase());

@@ -62,8 +62,24 @@ final class ConnectionFactory
         if (function_exists('database_getContextAwareConnection')) {
             /** @var callable(?string): PDO $resolver */
             $resolver = 'database_getContextAwareConnection';
+            try {
+                return self::configurePdo($resolver($configId));
+            } catch (Throwable) {
+            }
+        }
 
-            return self::configurePdo($resolver($configId));
+        if (is_string($configId) && trim($configId) !== '' && function_exists('database_getConnectionById')) {
+            /** @var callable(string): PDO $resolver */
+            $resolver = 'database_getConnectionById';
+            try {
+                return self::configurePdo($resolver($configId));
+            } catch (Throwable) {
+            }
+        }
+
+        try {
+            return self::shared($config);
+        } catch (Throwable) {
         }
 
         return self::makeFromConfig(
@@ -85,13 +101,19 @@ final class ConnectionFactory
         string $userKey,
         string $passwordKey,
     ): PDO {
-        $dsn = $config->nullableString($dsnKey) ?? $config->nullableString('DB_DSN');
+        $dsn = $config->nullableString($dsnKey)
+            ?? $config->nullableString('SHARED_DB_DSN')
+            ?? $config->nullableString('DB_DSN');
         if ($dsn === null) {
-            throw new RuntimeException(sprintf('Missing required database DSN (%s or DB_DSN).', $dsnKey));
+            throw new RuntimeException(sprintf('Missing required database DSN (%s, SHARED_DB_DSN, or DB_DSN).', $dsnKey));
         }
 
-        $user = $config->nullableString($userKey) ?? $config->nullableString('DB_USER');
-        $password = $config->nullableString($passwordKey) ?? $config->nullableString('DB_PASSWORD');
+        $user = $config->nullableString($userKey)
+            ?? $config->nullableString('SHARED_DB_USER')
+            ?? $config->nullableString('DB_USER');
+        $password = $config->nullableString($passwordKey)
+            ?? $config->nullableString('SHARED_DB_PASSWORD')
+            ?? $config->nullableString('DB_PASSWORD');
         $directory = null;
         if (str_starts_with($dsn, 'sqlite:')) {
             $path = substr($dsn, 7);
@@ -104,8 +126,8 @@ final class ConnectionFactory
 
         return self::configurePdo(new PDO(
             $dsn,
-            $user,
-            $password,
+            (string) $user,
+            (string) $password,
             [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

@@ -39,6 +39,18 @@ try {
 } catch (Throwable) {
 }
 
+$tenantId = trim((string) ($_SESSION['mh_tenant_id'] ?? ''));
+if ($tenantId === '') {
+    $tenantId = 'user:' . $username;
+}
+
+try {
+    if (function_exists('mh_apply_tenant_context')) {
+        mh_apply_tenant_context($tenantId);
+    }
+} catch (Throwable) {
+}
+
 $_SESSION['current_realm'] = 'control';
 
 $publicRoot = $_ENV['MH_PUBLIC_ROOT'] ?? $_SERVER['MH_PUBLIC_ROOT'] ?? getenv('MH_PUBLIC_ROOT');
@@ -64,28 +76,6 @@ $_SERVER['SHARED_DB_CONFIG_NAME'] = $_SERVER['SHARED_DB_CONFIG_NAME'] ?? 'db_dom
 $_ENV['SHARED_DB_DATABASE_NAME'] = $_ENV['SHARED_DB_DATABASE_NAME'] ?? 'domainname_controller';
 $_SERVER['SHARED_DB_DATABASE_NAME'] = $_SERVER['SHARED_DB_DATABASE_NAME'] ?? 'domainname_controller';
 
-$controlDbConfigId = $_ENV['TENANT_DB_CONFIG_ID'] ?? $_SERVER['TENANT_DB_CONFIG_ID'] ?? getenv('TENANT_DB_CONFIG_ID');
-if (! is_string($controlDbConfigId) || $controlDbConfigId === '') {
-    $controlDbConfigId = $_ENV['SHARED_DB_CONFIG_ID'] ?? $_SERVER['SHARED_DB_CONFIG_ID'] ?? getenv('SHARED_DB_CONFIG_ID');
-}
-if (! is_string($controlDbConfigId) || $controlDbConfigId === '') {
-    $controlDbConfigId = $_ENV['SHARED_DB_CONFIG_NAME'] ?? 'db_domain_registrars_shared';
-}
-$_ENV['TENANT_DB_CONFIG_ID'] = $controlDbConfigId;
-$_SERVER['TENANT_DB_CONFIG_ID'] = $controlDbConfigId;
-
-$controlTenantId = 'registrar:control-pool';
-$_ENV['TENANT_ID'] = $controlTenantId;
-$_SERVER['TENANT_ID'] = $controlTenantId;
-$_SESSION['mh_tenant_id'] = $controlTenantId;
-
-try {
-    if (function_exists('mh_apply_tenant_context')) {
-        mh_apply_tenant_context($controlTenantId);
-    }
-} catch (Throwable) {
-}
-
 $path = parse_url($requestUri, PHP_URL_PATH) ?: '/control/domain-registrars';
 $prefix = '/control/domain-registrars';
 if (str_starts_with($path, $prefix)) {
@@ -104,12 +94,17 @@ try {
     $app = require $bootstrapPath;
 
     try {
-        $app->sharedSchemaLoader()->load();
-    } catch (Throwable) {
-    }
-    try {
-        $app->tenantSchemaLoader()->load();
-    } catch (Throwable) {
+        $app->enableRegistrarPoolMode();
+    } catch (Throwable $poolException) {
+        error_log('[control/domain-registrars][pool] ' . $poolException->getMessage());
+        try {
+            $app->sharedSchemaLoader()->load();
+        } catch (Throwable) {
+        }
+        try {
+            $app->tenantSchemaLoader()->load();
+        } catch (Throwable) {
+        }
     }
 
     $controller = new ControlController($app);
