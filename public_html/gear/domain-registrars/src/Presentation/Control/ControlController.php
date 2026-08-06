@@ -323,7 +323,7 @@ HTML;
         $providerAccount = $this->app->providerAccount('netearthone');
         $effective = $this->app->providerEffectiveConfig('netearthone');
         $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
-        $isActive = (bool) ($providerAccount['is_active'] ?? true);
+        $isActiveDb = (bool) ($providerAccount['is_active'] ?? true);
 
         $apiBaseUrl = (string) ($effective['api_base_url'] ?? '');
         $resellerId = (string) ($effective['auth_user_id'] ?? '');
@@ -337,6 +337,39 @@ HTML;
         if ($defaultInvoiceOption === '') {
             $defaultInvoiceOption = 'NoInvoice';
         }
+
+        $liveStatusLabel = 'Provider Account Inactive';
+        $liveStatusNote = '';
+        if ($isActiveDb) {
+            try {
+                $provider = $this->app->provider('netearthone');
+                if (method_exists($provider, 'healthCheck')) {
+                    $health = $provider->healthCheck();
+                    $ok = (bool) ($health['ok'] ?? true);
+                    $statusText = is_string($health['status'] ?? null) ? trim((string) $health['status']) : '';
+                    if ($ok) {
+                        $liveStatusLabel = 'Provider Account Active';
+                        if ($statusText !== '') {
+                            $liveStatusNote = $statusText;
+                        }
+                    } else {
+                        $liveStatusLabel = 'Provider Account Inactive';
+                        $liveStatusNote = is_string($health['error'] ?? null) && trim((string) $health['error']) !== ''
+                            ? trim((string) $health['error'])
+                            : ($statusText !== '' ? $statusText : 'Live health check returned a failure status.');
+                    }
+                } else {
+                    $liveStatusLabel = 'Provider Account Active';
+                }
+            } catch (Throwable $exception) {
+                $liveStatusLabel = 'Provider Account Inactive';
+                $liveStatusNote = $exception->getMessage();
+            }
+        } else {
+            $liveStatusNote = 'Provider account is marked inactive in provider_accounts.is_active.';
+        }
+        $liveStatusPillClass = $liveStatusLabel === 'Provider Account Active' ? 'status-pill status-ok' : 'status-pill status-warn';
+        $liveStatusNoteMarkup = $liveStatusNote === '' ? '' : '<p class="muted">' . $this->escape($liveStatusNote) . '</p>';
 
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $probeMarkup = '';
@@ -365,7 +398,8 @@ HTML;
   </div>
   <article class="info-card">
     <h2>Current Status</h2>
-    <p class="status-pill">{$this->escape($isActive ? 'Provider Account Active' : 'Provider Account Inactive')}</p>
+    <p class="{$this->escape($liveStatusPillClass)}">{$this->escape($liveStatusLabel)}</p>
+    {$liveStatusNoteMarkup}
     <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? 'NetEarthOne'))}</p>
     <p class="muted">Environment: {$this->escape($environment)}</p>
     <p class="muted">API base URL: <code>{$this->escape($apiBaseUrl !== '' ? $apiBaseUrl : 'Not configured')}</code></p>
@@ -428,7 +462,7 @@ HTML;
         </select>
       </label>
       <label class="checkbox-line">
-        <input type="checkbox" name="is_active" value="1"{$this->checked($isActive)}>
+        <input type="checkbox" name="is_active" value="1"{$this->checked($isActiveDb)}>
         <span>Provider account is active</span>
       </label>
     </div>
@@ -476,13 +510,46 @@ HTML;
         $pricingJson = $this->displayConfigValue($saved, $effective, 'pricing_json');
         $timeout = (string) ($this->displayConfigValue($saved, $effective, 'timeout') ?: '30');
         $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
-        $isActive = (bool) ($providerAccount['is_active'] ?? true);
+        $isActiveDb = (bool) ($providerAccount['is_active'] ?? true);
         $verifyPeer = array_key_exists('verify_peer', $saved)
             ? (bool) $saved['verify_peer']
             : (bool) ($effective['verify_peer'] ?? true);
         $resolvedCertPath = $this->resolvedPathPreview($certPath);
         $resolvedCaPath = $this->resolvedPathPreview($caFile);
         $readiness = $this->cozaReadinessSummary($effective);
+
+        $liveStatusLabel = 'Provider Account Inactive';
+        $liveStatusNote = '';
+        if ($isActiveDb) {
+            try {
+                $provider = $this->app->provider('coza');
+                if (method_exists($provider, 'healthCheck')) {
+                    $health = $provider->healthCheck();
+                    $ok = (bool) ($health['ok'] ?? true);
+                    $statusText = is_string($health['status'] ?? null) ? trim((string) $health['status']) : '';
+                    if ($ok) {
+                        $liveStatusLabel = 'Provider Account Active';
+                        if ($statusText !== '') {
+                            $liveStatusNote = $statusText;
+                        }
+                    } else {
+                        $liveStatusLabel = 'Provider Account Inactive';
+                        $liveStatusNote = is_string($health['error'] ?? null) && trim((string) $health['error']) !== ''
+                            ? trim((string) $health['error'])
+                            : ($statusText !== '' ? $statusText : 'Live EPP hello returned a failure status.');
+                    }
+                } else {
+                    $liveStatusLabel = 'Provider Account Active';
+                }
+            } catch (Throwable $exception) {
+                $liveStatusLabel = 'Provider Account Inactive';
+                $liveStatusNote = $exception->getMessage();
+            }
+        } else {
+            $liveStatusNote = 'Provider account is marked inactive in provider_accounts.is_active.';
+        }
+        $liveStatusPillClass = $liveStatusLabel === 'Provider Account Active' ? 'status-pill status-ok' : 'status-pill status-warn';
+        $liveStatusNoteMarkup = $liveStatusNote === '' ? '' : '<p class="muted">' . $this->escape($liveStatusNote) . '</p>';
 
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $readinessItems = implode('', array_map(
@@ -522,7 +589,8 @@ HTML;
   </div>
   <article class="info-card">
     <h2>Current Status</h2>
-    <p class="status-pill">{$this->escape($readiness['label'])}</p>
+    <p class="{$this->escape($liveStatusPillClass)}">{$this->escape($liveStatusLabel)}</p>
+    {$liveStatusNoteMarkup}
     <ul class="info-list">{$readinessItems}</ul>
     <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? '.co.za'))}</p>
     <p class="muted">Environment: {$this->escape($environment)}</p>
@@ -562,7 +630,7 @@ HTML;
         <span>Verify TLS peer certificate</span>
       </label>
       <label class="checkbox-line">
-        <input type="checkbox" name="is_active" value="1"{$this->checked($isActive)}>
+        <input type="checkbox" name="is_active" value="1"{$this->checked($isActiveDb)}>
         <span>Provider account is active</span>
       </label>
     </div>
