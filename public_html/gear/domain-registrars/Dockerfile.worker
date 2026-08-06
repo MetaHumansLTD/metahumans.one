@@ -7,13 +7,16 @@ RUN apt-get update \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+WORKDIR /var/www/html/gear/domain-registrars
 
 COPY composer.json ./
 RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist
 
 COPY . .
 
-RUN mkdir -p /app/var
+RUN mkdir -p /var/www/html/var \
+    && chmod +x /var/www/html/gear/domain-registrars/docker-entrypoint-mh.sh \
+    && chmod +x bin/worker
 
+ENTRYPOINT ["/var/www/html/gear/domain-registrars/docker-entrypoint-mh.sh"]
 CMD ["php", "bin/worker"]

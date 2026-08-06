@@ -19,8 +19,10 @@ COPY . .
 
 RUN mkdir -p /var/www/html/var \
     && chown -R www-data:www-data /var/www/html \
+    && chmod +x /var/www/html/gear/domain-registrars/docker-entrypoint-mh.sh \
     && printf "<VirtualHost *:80>\n    DocumentRoot /var/www/html/public\n    <Directory /var/www/html/public>\n        AllowOverride All\n        Require all granted\n        FallbackResource /index.php\n    </Directory>\n    SetEnv APP_ROLE ${APP_ROLE}\n    ErrorLog /proc/self/fd/2\n    CustomLog /proc/self/fd/1 combined\n</VirtualHost>\n" > /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 80
 
+ENTRYPOINT ["/var/www/html/gear/domain-registrars/docker-entrypoint-mh.sh"]
 CMD ["apache2-foreground"]

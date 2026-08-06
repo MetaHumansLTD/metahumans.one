@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+if (function_exists('error_reporting')) {
+    error_reporting(0);
+}
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
+@ini_set('log_errors', '1');
+
 use App\Presentation\Hub\HubController;
 
 if (! function_exists('cue_autoload')) {

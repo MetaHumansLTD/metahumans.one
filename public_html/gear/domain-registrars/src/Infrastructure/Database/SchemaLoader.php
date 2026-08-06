@@ -18,13 +18,15 @@ final class SchemaLoader
     public function load(): void
     {
         if (! is_file($this->schemaPath)) {
-            throw new RuntimeException(sprintf('Schema file not found: %s', $this->schemaPath));
+            error_log('[SchemaLoader] Schema file not found: ' . $this->schemaPath);
+            return;
         }
 
         $sql = file_get_contents($this->schemaPath);
 
         if ($sql === false) {
-            throw new RuntimeException(sprintf('Unable to read schema file: %s', $this->schemaPath));
+            error_log('[SchemaLoader] Unable to read schema file: ' . $this->schemaPath);
+            return;
         }
 
         $statements = preg_split('/;\s*(?:\R|$)/', $sql) ?: [];
@@ -41,7 +43,7 @@ final class SchemaLoader
                     continue;
                 }
 
-                throw $exception;
+                error_log('[SchemaLoader] ' . $this->schemaPath . ': ' . $exception->getMessage());
             }
         }
     }

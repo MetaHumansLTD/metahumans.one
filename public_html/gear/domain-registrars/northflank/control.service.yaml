@@ -5,7 +5,7 @@ service:
   serviceType: combined
   projectType: github
   github:
-    repository: https://github.com/MetaHumansLTD/domain-registrars
+    repository: https://github.com/MetaHumansLTD/metahumans.one
     branch: main
   build:
     source: git
@@ -25,11 +25,13 @@ service:
     plan: nf-compute-10
     ephemeralStorageMiB: 1024
   runtime:
+    workingDirectory: /var/www/html/gear/domain-registrars
     environment:
       APP_ROLE: control
       APP_ENV: production
       APP_URL: https://control.metahumans.one
       QUEUE_CONNECTION: redis
+      MH_CHECKPOINT_SETS: "mysql_dumps,mysql,data"
     mountedSecrets:
       - app-secrets
       - database-secrets
@@ -41,3 +43,8 @@ service:
     - Keep this service behind strong authentication and tighter access rules.
     - Use control for sync diagnostics, pricing, conflict review, and manual actions.
     - Provider credentials must come from mounted secret sets, not `.env` files or app-managed settings.
+    - Pre-start app-level checkpoints run automatically via docker-entrypoint-mh.sh.
+      Set MH_SKIP_CHECKPOINT=1 in runtime env to bypass the pre-deploy checkpoint for this service.
+    - MH_CHECKPOINT_SETS is a comma-separated list (order matters) of which backup operations
+      to run at container start: mysql_dumps (gear/backups/mysql-dumps.php), mysql (rsync mysql snapshot),
+      data (rsync /data snapshot). The runner never blocks service start if a backup step fails.

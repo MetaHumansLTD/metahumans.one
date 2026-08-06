@@ -30,15 +30,13 @@ service:
     plan: nf-compute-10
     ephemeralStorageMiB: 1024
   runtime:
-    command:
-      - php
-      - bin/worker
     workingDirectory: /var/www/html/gear/domain-registrars
     environment:
       APP_ROLE: worker
       APP_ENV: production
       QUEUE_CONNECTION: redis
       ENABLE_SCHEDULER: "false"
+      MH_CHECKPOINT_SETS: "mysql_dumps,mysql,data"
     mountedSecrets:
       - app-secrets
       - database-secrets
@@ -56,3 +54,9 @@ service:
       re-add native NF schedules entries here; doing so would double-enqueue.
     - If you want a standalone long-running queue consumer with no on-demand CLI usage, keep
       ENABLE_SCHEDULER=false and let the service poll the task_queue table.
+    - Pre-start app-level checkpoint runs on every container start via docker-entrypoint-mh.sh:
+      it calls gear/backups/mysql-dumps.php then gear/backups/run.php for mysql and data sets.
+      Set MH_SKIP_CHECKPOINT=1 in runtime env to skip the checkpoint for one-off rollback boots.
+    - MH_CHECKPOINT_SETS comma-separated order: mysql_dumps (logical mysqldumps of all databases),
+      mysql (rsync snapshot of /mysql volume), data (rsync snapshot of /data config+uploads).
+      Backup failures are logged and NEVER block the worker from starting.

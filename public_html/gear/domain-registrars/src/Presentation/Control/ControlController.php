@@ -231,8 +231,29 @@ HTML;
                 $perPage = 50;
             }
         }
-        [$domains, $total, $page, $totalPages] = $this->app->domainRepository()->search($filters, $page, $perPage);
+        [$domains, $total, $page, $totalPages] = [[], 0, 1, 1];
+        $tlds = [];
+        $domainLoadError = null;
+        try {
+            [$domains, $total, $page, $totalPages] = $this->app->domainRepository()->search($filters, $page, $perPage);
+        } catch (Throwable $t) {
+            $domainLoadError = $t->getMessage();
+            error_log('[control/domain-registrars][renderDomains:search] ' . $t->getMessage());
+        }
+        try {
+            $tlds = $this->app->domainRepository()->listTlds(200);
+        } catch (Throwable $t) {
+            error_log('[control/domain-registrars][renderDomains:listTlds] ' . $t->getMessage());
+        }
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        if ($domainLoadError !== null) {
+            $flashMarkup = ($flashMarkup !== '' ? ($flashMarkup . "\n") : '')
+                . '<div class="notice" style="border-color:#f59e0b;background:#1f2937;color:#fde68a;">'
+                . '<strong>Portfolio not ready yet.</strong> '
+                . 'If this is the first load, open <a style="color:#60a5fa;" href="' . $this->escape($this->providersNetEarthOnePath()) . '">NetEarthOne provider settings</a> once to create the default provider account, then return here and run Sync All. '
+                . '<span class="muted" style="font-size:12px;">(' . $this->escape($domainLoadError) . ')</span>'
+                . '</div>';
+        }
         $domainCards = $domains === []
             ? '<p class="muted">No records yet. Run Sync All below to import your registrar portfolio.</p>'
             : implode('', array_map(fn (array $domain): string => $this->renderDomainManagementCard($domain), $domains));
@@ -828,9 +849,7 @@ HTML;
             $config,
         );
 
-        header('Location: ' . $this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
-
-        return '';
+        return $this->safeRedirect($this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
     }
 
     private function renderCozaSettings(array $query): string
@@ -1002,9 +1021,7 @@ HTML;
             $config,
         );
 
-        header('Location: ' . $this->providersCozaPath() . '?flash=' . rawurlencode('.co.za settings saved.'));
-
-        return '';
+        return $this->safeRedirect($this->providersCozaPath() . '?flash=' . rawurlencode('.co.za settings saved.'));
     }
 
     private function handleTaskEnqueue(array $post): string
@@ -1021,11 +1038,9 @@ HTML;
                 priority: 10,
             );
 
-            header('Location: ' . $this->basePath() . '?flash=' . rawurlencode(sprintf('%s queued for %s.', $taskType, $providerCode)));
-            return '';
+            return $this->safeRedirect($this->basePath() . '?flash=' . rawurlencode(sprintf('%s queued for %s.', $taskType, $providerCode)));
         } catch (Throwable $exception) {
-            header('Location: ' . $this->basePath() . '?flash=' . rawurlencode($exception->getMessage()));
-            return '';
+            return $this->safeRedirect($this->basePath() . '?flash=' . rawurlencode($exception->getMessage()));
         }
     }
 
@@ -1978,9 +1993,17 @@ HTML;
 
     private function redirectToDomains(string $message): string
     {
-        header('Location: ' . $this->domainsPath() . '?flash=' . rawurlencode($message));
+        return $this->safeRedirect($this->domainsPath() . '?flash=' . rawurlencode($message));
+    }
 
-        return '';
+    private function safeRedirect(string $url): string
+    {
+        $escaped = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+        if (! headers_sent()) {
+            header('Location: ' . $url, true, 302);
+            return '';
+        }
+        return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Redirecting…</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><p>Redirecting to <a style="color:#60a5fa;" href="' . $escaped . '">' . $escaped . '</a>…</p></body></html>';
     }
 
     /**

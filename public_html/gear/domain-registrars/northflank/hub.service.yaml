@@ -5,7 +5,7 @@ service:
   serviceType: combined
   projectType: github
   github:
-    repository: https://github.com/MetaHumansLTD/domain-registrars
+    repository: https://github.com/MetaHumansLTD/metahumans.one
     branch: main
   build:
     source: git
@@ -25,11 +25,13 @@ service:
     plan: nf-compute-10
     ephemeralStorageMiB: 1024
   runtime:
+    workingDirectory: /var/www/html/gear/domain-registrars
     environment:
       APP_ROLE: hub
       APP_ENV: production
       APP_URL: https://hub.metahumans.one
       QUEUE_CONNECTION: redis
+      MH_CHECKPOINT_SETS: "mysql_dumps,mysql,data"
     mountedSecrets:
       - app-secrets
       - database-secrets
@@ -38,3 +40,7 @@ service:
     - GitHub repository is the source of truth for builds and deployments.
     - Do not mount registrar provider credentials directly into hub.
     - Route customer actions that touch upstream providers through worker jobs.
+    - Pre-start app-level checkpoints run automatically via docker-entrypoint-mh.sh.
+      Set MH_SKIP_CHECKPOINT=1 in runtime env to bypass the pre-deploy checkpoint for this service.
+    - MH_CHECKPOINT_SETS comma-separated order: mysql_dumps, mysql rsync snapshot, data rsync snapshot.
+      Backup errors are logged and never block the hub service from starting.
