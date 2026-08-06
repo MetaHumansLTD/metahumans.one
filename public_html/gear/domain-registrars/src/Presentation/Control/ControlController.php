@@ -30,10 +30,12 @@ final class ControlController
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains($query),
             ['/domains/', 'GET'] => $this->renderDomains($query),
+            ['/domains', 'POST'] => $this->handleDomainBulkAction($post, $query),
             ['/domains/sync', 'POST'] => $this->handleDomainSync($post),
             ['/domains/renew', 'POST'] => $this->handleDomainRenew($post),
             ['/domains/assign', 'GET'] => $this->renderDomainAssignPage($query),
             ['/domains/assign', 'POST'] => $this->handleDomainAssign($post),
+            ['/domains/sync/portfolio', 'POST'] => $this->handleDomainPortfolioSync($post),
             ['/tasks', 'GET'] => $this->renderTasks(),
             ['/providers', 'GET'] => $this->renderProvidersIndex($query),
             ['/providers/', 'GET'] => $this->renderProvidersIndex($query),
@@ -206,20 +208,42 @@ HTML;
     private function renderDomains(array $query = []): string
     {
         $flash = trim((string) ($query['flash'] ?? ''));
-        $domains = $this->app->domainRepository()->listAll(500);
-        $total = $this->app->domainRepository()->countAll();
+        $filters = [
+            'keyword' => trim((string) ($query['keyword'] ?? ($query['q'] ?? ''))),
+            'tld' => trim((string) ($query['tld'] ?? ($query['extension'] ?? ''))),
+            'provider_code' => trim((string) ($query['provider'] ?? ($query['provider_code'] ?? ''))),
+            'owner_type' => trim((string) ($query['owner_type'] ?? '')),
+            'registrar_status' => trim((string) ($query['status'] ?? ($query['registrar_status'] ?? ''))),
+            'renewal_from' => trim((string) ($query['renewal_from'] ?? ($query['renew'] ?? ''))),
+            'renewal_to' => trim((string) ($query['renewal_to'] ?? '')),
+            'registered_from' => trim((string) ($query['registered_from'] ?? '')),
+            'registered_to' => trim((string) ($query['registered_to'] ?? '')),
+        ];
+        $page = (int) ($query['page'] ?? 1);
+        $perPageRaw = (string) ($query['per_page'] ?? ($query['show'] ?? '50'));
+        $validSizes = [5, 10, 50, 100];
+        $perPage = 50;
+        if (strtolower(trim($perPageRaw)) === 'all') {
+            $perPage = 0;
+        } elseif (ctype_digit(trim($perPageRaw))) {
+            $perPage = (int) trim($perPageRaw);
+            if (! in_array($perPage, $validSizes, true)) {
+                $perPage = 50;
+            }
+        }
+        [$domains, $total, $page, $totalPages] = $this->app->domainRepository()->search($filters, $page, $perPage);
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
-        $importForm = $this->renderDomainImportForm();
         $domainCards = $domains === []
-            ? '<p class="muted">No records yet.</p>'
+            ? '<p class="muted">No records yet. Run Sync All below to import your registrar portfolio.</p>'
             : implode('', array_map(fn (array $domain): string => $this->renderDomainManagementCard($domain), $domains));
         $rows = $this->renderRawTable(
-            ['Provider', 'Domain', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated', 'Actions'],
+            ['Provider', 'Domain', 'TLD', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated', 'Actions'],
             array_map(
                 fn (array $domain): array => [
                     $this->providerDisplayName((string) ($domain['provider_code'] ?? '')),
                     (string) $domain['domain_name'],
-                    (string) $domain['registrar_status'],
+                    (string) ($domain['tld'] ?? '-'),
+                    (string) ($domain['registrar_status'] ?? '-'),
                     (string) ($domain['owner_type'] ?? '-'),
                     (string) ($domain['owner_id'] ?? '-'),
                     (string) ($domain['tenant_id'] ?? '-'),
@@ -230,32 +254,330 @@ HTML;
                 ],
                 $domains,
             ),
-            [9],
+            [10],
         );
+        $tlds = $this->app->domainRepository()->listTlds(200);
+        $tldOptions = '<option value="">All Extensions</option>';
+        foreach ($tlds as $tld) {
+            $selected = $filters['tld'] === $tld ? ' selected' : '';
+            $tldOptions .= '<option value="' . $this->escape($tld) . '"' . $selected . '>.' . $this->escape($tld) . '</option>';
+        }
+        $providerOptions = '<option value="">All Providers</option>';
+        foreach (['coza' => '.co.za Registry', 'netearthone' => 'NetEarthOne'] as $code => $name) {
+            $selected = $filters['provider_code'] === $code ? ' selected' : '';
+            $providerOptions .= '<option value="' . $this->escape($code) . '"' . $selected . '>' . $this->escape($name) . '</option>';
+        }
+        $sizeOptions = '';
+        foreach ([5, 10, 50, 100] as $size) {
+            $selected = (string) $perPage === (string) $size ? ' selected' : '';
+            $sizeOptions .= '<option value="' . $size . '"' . $selected . '>' . $size . '</option>';
+        }
+        $selectedAll = $perPage === 0 ? ' selected' : '';
+        $sizeOptions .= '<option value="all"' . $selectedAll . '>All</option>';
+        $ownerOptions = '<option value="">All Owners</option>';
+        foreach (['registrar' => 'Registrar Pool', 'tenant' => 'Tenant Pool', 'reseller' => 'Reseller Pool', 'system' => 'System Pool', 'user' => 'User Owned', 'company' => 'Company Owned', 'persona' => 'Persona Owned'] as $code => $name) {
+            $selected = $filters['owner_type'] === $code ? ' selected' : '';
+            $ownerOptions .= '<option value="' . $this->escape($code) . '"' . $selected . '>' . $this->escape($name) . '</option>';
+        }
+        $searchQueryPrefix = [];
+        foreach ($filters as $k => $v) {
+            if (is_string($v) && $v !== '') {
+                $searchQueryPrefix[] = rawurlencode($k) . '=' . rawurlencode($v);
+            }
+        }
+        if ($perPage !== 50) {
+            $searchQueryPrefix[] = 'per_page=' . rawurlencode((string) ($perPage === 0 ? 'all' : $perPage));
+        }
+        $queryPrefixNoPage = implode('&', $searchQueryPrefix);
+        $pagination = '';
+        if ($perPage !== 0 && $totalPages > 1) {
+            $pagination = '<nav class="pagination" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:20px 0;justify-content:space-between;"><div>Page ' . $page . ' of ' . $totalPages . ', showing ' . count($domains) . ' of ' . $total . ' total</div><div style="display:flex;gap:4px;flex-wrap:wrap;">';
+            for ($p = 1; $p <= $totalPages; ++$p) {
+                $sep = $queryPrefixNoPage !== '' ? '&' : '';
+                $href = $this->escape($this->domainsPath()) . ($queryPrefixNoPage !== '' ? '?' . $queryPrefixNoPage . $sep . 'page=' . $p : '?page=' . $p);
+                $cls = $p === $page ? 'button button-primary' : 'button button-secondary';
+                $pagination .= '<a class="' . $cls . '" href="' . $href . '">' . $p . '</a>';
+            }
+            $pagination .= '</div></nav>';
+        } else {
+            $pagination = '<div class="muted" style="margin:12px 0;">' . ($total === 0 ? '0 records' : ('Showing ' . count($domains) . ' of ' . $total . ' total records.')) . '</div>';
+        }
         $scopeNote = '<article class="info-card">'
             . '<h2>Portfolio Scope</h2>'
-            . '<p class="muted"><strong>Registrar / Control view:</strong> This page lists <strong>every domain record in the system</strong> (latest 500 shown; total rows: '
+            . '<p class="muted"><strong>Registrar / Control view:</strong> This page lists <strong>every domain record in the system</strong> (total rows: '
             . (int) $total
             . '). The reseller/registrar owns the pool of domains; allocate them to specific users or companies via the <em>Assign / Move</em> action in each row.'
-            . ' Once moved, domains disappear from this pool view only on the tenant-facing hub side. The <em>Hub portfolio (/hub/companies/domains/manage)</em> only shows domains that have been transferred to that user or company (owner_type user or company with matching owner_id). Pool rows (owner_type tenant/reseller/registrar/system) are intentionally hidden from tenant hub views.</p>'
+            . ' The <em>Hub portfolio (/hub/companies/domains/manage)</em> only shows domains that have been registered through the user/company or explicitly transferred to that user or company (owner_type user, company, persona with matching owner_id; pool rows tenant/reseller/registrar/system are intentionally hidden from tenant hub views).</p>'
             . '</article>';
+        $syncAllPath = $this->escape($this->domainsPath() . '/sync/portfolio');
+        $searchFormAction = $this->escape($this->domainsPath());
+        $searchBlock = <<<HTML
+<article class="info-card">
+  <h2>Search Registered Domains</h2>
+  <form method="get" action="{$searchFormAction}" class="checkout-form">
+    <div class="field-grid">
+      <label>
+        <span>Search (domain, order, customer, registrant)</span>
+        <input type="text" name="keyword" value="{$this->escape($filters['keyword'])}" placeholder="example.com, customer_123, order_456">
+      </label>
+      <label>
+        <span>Extension (TLD)</span>
+        <select name="tld">{$tldOptions}</select>
+      </label>
+      <label>
+        <span>Provider</span>
+        <select name="provider">{$providerOptions}</select>
+      </label>
+      <label>
+        <span>Owner</span>
+        <select name="owner_type">{$ownerOptions}</select>
+      </label>
+      <label>
+        <span>Renewal Date From</span>
+        <input type="date" name="renewal_from" value="{$this->escape($filters['renewal_from'])}">
+      </label>
+      <label>
+        <span>Renewal Date To</span>
+        <input type="date" name="renewal_to" value="{$this->escape($filters['renewal_to'])}">
+      </label>
+      <label>
+        <span>Registration From</span>
+        <input type="date" name="registered_from" value="{$this->escape($filters['registered_from'])}">
+      </label>
+      <label>
+        <span>Registration To</span>
+        <input type="date" name="registered_to" value="{$this->escape($filters['registered_to'])}">
+      </label>
+      <label>
+        <span>Show per page</span>
+        <select name="per_page">{$sizeOptions}</select>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button-primary">Search</button>
+      <a class="button button-secondary" href="{$this->escape($this->domainsPath())}">Reset</a>
+    </div>
+  </form>
+</article>
+HTML;
+        $bulkSyncBlock = <<<HTML
+<article class="info-card">
+  <h2>Registrar Portfolio Sync</h2>
+  <p class="muted">NetEarthOne domains and .co.za domains both support live upstream sync. Press a provider button below to pull every domain from that registrar account, then search or assign them. Dates, pricing, nameservers, and statuses are written into the domains table directly. Prices are updated every day at 03:00 UTC by the sync_pricing worker; domain dates refresh every day at 02:15 UTC by sync_domain_dates; portfolio list refreshes every 6 hours.</p>
+  <div class="action-grid" style="grid-template-columns:repeat(3, minmax(0, 1fr));">
+    <form method="post" action="{$syncAllPath}" class="action-card">
+      <input type="hidden" name="provider_code" value="netearthone">
+      <input type="hidden" name="task" value="portfolio">
+      <p class="eyebrow">Global TLDs / Reseller</p>
+      <h2>NetEarthOne</h2>
+      <p class="muted">Pulls domain registration orders (Active/Suspended/Restorable/Archived) from the reseller account via orders/index.json, imports them into the registrar pool, and refreshes registration/expiry dates.</p>
+      <div class="form-actions"><button type="submit" class="button button-primary">Sync All NetEarthOne</button></div>
+    </form>
+    <form method="post" action="{$syncAllPath}" class="action-card">
+      <input type="hidden" name="provider_code" value="coza">
+      <input type="hidden" name="task" value="portfolio">
+      <p class="eyebrow">Africa / .za ccTLD</p>
+      <h2>.co.za Registry</h2>
+      <p class="muted">Runs the EPP-based portfolio sync for .co.za / .org.za / .net.za and other ZACR zones. Requires client certificates and EPP credentials to be configured.</p>
+      <div class="form-actions"><button type="submit" class="button button-primary">Sync All .co.za</button></div>
+    </form>
+    <form method="post" action="{$syncAllPath}" class="action-card">
+      <input type="hidden" name="provider_code" value="all">
+      <input type="hidden" name="task" value="portfolio">
+      <p class="eyebrow">All Providers</p>
+      <h2>Sync All</h2>
+      <p class="muted">Run both provider portfolio syncs back-to-back. Use this after a deploy to bring the registrar pool completely up to date. Also enqueues domain-dates and pricing workers if configured.</p>
+      <div class="form-actions"><button type="submit" class="button button-primary">Sync All Providers</button></div>
+    </form>
+  </div>
+</article>
+HTML;
 
         return $this->layout(
             'Domains',
             $flashMarkup
             . '<section class="panel"><div class="panel-head"><div><h1>Domains</h1><p class="muted">Registrar pool of all domains in the system ('
             . (int) $total
-            . ' total). Bulk import registry domains and allocate them to users or companies. This view shows the authoritative registrar records, not the tenant-only hub portfolio.</p></div><a href="'
+            . ' total). Live-sync the provider portfolios below, search / filter / paginate across the pool, and allocate domains to users or companies via Assign / Move.</p></div><a href="'
             . $this->escape($this->basePath())
             . '">Back to dashboard</a></div>'
+            . $bulkSyncBlock
             . $scopeNote
-            . $importForm
+            . $searchBlock
+            . $pagination
             . $rows
-                . '<div class="action-grid" style="margin-top:20px;">'
-                . $domainCards
-                . '</div>'
+            . $pagination
+            . '<div class="action-grid" style="margin-top:20px;">'
+            . $domainCards
+            . '</div>'
             . '</section>'
         );
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     * @param array<string, mixed> $query
+     */
+    private function handleDomainBulkAction(array $post, array $query): string
+    {
+        unset($query);
+        $action = trim((string) ($post['bulk_action'] ?? ''));
+        if ($action === '') {
+            return $this->redirectToDomains('');
+        }
+        return $this->redirectToDomains('No bulk action matched.');
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function handleDomainPortfolioSync(array $post): string
+    {
+        $providerCode = trim((string) ($post['provider_code'] ?? 'all'));
+        $providerCodes = [];
+        if ($providerCode === 'all' || $providerCode === '') {
+            $providerCodes = ['coza', 'netearthone'];
+        } else {
+            $providerCodes = [$providerCode];
+        }
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+        foreach ($providerCodes as $code) {
+            try {
+                $providerAccount = $this->app->providerAccount($code);
+                $providerAccountId = (string) ($providerAccount['id'] ?? '');
+                if ($providerAccountId === '') {
+                    $errors[] = sprintf('No provider_accounts row found for %s. Create one or visit /control/domain-registrars/providers/%s first.', $code, $code);
+                    continue;
+                }
+                $provider = $this->app->provider($code);
+                if (! $provider instanceof \App\Domain\Provider\Contracts\DomainPortfolioSyncInterface) {
+                    $errors[] = sprintf('Provider %s does not implement DomainPortfolioSyncInterface.', $code);
+                    continue;
+                }
+                $ctx = new \App\Domain\Sync\SyncContext($code, 'control-portfolio-sync');
+                $idx = 0;
+                foreach ($provider->listDomains($ctx) as $row) {
+                    if (! is_array($row) || ! isset($row['domain_name'])) {
+                        ++$skipped;
+                        continue;
+                    }
+                    ++$idx;
+                    $domainName = strtolower(trim((string) $row['domain_name']));
+                    if ($domainName === '') {
+                        ++$skipped;
+                        continue;
+                    }
+                    try {
+                        $existing = $this->app->domainRepository()->findByName($domainName);
+                        $syncPayload = [
+                            'tenant_id' => (string) ($row['tenant_id'] ?? ('registrar:' . $code)),
+                            'owner_type' => (string) ($row['owner_type'] ?? 'registrar'),
+                            'owner_id' => (string) ($row['owner_id'] ?? ('pool:' . $code)),
+                            'billing_mode' => (string) ($row['billing_mode'] ?? 'registrar'),
+                            'billing_tenant_id' => (string) ($row['billing_tenant_id'] ?? ('registrar:' . $code)),
+                            'provider_code' => $code,
+                            'registrar_status' => (string) ($row['registrar_status'] ?? 'active'),
+                            'tld' => (string) ($row['tld'] ?? (str_contains($domainName, '.') ? substr($domainName, strpos($domainName, '.') + 1) : $domainName)),
+                            'customer_id' => (string) ($row['customer_id'] ?? ''),
+                            'registered_at' => $row['registered_at'] ?? null,
+                            'expires_at' => $row['expires_at'] ?? null,
+                            'renewal_due_at' => $row['renewal_due_at'] ?? ($row['expires_at'] ?? null),
+                            'grace_period_ends_at' => $row['grace_period_ends_at'] ?? null,
+                            'redemption_period_ends_at' => $row['redemption_period_ends_at'] ?? null,
+                            'auto_renew_enabled' => $row['auto_renew_enabled'] ?? null,
+                            'registrant' => $row['registrant'] ?? null,
+                            'autorenew' => $row['auto_renew_enabled'] ?? null,
+                            'contacts' => $row['contacts'] ?? null,
+                        ];
+                        $saved = $this->app->domainRepository()->upsertImportedDomain(
+                            $providerAccountId,
+                            $code,
+                            $domainName,
+                            $syncPayload,
+                        );
+                        if (isset($row['upstream_domain_id']) || isset($row['upstream_order_id']) || isset($row['raw'])) {
+                            $updates = [];
+                            $params = ['id' => (string) ($saved['id'] ?? '')];
+                            if (isset($row['upstream_domain_id']) && trim((string) $row['upstream_domain_id']) !== '') {
+                                $updates[] = 'upstream_domain_id = :upstream_domain_id';
+                                $params['upstream_domain_id'] = trim((string) $row['upstream_domain_id']);
+                            }
+                            if (isset($row['upstream_order_id']) && trim((string) $row['upstream_order_id']) !== '') {
+                                $updates[] = 'upstream_order_id = :upstream_order_id';
+                                $params['upstream_order_id'] = trim((string) $row['upstream_order_id']);
+                            }
+                            if (isset($row['raw']) || $existing === null) {
+                                $rowMeta = $existing ?? ['id' => $params['id']];
+                                $merged = $this->mergeMetadata($rowMeta, ['portfolio_sync' => [
+                                    'provider' => $code,
+                                    'sync_time' => date('c'),
+                                    'raw' => $row['raw'] ?? null,
+                                ]]);
+                                $updates[] = 'metadata_json = :metadata_json';
+                                $params['metadata_json'] = is_string($merged) ? $merged : json_encode($merged, JSON_UNESCAPED_SLASHES);
+                            }
+                            if ($updates !== [] && $params['id'] !== '') {
+                                $this->app->domainRepository()->updateFields($params['id'], $updates, $params);
+                            }
+                        }
+                        if ($existing === null) {
+                            ++$inserted;
+                        } else {
+                            ++$updated;
+                        }
+                    } catch (\Throwable $t) {
+                        ++$skipped;
+                        $errors[] = sprintf('%s: %s', $domainName, $t->getMessage());
+                    }
+                    if ($idx >= 10000) {
+                        break;
+                    }
+                }
+            } catch (\Throwable $t) {
+                $errors[] = sprintf('Provider %s sync failed: %s', $code, $t->getMessage());
+            }
+        }
+        $parts = [];
+        if ($inserted > 0) {
+            $parts[] = sprintf('%d domain(s) imported', $inserted);
+        }
+        if ($updated > 0) {
+            $parts[] = sprintf('%d domain(s) updated', $updated);
+        }
+        if ($skipped > 0) {
+            $parts[] = sprintf('%d skipped', $skipped);
+        }
+        $message = $parts === [] ? 'Sync complete.' : implode(', ', $parts) . '.';
+        if ($errors !== []) {
+            $message .= ' Errors: ' . implode(' | ', array_slice($errors, 0, 10));
+            if (count($errors) > 10) {
+                $message .= ' (and ' . (count($errors) - 10) . ' more)';
+            }
+        }
+        return $this->redirectToDomains($message);
+    }
+
+    /**
+     * @param array<string, mixed> $existing
+     * @param array<string, mixed> $patch
+     */
+    private function mergeMetadata(array $existing, array $patch): string
+    {
+        $previous = [];
+        if (isset($existing['metadata_json'])) {
+            if (is_string($existing['metadata_json']) && trim($existing['metadata_json']) !== '') {
+                $decoded = json_decode($existing['metadata_json'], true);
+                if (is_array($decoded)) {
+                    $previous = $decoded;
+                }
+            } elseif (is_array($existing['metadata_json'])) {
+                $previous = $existing['metadata_json'];
+            }
+        }
+        return json_encode(array_replace_recursive($previous, $patch), JSON_UNESCAPED_SLASHES);
     }
 
     private function renderTasks(): string

@@ -60,28 +60,116 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
     public function healthCheck(): array
     {
         try {
-            $this->checkAvailability('metahumans-healthcheck.com', new SyncContext($this->code(), 'control-health'));
+            $ping = $this->client->get('customers/details-by-username.json', [
+                'username' => $this->authUserIdOrDefault(),
+            ]);
+            if (is_array($ping) && isset($ping['customerid']) && $ping['customerid'] !== '') {
+                return [
+                    'ok' => true,
+                    'status' => 'Connected to the NetEarthOne API successfully.',
+                ];
+            }
+            $empty = $this->client->get('domains/available.json', [
+                'domain-name' => ['metahumans-healthcheck-invalid'],
+                'tlds' => ['com'],
+            ]);
 
             return [
-                'ok' => true,
-                'message' => 'Connected to the NetEarthOne API successfully.',
+                'ok' => is_array($empty),
+                'status' => is_array($empty)
+                    ? 'Connected to the NetEarthOne API successfully.'
+                    : 'NetEarthOne API responded but without the expected payload shape.',
             ];
         } catch (Throwable $exception) {
             return [
                 'ok' => false,
-                'message' => $exception->getMessage(),
-                'metadata' => [
-                    'provider' => $this->code(),
-                ],
+                'error' => $exception->getMessage(),
+                'status' => 'API probe failed.',
             ];
         }
     }
 
+    /**
+     * @return iterable<int, array<string, mixed>>
+     */
     public function listDomains(SyncContext $context): iterable
     {
-        unset($context);
+        $noOfRecords = 500;
+        $page = 1;
+        do {
+            $response = $this->client->get('orders/index.json', [
+                'order-by' => 'creationtime desc',
+                'order-type' => 'DomainRegistration',
+                'show-child-orders' => 'false',
+                'status' => ['Active', 'Suspended', 'Pending Delete Restorable', 'Deleted', 'Archived'],
+                'page-no' => $page,
+                'no-of-records' => $noOfRecords,
+            ]);
+            if (! is_array($response) || $response === []) {
+                return;
+            }
+            $count = 0;
+            foreach ($response as $orderId => $row) {
+                if (! is_array($row) || ! isset($row['entitytypeid']) || (string) $row['entitytypeid'] !== '2') {
+                    continue;
+                }
+                ++$count;
+                $domainName = strtolower(trim((string) ($row['domainname'] ?? $row['description'] ?? '')));
+                if ($domainName === '') {
+                    continue;
+                }
+                $creationTime = $this->normalizeDate($row['creationtime'] ?? null);
+                $endTime = $this->normalizeDate($row['endtime'] ?? null);
+                $customerId = (string) ($row['customerid'] ?? '');
+                yield [
+                    'provider' => $this->code(),
+                    'domain_name' => $domainName,
+                    'tld' => $this->extractTld($domainName),
+                    'upstream_domain_id' => $row['entityid'] ?? null,
+                    'upstream_order_id' => is_string($orderId) ? $orderId : (string) $orderId,
+                    'registrar_status' => $this->mapRegistrarStatus($row),
+                    'customer_id' => $customerId !== '' ? $customerId : ($this->defaultCustomerId ?? null),
+                    'registered_at' => $creationTime,
+                    'expires_at' => $endTime,
+                    'renewal_due_at' => $endTime,
+                    'auto_renew_enabled' => $row['recurring'] ?? null,
+                    'owner_type' => 'registrar',
+                    'owner_id' => 'pool:' . $this->code(),
+                    'tenant_id' => 'registrar:' . $this->code(),
+                    'billing_tenant_id' => 'registrar:' . $this->code(),
+                    'billing_mode' => 'registrar',
+                    'raw' => $row,
+                ];
+            }
+            ++$page;
+        } while ($count >= $noOfRecords);
+    }
 
-        throw new RuntimeException('NetEarthOne portfolio listing is not wired yet. Use targeted domain syncs or add an order search implementation.');
+    private function authUserIdOrDefault(): string
+    {
+        $default = (string) ($this->defaultCustomerId ?? '');
+        if ($default !== '') {
+            return $default;
+        }
+        $values = getenv('NETEARTHONE_AUTH_USER_ID') ?: getenv('NEO_AUTH_USER_ID') ?: getenv('RESELLER_ID') ?: getenv('AUTH_USER_ID') ?: '';
+        if (is_string($values) && trim($values) !== '') {
+            return trim($values);
+        }
+        return '';
+    }
+
+    private function extractTld(string $domainName): string
+    {
+        try {
+            [, $tld] = $this->splitDomain($domainName);
+            return (string) $tld;
+        } catch (Throwable) {
+            $dot = strpos($domainName, '.');
+            if ($dot === false || $dot === 0) {
+                return $domainName;
+            }
+            return ltrim(substr($domainName, $dot), '.');
+        }
     }
 
     public function checkAvailability(string $domainName, SyncContext $context): array

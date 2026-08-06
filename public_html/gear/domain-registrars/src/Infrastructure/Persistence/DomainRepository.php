@@ -50,7 +50,28 @@ final class DomainRepository
 
     private function columnExists(string $column): bool
     {
-        return in_array($column, $this->domainsColumns(), true);
+        return in_array(strtolower(trim($column)), $this->domainsColumns(), true);
+    }
+
+    /**
+     * @param list<string> $setClauses
+     * @param array<string, mixed> $params (must include 'id' key for domain id)
+     */
+    public function updateFields(string $domainId, array $setClauses, array $params): void
+    {
+        if ($setClauses === []) {
+            return;
+        }
+        $sqlParams = [];
+        $sqlParams['id'] = $params['id'] ?? $domainId;
+        foreach ($params as $key => $value) {
+            if ($key === 'id') {
+                continue;
+            }
+            $sqlParams[$key] = $value;
+        }
+        $sql = 'UPDATE domains SET ' . implode(', ', $setClauses) . ', updated_at = CURRENT_TIMESTAMP WHERE id = :id';
+        $this->database->execute($sql, $sqlParams);
     }
 
     /**
@@ -503,19 +524,20 @@ final class DomainRepository
      */
     public function listForAccount(string $tenantId, string $ownerType, string $ownerId, int $limit = 100): array
     {
+        $allowedOwnerTypes = ['user', 'company', 'persona'];
         return $this->database->fetchAll(
             sprintf(
                 'SELECT *
                  FROM domains
-                 WHERE tenant_id = :tenant_id
-                    OR (owner_type = :owner_type AND owner_id = :owner_id)
+                 WHERE owner_type IN (\'user\', \'company\', \'persona\')
+                   AND owner_type = :owner_type
+                   AND owner_id = :owner_id
                  ORDER BY COALESCE(expires_at, renewal_due_at, created_at) ASC
                  LIMIT %d',
                 max(1, $limit),
             ),
             [
-                'tenant_id' => $tenantId,
-                'owner_type' => $ownerType,
+                'owner_type' => in_array($ownerType, $allowedOwnerTypes, true) ? $ownerType : 'user',
                 'owner_id' => $ownerId,
             ],
         );
@@ -790,5 +812,106 @@ final class DomainRepository
         }
 
         return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true) ? 1 : 0;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{0: list<array<string, mixed>>, 1: int, 2: int, 3: int}
+     */
+    public function search(array $filters = [], int $page = 1, int $perPage = 50): array
+    {
+        $where = [];
+        $params = [];
+        $keyword = trim((string) ($filters['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $like = '%' . $keyword . '%';
+            $where[] = '(domain_name LIKE :keyword_like OR tld LIKE :keyword_like OR registrant_handle LIKE :keyword_like OR customer_id LIKE :keyword_like OR upstream_order_id LIKE :keyword_like)';
+            $params['keyword_like'] = $like;
+        }
+        $tld = trim((string) ($filters['tld'] ?? ''));
+        if ($tld !== '') {
+            $where[] = 'tld = :tld_filter';
+            $params['tld_filter'] = ltrim(strtolower($tld), '.');
+        }
+        $providerCode = trim((string) ($filters['provider_code'] ?? ''));
+        if ($providerCode !== '') {
+            $where[] = 'provider_code = :provider_code_filter';
+            $params['provider_code_filter'] = $providerCode;
+        }
+        $ownerType = trim((string) ($filters['owner_type'] ?? ''));
+        if ($ownerType !== '') {
+            $where[] = 'owner_type = :owner_type_filter';
+            $params['owner_type_filter'] = $ownerType;
+        }
+        $registrarStatus = trim((string) ($filters['registrar_status'] ?? ''));
+        if ($registrarStatus !== '') {
+            $where[] = 'registrar_status = :status_filter';
+            $params['status_filter'] = $registrarStatus;
+        }
+        $renewalFrom = trim((string) ($filters['renewal_from'] ?? ''));
+        if ($renewalFrom !== '') {
+            $where[] = '(expires_at >= :renewal_from OR renewal_due_at >= :renewal_from)';
+            $params['renewal_from'] = $this->nullableTimestampString($renewalFrom) ?? $renewalFrom;
+        }
+        $renewalTo = trim((string) ($filters['renewal_to'] ?? ''));
+        if ($renewalTo !== '') {
+            $where[] = '(expires_at <= :renewal_to OR renewal_due_at <= :renewal_to)';
+            $params['renewal_to'] = $this->nullableTimestampString($renewalTo) ?? $renewalTo;
+        }
+        $registeredFrom = trim((string) ($filters['registered_from'] ?? ''));
+        if ($registeredFrom !== '') {
+            $where[] = 'registered_at >= :registered_from';
+            $params['registered_from'] = $this->nullableTimestampString($registeredFrom) ?? $registeredFrom;
+        }
+        $registeredTo = trim((string) ($filters['registered_to'] ?? ''));
+        if ($registeredTo !== '') {
+            $where[] = 'registered_at <= :registered_to';
+            $params['registered_to'] = $this->nullableTimestampString($registeredTo) ?? $registeredTo;
+        }
+        $whereClause = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+        $countRow = $this->database->fetchOne('SELECT COUNT(*) AS cnt FROM domains' . $whereClause, $params);
+        $total = is_array($countRow) && isset($countRow['cnt']) ? (int) $countRow['cnt'] : (is_scalar($countRow) ? (int) $countRow : 0);
+        $safePerPage = $perPage <= 0 ? 0 : max(1, $perPage);
+        if ($safePerPage === 0 || $total <= 0) {
+            $totalPages = $total <= 0 ? 0 : 1;
+        } else {
+            $totalPages = (int) ceil($total / $safePerPage);
+        }
+        if ($page < 1) {
+            $page = 1;
+        }
+        if ($safePerPage > 0 && $page > max(1, $totalPages)) {
+            $page = max(1, $totalPages);
+        }
+        $offset = $safePerPage > 0 ? (($page - 1) * $safePerPage) : 0;
+        $limitClause = $safePerPage > 0
+            ? sprintf(' LIMIT %d OFFSET %d', $safePerPage, $offset)
+            : '';
+        $sql = 'SELECT * FROM domains' . $whereClause
+            . ' ORDER BY COALESCE(expires_at, renewal_due_at, registered_at, created_at) DESC, domain_name ASC'
+            . $limitClause;
+        $rows = $this->database->fetchAll($sql, $params);
+        return [is_array($rows) ? array_values($rows) : [], $total, max(1, $page), max(0, $totalPages)];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function listTlds(int $limit = 200): array
+    {
+        $rows = $this->database->fetchAll(
+            sprintf(
+                'SELECT DISTINCT tld FROM domains WHERE tld IS NOT NULL AND tld <> \'\' ORDER BY tld ASC LIMIT %d',
+                max(1, $limit),
+            ),
+        );
+        $out = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $tld = is_array($row) ? (string) ($row['tld'] ?? '') : '';
+            if ($tld !== '') {
+                $out[] = ltrim($tld, '.');
+            }
+        }
+        return $out;
     }
 }
