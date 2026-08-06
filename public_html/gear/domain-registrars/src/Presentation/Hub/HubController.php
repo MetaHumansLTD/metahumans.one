@@ -208,6 +208,10 @@ HTML;
 
     private function renderPortfolioPage(): string
     {
+        if (! $this->isCurrentUserAllowedDomains()) {
+            return $this->layout('My Domains', $this->renderDomainsPermissionDeniedCard());
+        }
+
         $tenantContext = $this->app->tenantContext();
         $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
         $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
@@ -452,6 +456,10 @@ HTML;
 
     private function renderRenewalPage(array $query): string
     {
+        if (! $this->isCurrentUserAllowedDomains()) {
+            return $this->layout('Renew Domain', $this->renderDomainsPermissionDeniedCard());
+        }
+
         $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
@@ -500,6 +508,10 @@ HTML;
 
     private function renderCancellationPage(array $query): string
     {
+        if (! $this->isCurrentUserAllowedDomains()) {
+            return $this->layout('Cancel Domain', $this->renderDomainsPermissionDeniedCard());
+        }
+
         $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
@@ -543,6 +555,10 @@ HTML;
 
     private function renderUpdatePage(array $query): string
     {
+        if (! $this->isCurrentUserAllowedDomains()) {
+            return $this->layout('Edit Domain Settings', $this->renderDomainsPermissionDeniedCard());
+        }
+
         $flash = $this->popFlashMessages();
         $domain = $this->resolveManagedDomain($query);
         if ($domain === null) {
@@ -1484,6 +1500,86 @@ HTML;
         include $path;
 
         return (string) ob_get_clean();
+    }
+
+    private function isCurrentUserAllowedDomains(): bool
+    {
+        $role = isset($_SESSION['mh_auth_role']) ? strtolower(trim((string) $_SESSION['mh_auth_role'])) : '';
+        if ($role !== '' && stripos($role, 'kripzmaster') !== false) {
+            return true;
+        }
+
+        $rawPerms = $_SESSION['mh_auth_permissions'] ?? null;
+        $permissions = null;
+        if (is_string($rawPerms) && trim($rawPerms) !== '') {
+            $decoded = json_decode($rawPerms, true);
+            if (is_array($decoded)) {
+                $permissions = $decoded;
+            }
+        } elseif (is_array($rawPerms)) {
+            $permissions = $rawPerms;
+        }
+
+        if (! is_array($permissions) || $permissions === []) {
+            return false;
+        }
+
+        $realms = $permissions['realms'] ?? [];
+        $menus = $permissions['menus'] ?? [];
+        $submenus = $permissions['submenus'] ?? [];
+        if (! is_array($realms)) {
+            $realms = [];
+        }
+        if (! is_array($menus)) {
+            $menus = [];
+        }
+        if (! is_array($submenus)) {
+            $submenus = [];
+        }
+
+        $realms = array_map('strval', $realms);
+        $menus = array_map('strval', $menus);
+        $submenus = array_map('strval', $submenus);
+        $hasHubRealm = false;
+        foreach ($realms as $r) {
+            if (strcasecmp($r, 'hub') === 0) {
+                $hasHubRealm = true;
+                break;
+            }
+        }
+
+        if (! $hasHubRealm) {
+            return false;
+        }
+
+        return $menus !== [] || $submenus !== [];
+    }
+
+    private function renderDomainsPermissionDeniedCard(): string
+    {
+        $username = isset($_SESSION['mh_auth_user']) ? trim((string) $_SESSION['mh_auth_user']) : 'unknown';
+        $role = isset($_SESSION['mh_auth_role']) ? trim((string) $_SESSION['mh_auth_role']) : 'Users';
+
+        return <<<HTML
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Client Area / Hub · Permission Required</p>
+      <h1>My Domains</h1>
+    </div>
+  </div>
+  <article class="info-card">
+    <h2>Domains are not visible for this user</h2>
+    <p class="muted">Signed in as <strong>{$this->escape($username)}</strong> (role: <code>{$this->escape($role)}</code>). Access to the domains portfolio on this manage page is granted in either of these ways:</p>
+    <ul>
+      <li>Your biometrics role is <strong>KripzMasters</strong> (super-admin), or</li>
+      <li>An administrator explicitly allocated Domains / Hub permissions to your account via the <code>menu-permission-manager</code> UI located at <code>/templates/menus/menu-permission-manager.php</code>.</li>
+    </ul>
+    <p class="muted">Until permission is granted, this page intentionally shows zero domains so that portfolio data is not disclosed to regular platform users. Transferred, allocated, or registrar-owned domains that would normally appear for your tenant / company context are hidden.</p>
+    <p><a class="button button-secondary" href="/templates/menus/menu-permission-manager.php">Open Menu Permission Manager</a> <a class="button button-link" href="{$this->escape($this->basePath())}">Back to search</a></p>
+  </article>
+</section>
+HTML;
     }
 
     private function styles(): string

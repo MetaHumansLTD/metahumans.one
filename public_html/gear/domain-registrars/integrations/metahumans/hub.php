@@ -98,11 +98,31 @@ try {
     $path = parse_url($requestUri, PHP_URL_PATH) ?: '/hub/domains';
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+    while (ob_get_level() > 0) {
+        $buffer = (string) ob_get_contents();
+        if (trim($buffer) !== '') {
+            break;
+        }
+        ob_end_clean();
+    }
+
     header('Content-Type: text/html; charset=UTF-8');
-    echo $controller->handle($path, $method, $_GET, $_POST);
+    try {
+        $response = $controller->handle($path, $method, $_GET, $_POST);
+    } catch (Throwable $inner) {
+        error_log('[hub/domains][controller] ' . $inner->getMessage());
+        $response = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Hub Domains Error</h1><p>The request could not be handled right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($inner->getMessage(), ENT_QUOTES, 'UTF-8') . '</p><p><a style="color:#60a5fa;" href="' . htmlspecialchars((string) ($_SERVER['REQUEST_URI'] ?? '/hub/domains'), ENT_QUOTES, 'UTF-8') . '">Try again</a></p></body></html>';
+    }
+    if (! is_string($response) || $response === '') {
+        $response = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>No content</h1><p>The server returned an empty response for this hub domain page.</p><p><a style="color:#60a5fa;" href="/hub/companies/domains/">Back to search</a></p></body></html>';
+    }
+    echo $response;
 } catch (Throwable $exception) {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     error_log('[hub/domains] ' . $exception->getMessage());
     http_response_code(500);
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Hub Domains Error</h1><p>The domain workspace could not be loaded right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p></body></html>';
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Hub Domains Error</h1><p>The domain workspace could not be loaded right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p><p><a style="color:#60a5fa;" href="/hub/companies/domains/">Back to hub</a></p></body></html>';
 }

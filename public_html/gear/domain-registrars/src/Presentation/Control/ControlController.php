@@ -340,6 +340,43 @@ HTML;
             $defaultInvoiceOption = 'NoInvoice';
         }
 
+        $storedConfigKeys = [];
+        foreach (['api_base_url', 'auth_user_id', 'ip_address', 'api_key', 'timeout', 'pricing_json', 'default_customer_id', 'default_invoice_option'] as $key) {
+            if (array_key_exists($key, $saved) && $saved[$key] !== null && $saved[$key] !== '') {
+                $storedConfigKeys[$key] = $key === 'api_key'
+                    ? $this->maskedConfigValue($saved, [], 'api_key')
+                    : (is_scalar($saved[$key]) ? (string) $saved[$key] : json_encode($saved[$key], JSON_UNESCAPED_SLASHES));
+            }
+        }
+        $storedRows = '';
+        if ($storedConfigKeys === []) {
+            $storedRows = '<tr><td colspan="2" class="muted">Nothing stored in provider_accounts.config_json yet. Either this is the first save or the shared database table/column is not persisting updates. Fill the form below and save, then re-check this card.</td></tr>';
+        } else {
+            foreach ($storedConfigKeys as $key => $value) {
+                $label = match ($key) {
+                    'api_base_url' => 'API Base URL',
+                    'auth_user_id' => 'Reseller ID',
+                    'ip_address' => 'IP Address (ACL)',
+                    'api_key' => 'API Key',
+                    'timeout' => 'Timeout (seconds)',
+                    'pricing_json' => 'Pricing JSON Path',
+                    'default_customer_id' => 'Default Customer ID',
+                    'default_invoice_option' => 'Default Invoice Option',
+                    default => ucwords(str_replace('_', ' ', (string) $key)),
+                };
+                $storedRows .= '<tr><td style="font-weight:600;">' . $this->escape($label) . '</td><td><code>' . $this->escape((string) $value) . '</code></td></tr>';
+            }
+        }
+        $storedProviderId = (string) ($providerAccount['id'] ?? '');
+        $storageLocationCard = '<article class="info-card"><h2>Where settings are stored</h2>'
+            . '<p class="muted">All NetEarthOne settings shown above are persisted as one row in the shared database table <code>provider_accounts</code> (row ID: <code>'
+            . $this->escape($storedProviderId !== '' ? $storedProviderId : 'not yet created')
+            . '</code> with unique provider code <code>netearthone</code>). Columns used are: <code>is_active</code>, <code>environment</code>, <code>credentials_secret_ref</code>, and <code>config_json</code> (a JSON object containing the form values merged at runtime with env secrets from the mounted secret set). Values in config_json take priority over the env keys listed in the secret-set card on the left.</p>'
+            . '<div class="table-wrap"><table><thead><tr><th>Stored key</th><th>Current value (from config_json column)</th></tr></thead><tbody>'
+            . $storedRows
+            . '</tbody></table></div>'
+            . '</article>';
+
         $neoSecretSet = $secretRef === '' ? 'metahumans-netearthone-provider' : $secretRef;
         $neoSecretKeys = [
             'NETEARTHONE_API_BASE_URL',
@@ -376,6 +413,7 @@ HTML;
     </div>
     <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
+  {$storageLocationCard}
   <div class="settings-grid">
     <article class="info-card">
       <h2>Current Status</h2>
@@ -480,7 +518,7 @@ HTML;
             : null;
         $apiKey = $apiKeyIncoming ?? $existingApiKey;
 
-        $config = [
+        $expectedConfig = [
             'api_base_url' => $this->nullableString($post['api_base_url'] ?? null),
             'auth_user_id' => $this->nullableString($post['auth_user_id'] ?? null),
             'ip_address' => $this->nullableString($post['ip_address'] ?? null),
@@ -491,17 +529,48 @@ HTML;
             'default_invoice_option' => $this->nullableString($post['default_invoice_option'] ?? null),
         ];
 
-        $this->app->providerAccountRepository()->updateSettings(
+        $updated = $this->app->providerAccountRepository()->updateSettings(
             (string) $providerAccount['id'],
             [
                 'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
                 'environment' => $post['environment'] ?? 'production',
                 'credentials_secret_ref' => $post['credentials_secret_ref'] ?? null,
             ],
-            $config,
+            $expectedConfig,
         );
 
-        header('Location: ' . $this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
+        $readback = [];
+        $nonEmptyStored = 0;
+        $readbackErrors = [];
+        if (is_array($updated)) {
+            $decoded = $this->app->providerAccountRepository()->decodeConfig($updated);
+            foreach ($expectedConfig as $key => $value) {
+                if ($value === null || $value === '' || $value === 0) {
+                    continue;
+                }
+                $nonEmptyStored++;
+                $readbackValue = $decoded[$key] ?? null;
+                if ($key === 'api_key') {
+                    if ($readbackValue === null || $readbackValue === '') {
+                        $readbackErrors[] = $key;
+                    }
+                    continue;
+                }
+                if ($readbackValue !== $value) {
+                    $readbackErrors[] = $key;
+                }
+            }
+        }
+
+        if ($readbackErrors !== []) {
+            $flashMessage = 'NetEarthOne settings were submitted but the shared-database read-back did not match for: '
+                . implode(', ', $readbackErrors)
+                . '. Expected ' . (string) $nonEmptyStored . ' non-empty keys in config_json but some were not persisted. This usually means the provider_accounts row is being recreated on each request (check SHARED_DB_CONFIG_NAME matches between control, hub, workers), the config_json column is missing, or Northflank volumes/containers do not share the shared onemeta_ldap / domainname_controller database.';
+        } else {
+            $flashMessage = 'NetEarthOne settings saved. Stored ' . (string) $nonEmptyStored . ' non-empty runtime keys in provider_accounts.config_json for code netearthone.';
+        }
+
+        header('Location: ' . $this->providersNetEarthOnePath() . '?flash=' . rawurlencode($flashMessage));
 
         return '';
     }
