@@ -98,6 +98,12 @@ final class HubController
             ['/hub/domains/orders/cancel/', 'POST'] => $this->handleOrderCancel($post),
             ['/hub/companies/domains/orders/cancel', 'POST'] => $this->handleOrderCancel($post),
             ['/hub/companies/domains/orders/cancel/', 'POST'] => $this->handleOrderCancel($post),
+            ['/manage/allocate', 'POST'] => $this->handleAllocateSubmit($post),
+            ['/manage/allocate/', 'POST'] => $this->handleAllocateSubmit($post),
+            ['/hub/domains/manage/allocate', 'POST'] => $this->handleAllocateSubmit($post),
+            ['/hub/domains/manage/allocate/', 'POST'] => $this->handleAllocateSubmit($post),
+            ['/hub/companies/domains/manage/allocate', 'POST'] => $this->handleAllocateSubmit($post),
+            ['/hub/companies/domains/manage/allocate/', 'POST'] => $this->handleAllocateSubmit($post),
             default => $this->renderNotFound(),
         };
     }
@@ -221,8 +227,23 @@ HTML;
                 $status = (string) ($domain['registrar_status'] ?? 'active');
                 $expiresAt = trim((string) ($domain['expires_at'] ?? ''));
                 $expiresLabel = $expiresAt !== '' ? substr($expiresAt, 0, 10) : 'Not yet synced';
+                $currentOwnerType = (string) ($domain['owner_type'] ?? 'user');
+                $currentOwnerId = (string) ($domain['owner_id'] ?? ($tenantId !== '' ? $tenantId : ''));
+                $currentBillingMode = (string) ($domain['billing_mode'] ?? 'user');
+                $currentBillingTenantId = (string) ($domain['billing_tenant_id'] ?? ($tenantId !== '' ? $tenantId : ''));
+                $currentCustomerId = (string) ($domain['customer_id'] ?? '');
+                $allocateForm = $this->renderAllocateInlineForm(
+                    $domainId,
+                    $domainName,
+                    $tenantId,
+                    $currentOwnerType,
+                    $currentOwnerId,
+                    $currentBillingMode,
+                    $currentBillingTenantId,
+                    $currentCustomerId,
+                );
                 $items[] = sprintf(
-                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside">%s%s%s</div></article>',
+                    '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside">%s%s%s%s</div></article>',
                     $this->escape($this->statusClassForDomain($status)),
                     $this->escape($this->domainStatusLabel($status)),
                     $this->escape($domainName),
@@ -231,6 +252,7 @@ HTML;
                     $this->manageActionForm($this->renewPath(), 'Renew', 'button button-primary', $domainId, $domainName),
                     $this->manageActionForm($this->editPath(), 'Edit Settings', 'button button-secondary', $domainId, $domainName),
                     $this->manageActionForm($this->cancelPath(), 'Cancel', 'button button-muted', $domainId, $domainName),
+                    $allocateForm,
                 );
             }
             $domainCards = implode('', $items);
@@ -807,6 +829,79 @@ HTML;
         $this->redirectNow($this->managePath());
     }
 
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function handleAllocateSubmit(array $post): string
+    {
+        $tenantContext = $this->app->tenantContext();
+        $currentTenantId = (string) ($tenantContext['tenant_id'] ?? '');
+        $currentOwnerType = (string) ($tenantContext['owner_type'] ?? 'user');
+        $currentOwnerId = (string) ($tenantContext['owner_id'] ?? $currentTenantId);
+        $domainId = trim((string) ($post['domain_id'] ?? ''));
+        $domainName = trim((string) ($post['domain_name'] ?? ''));
+        $domain = $domainId !== '' ? $this->app->domainRepository()->findById($domainId) : null;
+        if ($domain === null && $domainName !== '') {
+            $domain = $this->app->domainRepository()->findByName($domainName);
+        }
+
+        if ($domain === null) {
+            $this->flashError('Domain not found. Please try again from the portfolio list.');
+            $this->redirectNow($this->managePath());
+        }
+
+        $owned = (string) ($domain['tenant_id'] ?? '') === $currentTenantId
+            || ((string) ($domain['owner_type'] ?? '') === $currentOwnerType
+                && (string) ($domain['owner_id'] ?? '') === $currentOwnerId);
+        if (! $owned) {
+            $this->flashError('This domain is not owned by the current tenant account.');
+            $this->redirectNow($this->managePath());
+        }
+
+        $payloadTenantId = trim((string) ($post['tenant_id'] ?? ''));
+        if ($payloadTenantId === '') {
+            $payloadTenantId = $currentTenantId;
+        }
+        $payload = [
+            'tenant_id' => $payloadTenantId,
+            'owner_type' => trim((string) ($post['owner_type'] ?? 'user')),
+            'owner_id' => trim((string) ($post['owner_id'] ?? '')),
+            'billing_mode' => trim((string) ($post['billing_mode'] ?? 'user')),
+            'billing_tenant_id' => trim((string) ($post['billing_tenant_id'] ?? $payloadTenantId)),
+        ];
+        $customerId = trim((string) ($post['customer_id'] ?? ''));
+        if ($customerId !== '') {
+            $payload['customer_id'] = $customerId;
+        }
+        if ($payload['owner_id'] === '') {
+            $payload['owner_id'] = $payload['tenant_id'];
+        }
+        if ($payload['billing_tenant_id'] === '') {
+            $payload['billing_tenant_id'] = $payload['tenant_id'];
+        }
+
+        try {
+            $updated = $this->app->domainRepository()->assignOwnership((string) $domain['id'], $payload);
+            if ($updated === null) {
+                $this->flashError('Unable to save ownership updates. Please try again.');
+            } else {
+                $this->flashSuccess(
+                    sprintf(
+                        'Domain %s ownership was moved to owner_type=%s owner_id=%s (billing: %s).',
+                        (string) ($updated['domain_name'] ?? $domainName),
+                        (string) ($updated['owner_type'] ?? $payload['owner_type']),
+                        (string) ($updated['owner_id'] ?? $payload['owner_id']),
+                        (string) ($updated['billing_mode'] ?? $payload['billing_mode']),
+                    ),
+                );
+            }
+        } catch (Throwable $exception) {
+            $this->flashError('Unable to move ownership: ' . $exception->getMessage());
+        }
+
+        $this->redirectNow($this->managePath());
+    }
+
     private function handleUpdateSubmit(array $post): string
     {
         $action = strtolower(trim((string) ($post['action'] ?? '')));
@@ -943,12 +1038,39 @@ HTML;
         if (! $matchesTarget) {
             $appliedText = $appliedHostnames === [] ? 'none read back from registry' : implode(', ', $appliedHostnames);
             $targetText = implode(', ', $targetHostnames);
-            $this->flashError(
-                'The registrar accepted the update for ' . $domainName
+            $diagnostics = [];
+            $missingHostObjects = isset($result['missing_host_objects']) && is_array($result['missing_host_objects'])
+                ? array_values(array_filter($result['missing_host_objects'], static fn ($v): bool => is_string($v) && trim($v) !== ''))
+                : [];
+            if ($missingHostObjects !== []) {
+                $diagnostics[] = 'Registry host objects missing: ' . implode(', ', $missingHostObjects)
+                    . '. Register these nameserver host objects (with glue) in your ZACR registrar account first, then re-run the website update.';
+            }
+            if ($isCoZa && $authCode === null) {
+                $diagnostics[] = 'No domain auth code is stored for ' . $domainName
+                    . '. Without the current auth code the ZACR registry may silently accept the EPP update frame without applying it at the registry side.'
+                    . ' Re-request a fresh auth code from the registry and save it to this domain record as metadata.auth_code.';
+            }
+            if ($isCoZa && $missingHostObjects === [] && $authCode !== null) {
+                $diagnostics[] = 'Host object preflight passed and auth code was present, yet the registry still ignored the update.'
+                    . ' The most likely registry-side causes are a status blocking updates (clientUpdateProhibited, serverUpdateProhibited, pendingTransfer, pendingUpdate)'
+                    . ', stale registry-side host object state, or a previous auth code cycle that invalidated the submitted value.'
+                    . ' Suggested next step: open the control panel Domains page and run "Sync Registry Details" for ' . $domainName
+                    . ' to view current domain statuses and identify any locks or pending operations blocking the update.';
+            }
+            if ($diagnostics === [] && ! $isCoZa) {
+                $diagnostics[] = 'The provider returned success but the registry did not reflect the nameserver set. This usually means a provider-side cache,'
+                    . ' a registry-side status blocking updates, or a poll message that has not yet been processed.'
+                    . ' Run Sync Registry Details from the control panel Domains page or wait a moment and re-try the read-back.';
+            }
+            $baseMessage = 'The registrar accepted the update for ' . $domainName
                 . ' but the registry did not reflect the requested nameservers.'
                 . ' Requested: ' . $targetText . '.'
-                . ' Registry read-back: ' . $appliedText . '.'
-            );
+                . ' Registry read-back: ' . $appliedText . '.';
+            if ($diagnostics !== []) {
+                $baseMessage .= ' ' . implode(' ', $diagnostics);
+            }
+            $this->flashError($baseMessage);
             $this->redirectNow($this->buildManagedUrl($this->editPath(), $domainId, $domainName));
         }
 
@@ -1807,6 +1929,15 @@ CSS;
         };
     }
 
+    private function allocatePath(): string
+    {
+        return match ($this->basePath()) {
+            '/hub/domains' => '/hub/domains/manage/allocate/',
+            '/hub/companies/domains' => '/hub/companies/domains/manage/allocate/',
+            default => '/manage/allocate/',
+        };
+    }
+
     private function editPath(): string
     {
         return match ($this->basePath()) {
@@ -1889,6 +2020,65 @@ CSS;
             . '<input type="hidden" name="domain" value="' . $this->escape($domainName) . '">'
             . '<button type="submit" class="' . $this->escape($buttonClass) . '">' . $this->escape($label) . '</button>'
             . '</form>';
+    }
+
+    private function renderAllocateInlineForm(
+        string $domainId,
+        string $domainName,
+        string $defaultTenantId,
+        string $ownerType,
+        string $ownerId,
+        string $billingMode,
+        string $billingTenantId,
+        string $customerId,
+    ): string {
+        $action = $this->allocatePath();
+        $tenantValue = $this->escape($defaultTenantId);
+        $ownerTypeValue = $this->escape($ownerType);
+        $ownerIdValue = $this->escape($ownerId);
+        $billingModeValue = $this->escape($billingMode);
+        $billingTenantValue = $this->escape($billingTenantId);
+        $customerValue = $this->escape($customerId);
+        $domainIdAttr = $this->escape($domainId);
+        $domainNameAttr = $this->escape($domainName);
+
+        return <<<HTML
+<form method="post" action="{$this->escape($action)}" class="settings-form allocate-form">
+  <input type="hidden" name="domain_id" value="{$domainIdAttr}">
+  <input type="hidden" name="domain_name" value="{$domainNameAttr}">
+  <p class="eyebrow">Move / Assign to User</p>
+  <div class="form-grid">
+    <label><span>Tenant ID</span><input type="text" name="tenant_id" value="{$tenantValue}" placeholder="tenant id"></label>
+    <label><span>Owner Type</span>
+      <select name="owner_type">
+        <option value="user"{$this->inlineSelected($ownerTypeValue, 'user')}>user</option>
+        <option value="company"{$this->inlineSelected($ownerTypeValue, 'company')}>company</option>
+        <option value="tenant"{$this->inlineSelected($ownerTypeValue, 'tenant')}>tenant</option>
+        <option value="system"{$this->inlineSelected($ownerTypeValue, 'system')}>system</option>
+      </select>
+    </label>
+    <label><span>Owner ID</span><input type="text" name="owner_id" value="{$ownerIdValue}" placeholder="owner/user id"></label>
+    <label><span>Billing Mode</span>
+      <select name="billing_mode">
+        <option value="user"{$this->inlineSelected($billingModeValue, 'user')}>user</option>
+        <option value="company"{$this->inlineSelected($billingModeValue, 'company')}>company</option>
+        <option value="tenant"{$this->inlineSelected($billingModeValue, 'tenant')}>tenant</option>
+        <option value="reseller"{$this->inlineSelected($billingModeValue, 'reseller')}>reseller</option>
+      </select>
+    </label>
+    <label><span>Billing Tenant ID</span><input type="text" name="billing_tenant_id" value="{$billingTenantValue}" placeholder="billing tenant id"></label>
+    <label><span>Customer ID (optional)</span><input type="text" name="customer_id" value="{$customerValue}" placeholder="provider customer id"></label>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="button button-secondary">Move / Assign to User</button>
+  </div>
+</form>
+HTML;
+    }
+
+    private function inlineSelected(string $value, string $option): string
+    {
+        return $value === $option ? ' selected' : '';
     }
 
     /**

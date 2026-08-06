@@ -29,13 +29,18 @@ final class ControlController
             ['/', 'GET'] => $this->renderDashboard($query),
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains($query),
-            ['/domains', 'POST'] => $this->handleDomainsImport($post),
+            ['/domains/', 'GET'] => $this->renderDomains($query),
             ['/domains/sync', 'POST'] => $this->handleDomainSync($post),
             ['/domains/renew', 'POST'] => $this->handleDomainRenew($post),
+            ['/domains/assign', 'GET'] => $this->renderDomainAssignPage($query),
             ['/domains/assign', 'POST'] => $this->handleDomainAssign($post),
             ['/tasks', 'GET'] => $this->renderTasks(),
+            ['/providers', 'GET'] => $this->renderProvidersIndex($query),
+            ['/providers/', 'GET'] => $this->renderProvidersIndex($query),
             ['/providers/coza', 'GET'] => $this->renderCozaSettings($query),
             ['/providers/coza', 'POST'] => $this->handleCozaSettingsSave($post),
+            ['/providers/netearthone', 'GET'] => $this->renderNetEarthOneSettings($query),
+            ['/providers/netearthone', 'POST'] => $this->handleNetEarthOneSettingsSave($post),
             ['/tasks/enqueue', 'GET'] => $this->renderTaskEnqueuePage(),
             ['/tasks/enqueue', 'POST'] => $this->handleTaskEnqueue($post),
             default => $this->renderNotFound(),
@@ -125,6 +130,7 @@ final class ControlController
         );
 
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $providersIndexPath = $this->providersIndexPath();
 
         $body = <<<HTML
 {$flashMarkup}
@@ -142,7 +148,7 @@ final class ControlController
       <h1>Operational dashboard</h1>
       <p class="muted">Queue provider work, review recent orders, and keep the registrar service moving.</p>
     </div>
-    <a href="{$this->escape($cozaSettingsPath)}">.co.za settings</a>
+    <a href="{$this->escape($providersIndexPath)}">Provider settings</a>
   </div>
   <div class="action-grid">
     {$this->taskForm('sync_pricing', 'pricing', 'Queue pricing sync')}
@@ -201,8 +207,8 @@ HTML;
         $domainCards = $domains === []
             ? '<p class="muted">No records yet.</p>'
             : implode('', array_map(fn (array $domain): string => $this->renderDomainManagementCard($domain), $domains));
-        $rows = $this->renderTable(
-            ['Provider', 'Domain', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated'],
+        $rows = $this->renderRawTable(
+            ['Provider', 'Domain', 'Status', 'Owner Type', 'Owner ID', 'Tenant', 'Registered', 'Expires', 'Updated', 'Actions'],
             array_map(
                 fn (array $domain): array => [
                     $this->providerDisplayName((string) ($domain['provider_code'] ?? '')),
@@ -214,9 +220,11 @@ HTML;
                     (string) ($domain['registered_at'] ?? '-'),
                     (string) ($domain['expires_at'] ?? '-'),
                     (string) $domain['updated_at'],
+                    $this->renderDomainRowActions($domain),
                 ],
                 $domains,
             ),
+            [9],
         );
 
         return $this->layout(
@@ -252,6 +260,215 @@ HTML;
         );
 
         return $this->layout('Tasks', '<section class="panel"><div class="panel-head"><h1>Tasks</h1><a href="' . $this->escape($this->basePath()) . '">Back to dashboard</a></div>' . $rows . '</section>');
+    }
+
+    private function renderProvidersIndex(array $query): string
+    {
+        $flash = trim((string) ($query['flash'] ?? ''));
+        $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $cozaPath = $this->providersCozaPath();
+        $neoPath = $this->providersNetEarthOnePath();
+
+        $body = <<<HTML
+{$flashMarkup}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Providers</p>
+      <h1>Connected Registrar Providers</h1>
+      <p class="muted">Each provider stores non-sensitive runtime settings in this control. Sensitive credentials live in mounted Northflank secret sets.</p>
+    </div>
+    <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
+  </div>
+  <div class="action-grid">
+    <article class="action-card">
+      <p class="eyebrow">Africa / .za ccTLD</p>
+      <h2>.co.za EPP Provider</h2>
+      <p class="muted">Direct EPP connection for .co.za, .org.za, .net.za and other ZACR zones. Requires TLS client certificates plus EPP login credentials.</p>
+      <p><strong>Provider code:</strong> <code>coza</code></p>
+      <div class="form-actions">
+        <a class="button button-primary" href="{$this->escape($cozaPath)}">Open .co.za Settings</a>
+      </div>
+    </article>
+    <article class="action-card">
+      <p class="eyebrow">Global TLDs / LogicBoxes Platform</p>
+      <h2>NetEarthOne Provider</h2>
+      <p class="muted">HTTP API for gTLDs via the NetEarthOne reseller platform (LogicBoxes / ResellerClub). Supports registration, renew, nameserver updates, and contact management.</p>
+      <p><strong>Provider code:</strong> <code>netearthone</code></p>
+      <div class="form-actions">
+        <a class="button button-primary" href="{$this->escape($neoPath)}">Open NetEarthOne Settings</a>
+      </div>
+    </article>
+  </div>
+</section>
+HTML;
+
+        return $this->layout('Providers', $body);
+    }
+
+    private function renderNetEarthOneSettings(array $query): string
+    {
+        $flash = trim((string) ($query['flash'] ?? ''));
+        $providerAccount = $this->app->providerAccount('netearthone');
+        $saved = $this->app->providerStoredConfig('netearthone');
+        $effective = $this->app->providerEffectiveConfig('netearthone');
+        $secretRef = trim((string) ($providerAccount['credentials_secret_ref'] ?? ''));
+        $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
+        $isActive = (bool) ($providerAccount['is_active'] ?? true);
+
+        $apiBaseUrl = (string) $this->displayConfigValue($saved, $effective, 'api_base_url');
+        $authUserId = (string) $this->displayConfigValue($saved, $effective, 'auth_user_id');
+        $apiKeyMasked = $this->maskedConfigValue($saved, $effective, 'api_key');
+        $timeout = (string) ($this->displayConfigValue($saved, $effective, 'timeout') ?: '30');
+        $pricingJson = (string) $this->displayConfigValue($saved, $effective, 'pricing_json');
+        $defaultCustomerId = (string) $this->displayConfigValue($saved, $effective, 'default_customer_id');
+        $defaultInvoiceOption = (string) $this->displayConfigValue($saved, $effective, 'default_invoice_option');
+        if ($defaultInvoiceOption === '') {
+            $defaultInvoiceOption = 'NoInvoice';
+        }
+
+        $neoSecretSet = $secretRef === '' ? 'metahumans-netearthone-provider' : $secretRef;
+        $neoSecretKeys = [
+            'NETEARTHONE_API_BASE_URL',
+            'NETEARTHONE_AUTH_USER_ID',
+            'NETEARTHONE_API_KEY',
+            'NETEARTHONE_TIMEOUT',
+            'NETEARTHONE_PRICING_JSON',
+            'NETEARTHONE_DEFAULT_CUSTOMER_ID',
+            'NETEARTHONE_DEFAULT_INVOICE_OPTION',
+        ];
+        $neoSecretKeyMarkup = $this->renderTokenList($neoSecretKeys);
+        $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $probeMarkup = '';
+        if (($query['probe'] ?? null) === 'health') {
+            try {
+                $provider = $this->app->provider('netearthone');
+                $probeResult = $provider->healthCheck();
+                $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape(
+                    json_encode($probeResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
+                ) . '</pre></article>';
+            } catch (Throwable $exception) {
+                $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape($exception->getMessage()) . '</pre></article>';
+            }
+        }
+
+        $body = <<<HTML
+{$flashMarkup}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Provider Settings</p>
+      <h1>NetEarthOne API</h1>
+      <p class="muted">Non-sensitive runtime settings only. Store API keys and credentials in the Northflank secret set reference below.</p>
+    </div>
+    <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
+  </div>
+  <div class="settings-grid">
+    <article class="info-card">
+      <h2>Current Status</h2>
+      <p class="status-pill">{$this->escape($isActive ? 'Provider Account Active' : 'Provider Account Inactive')}</p>
+      <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? 'NetEarthOne'))}</p>
+      <p class="muted">Environment: {$this->escape($environment)}</p>
+      <p class="muted">Provider secret set: <code>{$this->escape($neoSecretSet)}</code></p>
+      <p class="muted">API base URL: <code>{$this->escape($apiBaseUrl !== '' ? $apiBaseUrl : 'Not configured')}</code></p>
+      <p class="muted">Auth user ID: <code>{$this->escape($authUserId !== '' ? $authUserId : 'Not configured')}</code></p>
+      <p class="muted">API key: <code>{$this->escape($apiKeyMasked)}</code></p>
+      <p class="muted">Default customer ID: <code>{$this->escape($defaultCustomerId !== '' ? $defaultCustomerId : 'Not configured')}</code></p>
+      <p class="muted">Default invoice option: <code>{$this->escape($defaultInvoiceOption)}</code></p>
+      <p><a href="{$this->escape($this->providersNetEarthOnePath())}?probe=health">Run live API health probe</a></p>
+    </article>
+    <article class="info-card">
+      <h2>Northflank Secret Set</h2>
+      <p class="muted">Mount this secret set in the control + worker services. The non-sensitive settings below are merged with the secret values at runtime.</p>
+      <p class="muted"><strong>Secret set:</strong> <code>{$this->escape($neoSecretSet)}</code></p>
+      <div class="token-list">{$neoSecretKeyMarkup}</div>
+    </article>
+  </div>
+  <form method="post" action="{$this->escape($this->providersNetEarthOnePath())}" class="settings-form">
+    <div class="form-grid">
+      <label>
+        <span>Timeout (seconds)</span>
+        <input type="number" name="timeout" min="5" max="300" value="{$this->escape($timeout)}" required>
+      </label>
+      <label>
+        <span>API Base URL (non-sensitive)</span>
+        <input type="text" name="api_base_url" value="{$this->escape($apiBaseUrl)}" placeholder="https://api.netearthone.com/anacreon/servlet/ApiCall.xml">
+      </label>
+      <label>
+        <span>Auth User ID (optional non-sensitive override)</span>
+        <input type="text" name="auth_user_id" value="{$this->escape($authUserId)}" placeholder="Reseller ID / User ID">
+      </label>
+      <label>
+        <span>Pricing JSON Path</span>
+        <input type="text" name="pricing_json" value="{$this->escape($pricingJson)}" placeholder="config/pricing/netearthone.custom.json">
+      </label>
+      <label>
+        <span>Default Customer ID</span>
+        <input type="text" name="default_customer_id" value="{$this->escape($defaultCustomerId)}" placeholder="Required for registrations without an explicit customer_id">
+      </label>
+      <label>
+        <span>Default Invoice Option</span>
+        <select name="default_invoice_option">
+          <option value="NoInvoice"{$this->selected($defaultInvoiceOption, 'NoInvoice')}>NoInvoice</option>
+          <option value="PayInvoice"{$this->selected($defaultInvoiceOption, 'PayInvoice')}>PayInvoice</option>
+          <option value="KeepInvoice"{$this->selected($defaultInvoiceOption, 'KeepInvoice')}>KeepInvoice</option>
+          <option value="OnlyAdd"{$this->selected($defaultInvoiceOption, 'OnlyAdd')}>OnlyAdd</option>
+        </select>
+      </label>
+      <label>
+        <span>Environment</span>
+        <select name="environment">
+          <option value="production"{$this->selected($environment, 'production')}>Production</option>
+          <option value="sandbox"{$this->selected($environment, 'sandbox')}>Sandbox</option>
+          <option value="staging"{$this->selected($environment, 'staging')}>Staging</option>
+        </select>
+      </label>
+      <label>
+        <span>Provider Secret Set Ref</span>
+        <input type="text" name="credentials_secret_ref" value="{$this->escape($neoSecretSet)}" placeholder="metahumans-netearthone-provider">
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="is_active" value="1"{$this->checked($isActive)}>
+        <span>Provider account is active</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Save Non-Sensitive Settings</button>
+    </div>
+  </form>
+</section>
+{$probeMarkup}
+HTML;
+
+        return $this->layout('NetEarthOne Settings', $body);
+    }
+
+    private function handleNetEarthOneSettingsSave(array $post): string
+    {
+        $providerAccount = $this->app->providerAccount('netearthone');
+
+        $config = [
+            'api_base_url' => $this->nullableString($post['api_base_url'] ?? null),
+            'auth_user_id' => $this->nullableString($post['auth_user_id'] ?? null),
+            'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
+            'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
+            'default_customer_id' => $this->nullableString($post['default_customer_id'] ?? null),
+            'default_invoice_option' => $this->nullableString($post['default_invoice_option'] ?? null),
+        ];
+
+        $this->app->providerAccountRepository()->updateSettings(
+            (string) $providerAccount['id'],
+            [
+                'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
+                'environment' => $post['environment'] ?? 'production',
+                'credentials_secret_ref' => $post['credentials_secret_ref'] ?? null,
+            ],
+            $config,
+        );
+
+        header('Location: ' . $this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
+
+        return '';
     }
 
     private function renderCozaSettings(array $query): string
@@ -694,6 +911,39 @@ HTML;
     }
 
     /**
+     * @param array<string, mixed> $query
+     */
+    private function renderDomainAssignPage(array $query): string
+    {
+        $flash = trim((string) ($query['flash'] ?? ''));
+        $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
+        $domain = $this->findControlDomain($query);
+        if ($domain === null) {
+            return $this->redirectToDomains('Select a domain from the list below to assign it.');
+        }
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $card = $this->renderDomainManagementCard($domain);
+        $back = $this->escape($this->domainsPath());
+
+        $body = <<<HTML
+{$flashMarkup}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Domains / Assign</p>
+      <h1>Assign {$this->escape($domainName)}</h1>
+      <p class="muted">Move the selected domain to another tenant, owner, or billing mode. All Sync, Renew, and Assign actions for this domain are on this card.</p>
+    </div>
+    <a href="{$back}">Back to domains list</a>
+  </div>
+  <div class="action-grid">{$card}</div>
+</section>
+HTML;
+
+        return $this->layout('Assign ' . $domainName, $body);
+    }
+
+    /**
      * @param list<string> $headers
      * @param list<list<string>> $rows
      */
@@ -712,6 +962,65 @@ HTML;
         }
 
         return '<div class="table-wrap"><table><thead><tr>' . $headCells . '</tr></thead><tbody>' . implode('', $bodyRows) . '</tbody></table></div>';
+    }
+
+    /**
+     * Like renderTable but skips escaping for specific zero-indexed column numbers (htmlColumns), trusting each is already safe HTML.
+     *
+     * @param list<string> $headers
+     * @param list<list<string>> $rows
+     * @param list<int> $htmlColumns
+     */
+    private function renderRawTable(array $headers, array $rows, array $htmlColumns = []): string
+    {
+        $htmlColumnSet = [];
+        foreach ($htmlColumns as $index) {
+            $htmlColumnSet[(int) $index] = true;
+        }
+        $headCells = implode('', array_map(fn (string $header): string => '<th>' . $this->escape($header) . '</th>', $headers));
+
+        if ($rows === []) {
+            return '<p class="muted">No records yet.</p>';
+        }
+
+        $bodyRows = [];
+        foreach ($rows as $row) {
+            $cells = [];
+            foreach (array_values($row) as $index => $cell) {
+                if (isset($htmlColumnSet[$index])) {
+                    $cells[] = '<td>' . $cell . '</td>';
+                } else {
+                    $cells[] = '<td>' . $this->escape((string) $cell) . '</td>';
+                }
+            }
+            $bodyRows[] = '<tr>' . implode('', $cells) . '</tr>';
+        }
+
+        return '<div class="table-wrap"><table><thead><tr>' . $headCells . '</tr></thead><tbody>' . implode('', $bodyRows) . '</tbody></table></div>';
+    }
+
+    /**
+     * @param array<string, mixed> $domain
+     */
+    private function renderDomainRowActions(array $domain): string
+    {
+        $domainId = (string) ($domain['id'] ?? '');
+        $domainName = (string) ($domain['domain_name'] ?? '');
+        $syncForm = '<form method="post" action="' . $this->escape($this->domainsSyncPath()) . '" class="inline-form">'
+            . '<input type="hidden" name="domain_id" value="' . $this->escape($domainId) . '">'
+            . '<input type="hidden" name="domain_name" value="' . $this->escape($domainName) . '">'
+            . '<button type="submit" class="button button-secondary">Sync Registry</button>'
+            . '</form>';
+        $renewForm = '<form method="post" action="' . $this->escape($this->domainsRenewPath()) . '" class="inline-form">'
+            . '<input type="hidden" name="domain_id" value="' . $this->escape($domainId) . '">'
+            . '<input type="hidden" name="domain_name" value="' . $this->escape($domainName) . '">'
+            . '<label style="display:none;"><input type="number" name="years" min="1" max="10" value="1"></label>'
+            . '<button type="submit" class="button button-secondary">Renew 1y</button>'
+            . '</form>';
+        $assignHref = $this->domainsAssignPath() . '?domain_id=' . urlencode($domainId) . '&domain=' . urlencode($domainName);
+        $assignLink = '<a class="button button-primary" href="' . $this->escape($assignHref) . '">Assign / Move</a>';
+
+        return '<div class="inline-actions">' . $syncForm . $renewForm . $assignLink . '</div>';
     }
 
     private function renderDomainImportForm(): string
@@ -1083,7 +1392,9 @@ HTML;
     </div>
     <nav>
       <a href="{$this->escape($this->basePath())}">Dashboard</a>
+      <a href="{$this->escape($this->providersIndexPath())}">Providers</a>
       <a href="{$this->escape($this->providersCozaPath())}">.co.za Settings</a>
+      <a href="{$this->escape($this->providersNetEarthOnePath())}">NetEarthOne Settings</a>
       <a href="{$this->escape($this->ordersPath())}">Orders</a>
       <a href="{$this->escape($this->domainsPath())}">Domains</a>
       <a href="{$this->escape($this->tasksPath())}">Tasks</a>
@@ -1190,6 +1501,16 @@ HTML;
     private function providersCozaPath(): string
     {
         return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/providers/coza' : '/providers/coza';
+    }
+
+    private function providersIndexPath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/providers' : '/providers';
+    }
+
+    private function providersNetEarthOnePath(): string
+    {
+        return $this->basePath() === '/control/domain-registrars' ? '/control/domain-registrars/providers/netearthone' : '/providers/netearthone';
     }
 
     private function taskEnqueuePath(): string
@@ -1319,6 +1640,28 @@ HTML;
         $value = array_key_exists($key, $saved) ? $saved[$key] : ($effective[$key] ?? '');
 
         return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    /**
+     * @param array<string, mixed> $saved
+     * @param array<string, mixed> $effective
+     */
+    private function maskedConfigValue(array $saved, array $effective, string $key): string
+    {
+        $value = array_key_exists($key, $saved) ? $saved[$key] : ($effective[$key] ?? '');
+        if (! is_scalar($value)) {
+            return 'Not configured';
+        }
+        $trimmed = trim((string) $value);
+        if ($trimmed === '') {
+            return 'Not configured';
+        }
+        $length = strlen($trimmed);
+        if ($length <= 4) {
+            return str_repeat('•', $length);
+        }
+
+        return substr($trimmed, 0, 2) . str_repeat('•', max(1, $length - 4)) . substr($trimmed, -2);
     }
 
     /**
