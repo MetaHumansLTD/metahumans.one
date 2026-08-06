@@ -67,12 +67,19 @@ final class AppConfig
 
     private function value(string $key): ?string
     {
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
-
-        if ($value === false) {
-            return null;
+        $value = getenv($key);
+        if (is_string($value) && $value !== '') {
+            return $value;
         }
 
-        return is_string($value) ? $value : null;
+        if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+            return $_ENV[$key];
+        }
+
+        if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+            return $_SERVER[$key];
+        }
+
+        return null;
     }
 }

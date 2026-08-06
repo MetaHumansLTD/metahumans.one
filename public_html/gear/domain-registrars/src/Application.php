@@ -362,21 +362,81 @@ final class Application
             'urn:ietf:params:xml:ns:host-1.0',
         ];
 
+        $verifyPeerRaw = $this->firstEnvString([
+            'COZA_VERIFY_PEER',
+            'COZA_SSL_VERIFY_PEER',
+        ]) ?? $this->firstEnvString(['VERIFY_PEER', 'SSL_VERIFY_PEER']);
+        $loginObjectUrisCsv = $this->firstEnvString([
+            'COZA_LOGIN_OBJECT_URIS',
+        ]);
+        $loginExtensionUrisCsv = $this->firstEnvString([
+            'COZA_LOGIN_EXTENSION_URIS',
+        ]);
+        $loginObjectUris = is_string($loginObjectUrisCsv) && trim($loginObjectUrisCsv) !== ''
+            ? array_values(array_filter(array_map('trim', explode(',', $loginObjectUrisCsv)), static fn ($v) => $v !== ''))
+            : [];
+        $loginExtensionUris = is_string($loginExtensionUrisCsv) && trim($loginExtensionUrisCsv) !== ''
+            ? array_values(array_filter(array_map('trim', explode(',', $loginExtensionUrisCsv)), static fn ($v) => $v !== ''))
+            : [];
+
         $resolved = array_replace(
             [
-                'host' => $this->config()->nullableString('COZA_HOST'),
-                'port' => $this->config()->int('COZA_PORT', 700),
-                'username' => $this->config()->nullableString('COZA_USERNAME'),
-                'password' => $this->config()->nullableString('COZA_PASSWORD'),
-                'client_id' => $this->config()->nullableString('COZA_CLIENT_ID') ?? $this->config()->nullableString('COZA_USERNAME'),
-                'cert_path' => $this->config()->nullableString('COZA_CERT_PATH'),
-                'cert_passphrase' => $this->config()->nullableString('COZA_CERT_PASSPHRASE'),
-                'ca_file' => $this->config()->nullableString('COZA_CA_FILE'),
-                'verify_peer' => $this->config()->bool('COZA_VERIFY_PEER', true),
-                'timeout' => $this->config()->int('COZA_TIMEOUT', 30),
-                'login_object_uris' => $this->config()->csv('COZA_LOGIN_OBJECT_URIS'),
-                'login_extension_uris' => $this->config()->csv('COZA_LOGIN_EXTENSION_URIS'),
-                'pricing_json' => $this->config()->nullableString('COZA_PRICING_JSON'),
+                'host' => $this->firstEnvString([
+                    'COZA_HOST',
+                    'COZA_EPP_HOST',
+                    'COZA_EPP_SERVER',
+                    'COZA_SERVER',
+                    'EPP_HOST',
+                ]) ?? $this->firstEnvString(['HOST', 'SERVER', 'EPP_SERVER']),
+                'port' => (int) ($this->firstEnvString([
+                    'COZA_PORT',
+                    'COZA_EPP_PORT',
+                    'EPP_PORT',
+                ]) ?? '700') ?: 700,
+                'username' => $this->firstEnvString([
+                    'COZA_USERNAME',
+                    'COZA_EPP_USERNAME',
+                    'COZA_USER',
+                    'COZA_LOGIN',
+                ]) ?? $this->firstEnvString(['USERNAME', 'USER', 'LOGIN', 'EPP_USERNAME']),
+                'password' => $this->firstEnvString([
+                    'COZA_PASSWORD',
+                    'COZA_EPP_PASSWORD',
+                    'COZA_PASS',
+                    'COZA_SECRET',
+                ]) ?? $this->firstEnvString(['PASSWORD', 'PASS', 'SECRET', 'EPP_PASSWORD']),
+                'client_id' => $this->firstEnvString([
+                    'COZA_CLIENT_ID',
+                    'COZA_CLIENTID',
+                    'COZA_EPP_CLIENT_ID',
+                ]) ?? $this->firstEnvString(['CLIENT_ID', 'CLIENTID', 'EPP_CLIENT_ID']),
+                'cert_path' => $this->firstEnvString([
+                    'COZA_CERT_PATH',
+                    'COZA_CERTIFICATE_PATH',
+                    'COZA_CLIENT_CERT',
+                    'COZA_PEM_PATH',
+                ]) ?? $this->firstEnvString(['CERT_PATH', 'CERTIFICATE_PATH', 'CLIENT_CERT', 'PEM_PATH']),
+                'cert_passphrase' => $this->firstEnvString([
+                    'COZA_CERT_PASSPHRASE',
+                    'COZA_CERT_PASSWORD',
+                    'COZA_PASSPHRASE',
+                ]) ?? $this->firstEnvString(['CERT_PASSPHRASE', 'CERT_PASSWORD', 'PASSPHRASE']),
+                'ca_file' => $this->firstEnvString([
+                    'COZA_CA_FILE',
+                    'COZA_CA_CERT',
+                    'COZA_CA_BUNDLE',
+                ]) ?? $this->firstEnvString(['CA_FILE', 'CA_CERT', 'CA_BUNDLE']),
+                'verify_peer' => is_string($verifyPeerRaw) && in_array(strtolower($verifyPeerRaw), ['0', 'false', 'no', 'off'], true) ? false : true,
+                'timeout' => (int) ($this->firstEnvString([
+                    'COZA_TIMEOUT',
+                    'COZA_EPP_TIMEOUT',
+                ]) ?? '30') ?: 30,
+                'login_object_uris' => $loginObjectUris,
+                'login_extension_uris' => $loginExtensionUris,
+                'pricing_json' => $this->firstEnvString([
+                    'COZA_PRICING_JSON',
+                    'COZA_PRICING_JSON_PATH',
+                ]) ?? $this->firstEnvString(['PRICING_JSON', 'PRICING_JSON_PATH']),
             ],
             array_intersect_key($stored, array_flip([
                 'verify_peer',
@@ -402,19 +462,86 @@ final class Application
     }
 
     /**
+     * @param list<string> $candidates
+     */
+    private function firstEnvString(array $candidates): ?string
+    {
+        foreach ($candidates as $key) {
+            if (! is_string($key) || trim($key) === '') {
+                continue;
+            }
+            $value = $this->config()->nullableString($key);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function netearthoneEffectiveConfig(): array
     {
         return [
-            'api_base_url' => $this->config()->nullableString('NETEARTHONE_API_BASE_URL'),
-            'auth_user_id' => $this->config()->nullableString('NETEARTHONE_AUTH_USER_ID'),
-            'api_key' => $this->config()->nullableString('NETEARTHONE_API_KEY'),
-            'ip_address' => $this->config()->nullableString('NETEARTHONE_IP_ADDRESS'),
-            'timeout' => $this->config()->int('NETEARTHONE_TIMEOUT', 30),
-            'pricing_json' => $this->config()->nullableString('NETEARTHONE_PRICING_JSON'),
-            'default_customer_id' => $this->config()->nullableString('NETEARTHONE_DEFAULT_CUSTOMER_ID'),
-            'default_invoice_option' => $this->config()->string('NETEARTHONE_DEFAULT_INVOICE_OPTION', 'NoInvoice'),
+            'api_base_url' => $this->firstEnvString([
+                'NETEARTHONE_API_BASE_URL',
+                'NETEARTHONE_BASE_URL',
+                'NETEARTHONE_ENDPOINT',
+                'NEO_API_BASE_URL',
+                'NEO_BASE_URL',
+                'HTTPAPI_BASE_URL',
+            ]) ?? $this->firstEnvString(['API_BASE_URL', 'BASE_URL', 'ENDPOINT']),
+            'auth_user_id' => $this->firstEnvString([
+                'NETEARTHONE_AUTH_USER_ID',
+                'NETEARTHONE_USER_ID',
+                'NETEARTHONE_RESELLER_ID',
+                'NETEARTHONE_RESELLERID',
+                'NETEARTHONE_RESSELLER_ID',
+                'NETEARTHONE_RESSELLERID',
+                'NEO_RESELLER_ID',
+                'NEO_AUTH_USER_ID',
+                'NEO_USER_ID',
+            ]) ?? $this->firstEnvString(['RESELLER_ID', 'RESELLERID', 'RESSELLER_ID', 'RESSELLERID', 'AUTH_USER_ID', 'USER_ID']),
+            'api_key' => $this->firstEnvString([
+                'NETEARTHONE_API_KEY',
+                'NETEARTHONE_APIKEY',
+                'NETEARTHONE_PASSWORD',
+                'NETEARTHONE_AUTH_KEY',
+                'NEO_API_KEY',
+                'NEO_APIKEY',
+                'NEO_PASSWORD',
+            ]) ?? $this->firstEnvString(['API_KEY', 'APIKEY', 'PASSWORD', 'AUTH_KEY', 'SECRET']),
+            'ip_address' => $this->firstEnvString([
+                'NETEARTHONE_IP_ADDRESS',
+                'NETEARTHONE_IP',
+                'NETEARTHONE_WHITELIST_IP',
+                'NEO_IP_ADDRESS',
+                'NEO_IP',
+            ]) ?? $this->firstEnvString(['IP_ADDRESS', 'IP', 'WHITELIST_IP', 'CLIENT_IP']),
+            'timeout' => (int) ($this->firstEnvString([
+                'NETEARTHONE_TIMEOUT',
+                'NEO_TIMEOUT',
+            ]) ?? '30') ?: 30,
+            'pricing_json' => $this->firstEnvString([
+                'NETEARTHONE_PRICING_JSON',
+                'NEO_PRICING_JSON',
+            ]) ?? $this->firstEnvString(['PRICING_JSON', 'PRICING_JSON_PATH']),
+            'default_customer_id' => $this->firstEnvString([
+                'NETEARTHONE_DEFAULT_CUSTOMER_ID',
+                'NETEARTHONE_CUSTOMER_ID',
+                'NETEARTHONE_SUBCUSTOMER_ID',
+                'NEO_DEFAULT_CUSTOMER_ID',
+                'NEO_CUSTOMER_ID',
+                'NEO_SUBCUSTOMER_ID',
+            ]) ?? $this->firstEnvString(['DEFAULT_CUSTOMER_ID', 'CUSTOMER_ID', 'SUBCUSTOMER_ID']),
+            'default_invoice_option' => $this->firstEnvString([
+                'NETEARTHONE_DEFAULT_INVOICE_OPTION',
+                'NETEARTHONE_INVOICE_OPTION',
+                'NEO_DEFAULT_INVOICE_OPTION',
+                'NEO_INVOICE_OPTION',
+            ]) ?? $this->firstEnvString(['DEFAULT_INVOICE_OPTION', 'INVOICE_OPTION']) ?? 'NoInvoice',
         ];
     }
 

@@ -287,7 +287,7 @@ HTML;
     <div>
       <p class="eyebrow">Providers</p>
       <h1>Connected Registrar Providers</h1>
-      <p class="muted">Each provider stores non-sensitive runtime settings in this control. Sensitive credentials live in mounted Northflank secret sets.</p>
+      <p class="muted">Each provider stores non-sensitive runtime settings in this control. Sensitive credentials are kept in mounted secrets.</p>
     </div>
     <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
@@ -322,7 +322,6 @@ HTML;
         $flash = trim((string) ($query['flash'] ?? ''));
         $providerAccount = $this->app->providerAccount('netearthone');
         $effective = $this->app->providerEffectiveConfig('netearthone');
-        $secretRef = trim((string) ($providerAccount['credentials_secret_ref'] ?? ''));
         $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
         $isActive = (bool) ($providerAccount['is_active'] ?? true);
 
@@ -330,7 +329,7 @@ HTML;
         $resellerId = (string) ($effective['auth_user_id'] ?? '');
         $ipAddress = (string) ($effective['ip_address'] ?? '');
         $apiKeyMasked = $this->maskedSecret((string) ($effective['api_key'] ?? ''));
-        $apiKeyPlaceholder = $apiKeyMasked === 'Not configured' ? '' : '•••••••••••• (set in the mounted Northflank secret set)';
+        $apiKeyPlaceholder = $apiKeyMasked === 'Not configured' ? '' : '•••••••••••• (leave blank to keep current)';
         $timeout = (string) (($effective['timeout'] ?? null) ?: '30');
         $pricingJson = (string) ($effective['pricing_json'] ?? '');
         $defaultCustomerId = (string) ($effective['default_customer_id'] ?? '');
@@ -339,17 +338,6 @@ HTML;
             $defaultInvoiceOption = 'NoInvoice';
         }
 
-        $neoSecretSet = $secretRef === '' ? 'metahumans-netearthone-provider' : $secretRef;
-        $neoSecretKeys = [
-            'NETEARTHONE_API_BASE_URL',
-            'NETEARTHONE_AUTH_USER_ID',
-            'NETEARTHONE_API_KEY',
-            'NETEARTHONE_TIMEOUT',
-            'NETEARTHONE_PRICING_JSON',
-            'NETEARTHONE_DEFAULT_CUSTOMER_ID',
-            'NETEARTHONE_DEFAULT_INVOICE_OPTION',
-        ];
-        $neoSecretKeyMarkup = $this->renderTokenList($neoSecretKeys);
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $probeMarkup = '';
         if (($query['probe'] ?? null) === 'health') {
@@ -375,28 +363,19 @@ HTML;
     </div>
     <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
-  <div class="settings-grid">
-    <article class="info-card">
-      <h2>Current Status</h2>
-      <p class="status-pill">{$this->escape($isActive ? 'Provider Account Active' : 'Provider Account Inactive')}</p>
-      <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? 'NetEarthOne'))}</p>
-      <p class="muted">Environment: {$this->escape($environment)}</p>
-      <p class="muted">Provider secret set: <code>{$this->escape($neoSecretSet)}</code></p>
-      <p class="muted">API base URL: <code>{$this->escape($apiBaseUrl !== '' ? $apiBaseUrl : 'Not configured')}</code></p>
-      <p class="muted">Reseller ID: <code>{$this->escape($resellerId !== '' ? $resellerId : 'Not configured')}</code></p>
-      <p class="muted">IP Address (ACL): <code>{$this->escape($ipAddress !== '' ? $ipAddress : 'Not configured')}</code></p>
-      <p class="muted">API key: <code>{$this->escape($apiKeyMasked)}</code></p>
-      <p class="muted">Default customer ID: <code>{$this->escape($defaultCustomerId !== '' ? $defaultCustomerId : 'Not configured')}</code></p>
-      <p class="muted">Default invoice option: <code>{$this->escape($defaultInvoiceOption)}</code></p>
-      <p><a href="{$this->escape($this->providersNetEarthOnePath())}?probe=health">Run live API health probe</a></p>
-    </article>
-    <article class="info-card">
-      <h2>Northflank Secret Set</h2>
-      <p class="muted">All NetEarthOne credentials are kept in the mounted Northflank secret set below. Update values in the Northflank secrets area and redeploy the services to apply them; the values shown above are read live from the currently mounted secrets for this service.</p>
-      <p class="muted"><strong>Secret set:</strong> <code>{$this->escape($neoSecretSet)}</code></p>
-      <div class="token-list">{$neoSecretKeyMarkup}</div>
-    </article>
-  </div>
+  <article class="info-card">
+    <h2>Current Status</h2>
+    <p class="status-pill">{$this->escape($isActive ? 'Provider Account Active' : 'Provider Account Inactive')}</p>
+    <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? 'NetEarthOne'))}</p>
+    <p class="muted">Environment: {$this->escape($environment)}</p>
+    <p class="muted">API base URL: <code>{$this->escape($apiBaseUrl !== '' ? $apiBaseUrl : 'Not configured')}</code></p>
+    <p class="muted">Reseller ID: <code>{$this->escape($resellerId !== '' ? $resellerId : 'Not configured')}</code></p>
+    <p class="muted">IP Address (ACL): <code>{$this->escape($ipAddress !== '' ? $ipAddress : 'Not configured')}</code></p>
+    <p class="muted">API key: <code>{$this->escape($apiKeyMasked)}</code></p>
+    <p class="muted">Default customer ID: <code>{$this->escape($defaultCustomerId !== '' ? $defaultCustomerId : 'Not configured')}</code></p>
+    <p class="muted">Default invoice option: <code>{$this->escape($defaultInvoiceOption)}</code></p>
+    <p><a href="{$this->escape($this->providersNetEarthOnePath())}?probe=health">Run live API health probe</a></p>
+  </article>
   <form method="post" action="{$this->escape($this->providersNetEarthOnePath())}" class="settings-form">
     <div class="form-grid">
       <label>
@@ -420,7 +399,7 @@ HTML;
       <label>
         <span>API Key</span>
         <input type="password" name="api_key" autocomplete="off" value="" placeholder="{$this->escape($apiKeyPlaceholder)}">
-        <small class="muted">Leave blank to keep the current value stored in the Northflank secret set.</small>
+        <small class="muted">Leave blank to keep the current value. Paste a new value here to rotate or set a missing API key.</small>
       </label>
       <label>
         <span>Pricing JSON Path</span>
@@ -448,10 +427,6 @@ HTML;
           <option value="staging"{$this->selected($environment, 'staging')}>Staging</option>
         </select>
       </label>
-      <label>
-        <span>Provider Secret Set Ref</span>
-        <input type="text" name="credentials_secret_ref" value="{$this->escape($neoSecretSet)}" placeholder="metahumans-netearthone-provider">
-      </label>
       <label class="checkbox-line">
         <input type="checkbox" name="is_active" value="1"{$this->checked($isActive)}>
         <span>Provider account is active</span>
@@ -475,7 +450,6 @@ HTML;
         $fields = [
             'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
             'environment' => $post['environment'] ?? 'production',
-            'credentials_secret_ref' => $post['credentials_secret_ref'] ?? null,
         ];
 
         $this->app->providerAccountRepository()->updateSettings(
@@ -501,7 +475,6 @@ HTML;
         $caFile = $this->displayConfigValue($saved, $effective, 'ca_file');
         $pricingJson = $this->displayConfigValue($saved, $effective, 'pricing_json');
         $timeout = (string) ($this->displayConfigValue($saved, $effective, 'timeout') ?: '30');
-        $secretRef = trim((string) ($providerAccount['credentials_secret_ref'] ?? ''));
         $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
         $isActive = (bool) ($providerAccount['is_active'] ?? true);
         $verifyPeer = array_key_exists('verify_peer', $saved)
@@ -510,30 +483,6 @@ HTML;
         $resolvedCertPath = $this->resolvedPathPreview($certPath);
         $resolvedCaPath = $this->resolvedPathPreview($caFile);
         $readiness = $this->cozaReadinessSummary($effective);
-        $cozaSecretSet = $secretRef === '' ? 'metahumans-coza-provider' : $secretRef;
-        $certificateSecretSet = 'metahumans-coza-certificates';
-        $cozaSecretKeys = [
-            'COZA_HOST',
-            'COZA_PORT',
-            'COZA_USERNAME',
-            'COZA_PASSWORD',
-            'COZA_CLIENT_ID',
-            'COZA_LOGIN_OBJECT_URIS',
-            'COZA_LOGIN_EXTENSION_URIS',
-        ];
-        $netearthoneSecretSet = 'metahumans-netearthone-provider';
-        $netearthoneSecretKeys = [
-            'NETEARTHONE_API_BASE_URL',
-            'NETEARTHONE_AUTH_USER_ID',
-            'NETEARTHONE_API_KEY',
-            'NETEARTHONE_TIMEOUT',
-            'NETEARTHONE_PRICING_JSON',
-            'NETEARTHONE_DEFAULT_CUSTOMER_ID',
-            'NETEARTHONE_DEFAULT_INVOICE_OPTION',
-        ];
-        $cozaSecretKeyMarkup = $this->renderTokenList($cozaSecretKeys);
-        $netearthoneSecretKeyMarkup = $this->renderTokenList($netearthoneSecretKeys);
-        $certificateFileMarkup = $this->renderTokenList($certOptions);
 
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $readinessItems = implode('', array_map(
@@ -545,7 +494,7 @@ HTML;
         ) . '</pre>';
         $probeMarkup = '';
         if (($query['probe'] ?? null) === 'hello') {
-            $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2>' . $runtimeDiagnosticsMarkup . '<p class="muted">The diagnostics above are the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p></article>';
+            $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2>' . $runtimeDiagnosticsMarkup . '</article>';
 
             try {
                 $provider = $this->app->provider('coza');
@@ -553,10 +502,10 @@ HTML;
                     $probeResult = $provider->healthCheck();
                     $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2><pre class="code-block">' . $this->escape(
                         json_encode($probeResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
-                    ) . '</pre><p class="muted">The diagnostics below show the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p>' . $runtimeDiagnosticsMarkup . '</article>';
+                    ) . '</pre>' . $runtimeDiagnosticsMarkup . '</article>';
                 }
             } catch (Throwable $exception) {
-                $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2><pre class="code-block">' . $this->escape($exception->getMessage()) . '</pre><p class="muted">The diagnostics below show the exact non-sensitive values currently being merged into the .co.za provider in this web runtime.</p>' . $runtimeDiagnosticsMarkup . '</article>';
+                $probeMarkup = '<article class="info-card"><h2>Live EPP Hello Probe</h2><pre class="code-block">' . $this->escape($exception->getMessage()) . '</pre>' . $runtimeDiagnosticsMarkup . '</article>';
             }
         }
 
@@ -567,35 +516,21 @@ HTML;
     <div>
       <p class="eyebrow">Provider Settings</p>
       <h1>.co.za EPP connection</h1>
-      <p class="muted">Complete provider credentials in Northflank secret sets under <code>metahumans</code>. This screen stores only non-sensitive runtime settings and secret references.</p>
+      <p class="muted">This screen stores non-sensitive runtime settings for the .co.za EPP connection. Sensitive credentials are kept in mounted secrets.</p>
     </div>
     <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
-  <div class="settings-grid">
-    <article class="info-card">
-      <h2>Current Status</h2>
-      <p class="status-pill">{$this->escape($readiness['label'])}</p>
-      <ul class="info-list">{$readinessItems}</ul>
-      <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? '.co.za'))}</p>
-      <p class="muted">Environment: {$this->escape($environment)}</p>
-      <p class="muted">Provider secret set: <code>{$this->escape($cozaSecretSet)}</code></p>
-      <p class="muted">Certificate secret set: <code>{$this->escape($certificateSecretSet)}</code></p>
-      <p class="muted">Repo cert folder: <code>cert/</code></p>
-      <p class="muted">Resolved cert path: <code>{$this->escape($resolvedCertPath ?? 'Not set')}</code></p>
-      <p class="muted">Resolved CA file: <code>{$this->escape($resolvedCaPath ?? 'Not set')}</code></p>
-      <p><a href="{$this->escape($this->providersCozaPath())}?probe=hello">Run live EPP hello probe</a></p>
-    </article>
-    <article class="info-card">
-      <h2>Northflank Secret Sets</h2>
-      <p class="muted">Create these secret sets in the <code>metahumans</code> project and mount them on control and worker.</p>
-      <p class="muted"><strong>.co.za provider:</strong> <code>{$this->escape($cozaSecretSet)}</code></p>
-      <div class="token-list">{$cozaSecretKeyMarkup}</div>
-      <p class="muted" style="margin-top: 14px;"><strong>.co.za certificates:</strong> <code>{$this->escape($certificateSecretSet)}</code></p>
-      <div class="token-list">{$certificateFileMarkup}</div>
-      <p class="muted" style="margin-top: 14px;"><strong>NetEarthOne provider:</strong> <code>{$this->escape($netearthoneSecretSet)}</code></p>
-      <div class="token-list">{$netearthoneSecretKeyMarkup}</div>
-    </article>
-  </div>
+  <article class="info-card">
+    <h2>Current Status</h2>
+    <p class="status-pill">{$this->escape($readiness['label'])}</p>
+    <ul class="info-list">{$readinessItems}</ul>
+    <p class="muted">Provider account: {$this->escape((string) ($providerAccount['display_name'] ?? '.co.za'))}</p>
+    <p class="muted">Environment: {$this->escape($environment)}</p>
+    <p class="muted">Repo cert folder: <code>cert/</code></p>
+    <p class="muted">Resolved cert path: <code>{$this->escape($resolvedCertPath ?? 'Not set')}</code></p>
+    <p class="muted">Resolved CA file: <code>{$this->escape($resolvedCaPath ?? 'Not set')}</code></p>
+    <p><a href="{$this->escape($this->providersCozaPath())}?probe=hello">Run live EPP hello probe</a></p>
+  </article>
   <form method="post" action="{$this->escape($this->providersCozaPath())}" class="settings-form">
     <div class="form-grid">
       <label>
@@ -621,10 +556,6 @@ HTML;
           <option value="sandbox"{$this->selected($environment, 'sandbox')}>Sandbox</option>
           <option value="staging"{$this->selected($environment, 'staging')}>Staging</option>
         </select>
-      </label>
-      <label>
-        <span>Provider Secret Set Ref</span>
-        <input type="text" name="credentials_secret_ref" value="{$this->escape($cozaSecretSet)}" placeholder="metahumans-coza-provider">
       </label>
       <label class="checkbox-line">
         <input type="checkbox" name="verify_peer" value="1"{$this->checked($verifyPeer)}>
@@ -663,7 +594,6 @@ HTML;
             [
                 'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
                 'environment' => $post['environment'] ?? 'production',
-                'credentials_secret_ref' => $post['credentials_secret_ref'] ?? null,
             ],
             $config,
         );
