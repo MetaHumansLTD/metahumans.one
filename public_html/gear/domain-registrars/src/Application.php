@@ -140,6 +140,7 @@ final class Application
     {
         return match ($code) {
             'coza' => $this->cozaEffectiveConfig(),
+            'netearthone' => $this->netearthoneEffectiveConfig(),
             default => [],
         };
     }
@@ -179,6 +180,29 @@ final class Application
                     'login_extension_uris' => is_array($effective['login_extension_uris'] ?? null) ? array_values($effective['login_extension_uris']) : [],
                 ],
                 'resolved' => $this->resolvedFileDiagnostics($effective),
+            ],
+            'netearthone' => [
+                'provider' => 'netearthone',
+                'stored_override' => [
+                    'api_base_url' => $this->nullableConfigString($stored['api_base_url'] ?? null),
+                    'auth_user_id_present' => $this->nullableConfigString($stored['auth_user_id'] ?? null) !== null,
+                    'ip_address' => $this->nullableConfigString($stored['ip_address'] ?? null),
+                    'api_key_present' => $this->nullableConfigString($stored['api_key'] ?? null) !== null,
+                    'timeout' => array_key_exists('timeout', $stored) ? (int) $stored['timeout'] : null,
+                    'pricing_json' => $this->nullableConfigString($stored['pricing_json'] ?? null),
+                    'default_customer_id_present' => $this->nullableConfigString($stored['default_customer_id'] ?? null) !== null,
+                    'default_invoice_option' => $this->nullableConfigString($stored['default_invoice_option'] ?? null),
+                ],
+                'effective' => [
+                    'api_base_url' => $this->nullableConfigString($effective['api_base_url'] ?? null),
+                    'auth_user_id_present' => $this->nullableConfigString($effective['auth_user_id'] ?? null) !== null,
+                    'ip_address' => $this->nullableConfigString($effective['ip_address'] ?? null),
+                    'api_key_present' => $this->nullableConfigString($effective['api_key'] ?? null) !== null,
+                    'timeout' => (int) ($effective['timeout'] ?? 30),
+                    'pricing_json' => $this->nullableConfigString($effective['pricing_json'] ?? null),
+                    'default_customer_id_present' => $this->nullableConfigString($effective['default_customer_id'] ?? null) !== null,
+                    'default_invoice_option' => $this->nullableConfigString($effective['default_invoice_option'] ?? 'NoInvoice'),
+                ],
             ],
             default => [],
         };
@@ -264,6 +288,7 @@ final class Application
     public function provider(string $code): object
     {
         $cozaConfig = $code === 'coza' ? $this->providerEffectiveConfig('coza') : [];
+        $neoConfig = $code === 'netearthone' ? $this->providerEffectiveConfig('netearthone') : [];
 
         return match ($code) {
             'coza' => new CoZaProvider(
@@ -286,15 +311,15 @@ final class Application
             ),
             'netearthone' => new NetEarthOneProvider(
                 new NetEarthOneApiClient(
-                    baseUrl: $this->config()->string('NETEARTHONE_API_BASE_URL'),
-                    authUserId: $this->config()->string('NETEARTHONE_AUTH_USER_ID'),
-                    apiKey: $this->config()->string('NETEARTHONE_API_KEY'),
-                    timeoutSeconds: $this->config()->int('NETEARTHONE_TIMEOUT', 30),
+                    baseUrl: (string) ($neoConfig['api_base_url'] ?? ''),
+                    authUserId: (string) ($neoConfig['auth_user_id'] ?? ''),
+                    apiKey: (string) ($neoConfig['api_key'] ?? ''),
+                    timeoutSeconds: (int) ($neoConfig['timeout'] ?? 30),
                 ),
                 $this->rootPath . '/config/pricing/netearthone.sample.json',
-                $this->config()->nullableString('NETEARTHONE_PRICING_JSON'),
-                $this->config()->nullableString('NETEARTHONE_DEFAULT_CUSTOMER_ID'),
-                $this->config()->string('NETEARTHONE_DEFAULT_INVOICE_OPTION', 'NoInvoice'),
+                $this->resolveWorkspacePath($this->nullableConfigString($neoConfig['pricing_json'] ?? null)),
+                $this->nullableConfigString($neoConfig['default_customer_id'] ?? null),
+                (string) ($neoConfig['default_invoice_option'] ?? 'NoInvoice'),
             ),
             default => throw new RuntimeException(sprintf('Unknown provider "%s".', $code)),
         };
@@ -372,6 +397,39 @@ final class Application
 
         $resolved['client_id'] = $this->nullableConfigString($resolved['client_id'] ?? null)
             ?? $this->nullableConfigString($resolved['username'] ?? null);
+
+        return $resolved;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function netearthoneEffectiveConfig(): array
+    {
+        $stored = $this->providerStoredConfig('netearthone');
+
+        $resolved = array_replace(
+            [
+                'api_base_url' => $this->config()->nullableString('NETEARTHONE_API_BASE_URL'),
+                'auth_user_id' => $this->config()->nullableString('NETEARTHONE_AUTH_USER_ID'),
+                'api_key' => $this->config()->nullableString('NETEARTHONE_API_KEY'),
+                'ip_address' => $this->config()->nullableString('NETEARTHONE_IP_ADDRESS'),
+                'timeout' => $this->config()->int('NETEARTHONE_TIMEOUT', 30),
+                'pricing_json' => $this->config()->nullableString('NETEARTHONE_PRICING_JSON'),
+                'default_customer_id' => $this->config()->nullableString('NETEARTHONE_DEFAULT_CUSTOMER_ID'),
+                'default_invoice_option' => $this->config()->string('NETEARTHONE_DEFAULT_INVOICE_OPTION', 'NoInvoice'),
+            ],
+            array_intersect_key($stored, array_flip([
+                'api_base_url',
+                'auth_user_id',
+                'api_key',
+                'ip_address',
+                'timeout',
+                'pricing_json',
+                'default_customer_id',
+                'default_invoice_option',
+            ])),
+        );
 
         return $resolved;
     }

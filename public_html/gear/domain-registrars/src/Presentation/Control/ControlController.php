@@ -201,7 +201,8 @@ HTML;
     private function renderDomains(array $query = []): string
     {
         $flash = trim((string) ($query['flash'] ?? ''));
-        $domains = $this->app->domainRepository()->listRecent(200);
+        $domains = $this->app->domainRepository()->listAll(500);
+        $total = $this->app->domainRepository()->countAll();
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $importForm = $this->renderDomainImportForm();
         $domainCards = $domains === []
@@ -226,13 +227,23 @@ HTML;
             ),
             [9],
         );
+        $scopeNote = '<article class="info-card">'
+            . '<h2>Portfolio Scope</h2>'
+            . '<p class="muted"><strong>Registrar / Control view:</strong> This page lists <strong>every domain record in the system</strong> (latest 500 shown; total rows: '
+            . (int) $total
+            . '). The reseller/registrar owns the pool of domains; allocate them to specific users or companies via the <em>Assign / Move</em> action in each row.'
+            . ' Once moved, domains disappear from this pool view only on the tenant-facing hub side. The <em>Hub portfolio (/hub/companies/domains/manage)</em> only shows domains that have been transferred to that user or company (owner_type user or company with matching owner_id). Pool rows (owner_type tenant/reseller/registrar/system) are intentionally hidden from tenant hub views.</p>'
+            . '</article>';
 
         return $this->layout(
             'Domains',
             $flashMarkup
-            . '<section class="panel"><div class="panel-head"><div><h1>Domains</h1><p class="muted">Bulk import registry domains into the local portfolio and allocate them to users or companies. This page shows locally imported records, not an automatic registry-wide portfolio feed.</p></div><a href="'
+            . '<section class="panel"><div class="panel-head"><div><h1>Domains</h1><p class="muted">Registrar pool of all domains in the system ('
+            . (int) $total
+            . ' total). Bulk import registry domains and allocate them to users or companies. This view shows the authoritative registrar records, not the tenant-only hub portfolio.</p></div><a href="'
             . $this->escape($this->basePath())
             . '">Back to dashboard</a></div>'
+            . $scopeNote
             . $importForm
             . $rows
                 . '<div class="action-grid" style="margin-top:20px;">'
@@ -317,8 +328,10 @@ HTML;
         $isActive = (bool) ($providerAccount['is_active'] ?? true);
 
         $apiBaseUrl = (string) $this->displayConfigValue($saved, $effective, 'api_base_url');
-        $authUserId = (string) $this->displayConfigValue($saved, $effective, 'auth_user_id');
+        $resellerId = (string) $this->displayConfigValue($saved, $effective, 'auth_user_id');
+        $ipAddress = (string) $this->displayConfigValue($saved, $effective, 'ip_address');
         $apiKeyMasked = $this->maskedConfigValue($saved, $effective, 'api_key');
+        $apiKeyPlaceholder = $this->maskedConfigValue($saved, $effective, 'api_key') === 'Not configured' ? '' : '•••••••••••• (leave blank to keep current)';
         $timeout = (string) ($this->displayConfigValue($saved, $effective, 'timeout') ?: '30');
         $pricingJson = (string) $this->displayConfigValue($saved, $effective, 'pricing_json');
         $defaultCustomerId = (string) $this->displayConfigValue($saved, $effective, 'default_customer_id');
@@ -359,7 +372,7 @@ HTML;
     <div>
       <p class="eyebrow">Provider Settings</p>
       <h1>NetEarthOne API</h1>
-      <p class="muted">Non-sensitive runtime settings only. Store API keys and credentials in the Northflank secret set reference below.</p>
+      <p class="muted">Reseller credentials (reseller ID, API key, IP) plus defaults for creating registrations under an existing customer account.</p>
     </div>
     <a href="{$this->escape($this->basePath())}">Back to dashboard</a>
   </div>
@@ -371,7 +384,8 @@ HTML;
       <p class="muted">Environment: {$this->escape($environment)}</p>
       <p class="muted">Provider secret set: <code>{$this->escape($neoSecretSet)}</code></p>
       <p class="muted">API base URL: <code>{$this->escape($apiBaseUrl !== '' ? $apiBaseUrl : 'Not configured')}</code></p>
-      <p class="muted">Auth user ID: <code>{$this->escape($authUserId !== '' ? $authUserId : 'Not configured')}</code></p>
+      <p class="muted">Reseller ID: <code>{$this->escape($resellerId !== '' ? $resellerId : 'Not configured')}</code></p>
+      <p class="muted">IP Address (ACL): <code>{$this->escape($ipAddress !== '' ? $ipAddress : 'Not configured')}</code></p>
       <p class="muted">API key: <code>{$this->escape($apiKeyMasked)}</code></p>
       <p class="muted">Default customer ID: <code>{$this->escape($defaultCustomerId !== '' ? $defaultCustomerId : 'Not configured')}</code></p>
       <p class="muted">Default invoice option: <code>{$this->escape($defaultInvoiceOption)}</code></p>
@@ -379,7 +393,7 @@ HTML;
     </article>
     <article class="info-card">
       <h2>Northflank Secret Set</h2>
-      <p class="muted">Mount this secret set in the control + worker services. The non-sensitive settings below are merged with the secret values at runtime.</p>
+      <p class="muted">If you prefer not to paste the reseller API key into this settings form, keep it in the mounted Northflank secret set below. Values saved in this form are merged with those env values at runtime, and saved values override the secret set for the same keys.</p>
       <p class="muted"><strong>Secret set:</strong> <code>{$this->escape($neoSecretSet)}</code></p>
       <div class="token-list">{$neoSecretKeyMarkup}</div>
     </article>
@@ -391,12 +405,23 @@ HTML;
         <input type="number" name="timeout" min="5" max="300" value="{$this->escape($timeout)}" required>
       </label>
       <label>
-        <span>API Base URL (non-sensitive)</span>
+        <span>API Base URL</span>
         <input type="text" name="api_base_url" value="{$this->escape($apiBaseUrl)}" placeholder="https://api.netearthone.com/anacreon/servlet/ApiCall.xml">
       </label>
       <label>
-        <span>Auth User ID (optional non-sensitive override)</span>
-        <input type="text" name="auth_user_id" value="{$this->escape($authUserId)}" placeholder="Reseller ID / User ID">
+        <span>Reseller ID</span>
+        <input type="text" name="auth_user_id" value="{$this->escape($resellerId)}" placeholder="Reseller ID (also known as auth_user_id)">
+        <small class="muted">Numeric reseller / account owner ID issued by NetEarthOne.</small>
+      </label>
+      <label>
+        <span>IP Address (Whitelist)</span>
+        <input type="text" name="ip_address" value="{$this->escape($ipAddress)}" placeholder="203.0.113.10 or comma-separated list">
+        <small class="muted">Reference only. Add these IPs to the allowed outgoing IP list in your NetEarthOne reseller console so API calls are not blocked.</small>
+      </label>
+      <label>
+        <span>API Key</span>
+        <input type="password" name="api_key" autocomplete="off" value="" placeholder="{$this->escape($apiKeyPlaceholder)}">
+        <small class="muted">Leave blank to keep the current stored value. Paste a new value here to rotate or set the API key that is currently missing.</small>
       </label>
       <label>
         <span>Pricing JSON Path</span>
@@ -404,7 +429,8 @@ HTML;
       </label>
       <label>
         <span>Default Customer ID</span>
-        <input type="text" name="default_customer_id" value="{$this->escape($defaultCustomerId)}" placeholder="Required for registrations without an explicit customer_id">
+        <input type="text" name="default_customer_id" value="{$this->escape($defaultCustomerId)}" placeholder="NetEarthOne sub-customer ID (numeric)">
+        <small class="muted">When a registration, renew or transfer order is created without an explicit customer, it will be placed under this existing NetEarthOne customer account. Leave blank to rely on provider defaults or to create new customers via orders.</small>
       </label>
       <label>
         <span>Default Invoice Option</span>
@@ -433,7 +459,7 @@ HTML;
       </label>
     </div>
     <div class="form-actions">
-      <button type="submit">Save Non-Sensitive Settings</button>
+      <button type="submit">Save Settings</button>
     </div>
   </form>
 </section>
@@ -446,10 +472,19 @@ HTML;
     private function handleNetEarthOneSettingsSave(array $post): string
     {
         $providerAccount = $this->app->providerAccount('netearthone');
+        $currentSaved = $this->app->providerStoredConfig('netearthone');
+
+        $apiKeyIncoming = $this->nullableString($post['api_key'] ?? null);
+        $existingApiKey = isset($currentSaved['api_key']) && is_string($currentSaved['api_key']) && trim($currentSaved['api_key']) !== ''
+            ? trim($currentSaved['api_key'])
+            : null;
+        $apiKey = $apiKeyIncoming ?? $existingApiKey;
 
         $config = [
             'api_base_url' => $this->nullableString($post['api_base_url'] ?? null),
             'auth_user_id' => $this->nullableString($post['auth_user_id'] ?? null),
+            'ip_address' => $this->nullableString($post['ip_address'] ?? null),
+            'api_key' => $apiKey,
             'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
             'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
             'default_customer_id' => $this->nullableString($post['default_customer_id'] ?? null),

@@ -458,6 +458,32 @@ final class DomainRepository
         );
     }
 
+    public function countAll(): int
+    {
+        $value = $this->database->fetchOne('SELECT COUNT(*) AS cnt FROM domains');
+        if (is_array($value) && isset($value['cnt'])) {
+            return (int) $value['cnt'];
+        }
+        if (is_scalar($value)) {
+            return (int) $value;
+        }
+
+        return 0;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listAll(int $limit = 500): array
+    {
+        return $this->database->fetchAll(
+            sprintf(
+                'SELECT * FROM domains ORDER BY created_at DESC LIMIT %d',
+                max(1, $limit),
+            ),
+        );
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

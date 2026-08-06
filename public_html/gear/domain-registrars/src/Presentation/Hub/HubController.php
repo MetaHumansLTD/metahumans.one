@@ -212,7 +212,23 @@ HTML;
         $tenantId = (string) ($tenantContext['tenant_id'] ?? '');
         $ownerType = (string) ($tenantContext['owner_type'] ?? 'user');
         $ownerId = (string) ($tenantContext['owner_id'] ?? $tenantId);
-        $domains = $this->app->domainRepository()->listForAccount($tenantId, $ownerType, $ownerId, 100);
+        $rawDomains = $this->app->domainRepository()->listForAccount($tenantId, $ownerType, $ownerId, 1000);
+        $domains = [];
+        $poolOwnerTypes = ['tenant', 'reseller', 'registrar', 'system'];
+        foreach ($rawDomains as $domain) {
+            $rowOwnerType = (string) ($domain['owner_type'] ?? 'user');
+            $rowOwnerId = (string) ($domain['owner_id'] ?? '');
+            if (in_array($rowOwnerType, $poolOwnerTypes, true)) {
+                continue;
+            }
+            if ($rowOwnerType !== $ownerType) {
+                continue;
+            }
+            if ($rowOwnerId !== '' && $rowOwnerId !== $ownerId) {
+                continue;
+            }
+            $domains[] = $domain;
+        }
         $orders = $this->app->orderRepository()->listForAccount($tenantId, $ownerType, $ownerId, 100);
         $contextMarkup = $this->renderTenantContextSummary($tenantContext);
 
@@ -232,16 +248,21 @@ HTML;
                 $currentBillingMode = (string) ($domain['billing_mode'] ?? 'user');
                 $currentBillingTenantId = (string) ($domain['billing_tenant_id'] ?? ($tenantId !== '' ? $tenantId : ''));
                 $currentCustomerId = (string) ($domain['customer_id'] ?? '');
-                $allocateForm = $this->renderAllocateInlineForm(
-                    $domainId,
-                    $domainName,
-                    $tenantId,
-                    $currentOwnerType,
-                    $currentOwnerId,
-                    $currentBillingMode,
-                    $currentBillingTenantId,
-                    $currentCustomerId,
-                );
+                $poolOwnerTypes = ['tenant', 'reseller', 'registrar', 'system'];
+                $isPoolDomain = in_array($currentOwnerType, $poolOwnerTypes, true)
+                    || ($currentOwnerType === $ownerType && $currentOwnerId !== $ownerId);
+                $allocateForm = $isPoolDomain
+                    ? $this->renderAllocateInlineForm(
+                        $domainId,
+                        $domainName,
+                        $tenantId,
+                        $currentOwnerType,
+                        $currentOwnerId,
+                        $currentBillingMode,
+                        $currentBillingTenantId,
+                        $currentCustomerId,
+                    )
+                    : '';
                 $items[] = sprintf(
                     '<article class="domain-card"><div><p class="%s">%s</p><h3>%s</h3><p class="muted">Provider: %s | Expires: %s</p></div><div class="domain-card__aside">%s%s%s%s</div></article>',
                     $this->escape($this->statusClassForDomain($status)),
