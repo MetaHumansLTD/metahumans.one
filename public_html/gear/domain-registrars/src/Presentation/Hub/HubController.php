@@ -2365,23 +2365,47 @@ HTML;
         $metadataNameservers = $this->extractNameserversFromMetadata($metadata);
         $metadataContacts = $this->extractContactsFromMetadata($metadata);
 
-        $hasRegistryData =
-            $storedNameservers !== []
-            || $metadataNameservers !== []
-            || count($contactHandles) >= 2
-            || (
-                $metadataContacts['registrant'] !== ''
-                && ($metadataContacts['admin'] !== '' || $metadataContacts['tech'] !== '')
+        $nameserversEmpty = $storedNameservers === [] && $metadataNameservers === [];
+        $handlesEmpty = count($contactHandles) < 2
+            && (
+                $metadataContacts['registrant'] === ''
+                || ($metadataContacts['admin'] === '' && $metadataContacts['tech'] === '')
             );
 
-        if ($hasRegistryData) {
+        $staleThresholdSeconds = 15 * 60;
+        $lastSyncTime = null;
+        $candidateSyncTimes = [
+            $metadata['last_sync_at'] ?? null,
+            $metadata['last_sync_result']['synced_at'] ?? null,
+            $domain['updated_at'] ?? null,
+        ];
+        foreach ($candidateSyncTimes as $candidate) {
+            if (! is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+            $ts = strtotime($candidate);
+            if ($ts !== false && $ts > 0) {
+                $lastSyncTime = $ts;
+                break;
+            }
+        }
+        $isStale = $lastSyncTime !== null && (time() - $lastSyncTime) > $staleThresholdSeconds;
+        $neverSynced = $lastSyncTime === null;
+        $shouldSyncLive = $nameserversEmpty || $handlesEmpty || $isStale || $neverSynced;
+
+        if (! $shouldSyncLive) {
             return $domain;
         }
 
-        $sync = $provider->syncDomain(
-            (string) ($domain['domain_name'] ?? ''),
-            new SyncContext($providerCode, 'hub-on-demand-management-sync', true),
-        );
+        try {
+            $sync = $provider->syncDomain(
+                (string) ($domain['domain_name'] ?? ''),
+                new SyncContext($providerCode, 'hub-on-demand-management-sync', true),
+            );
+        } catch (Throwable) {
+            return $domain;
+        }
+
         if (($sync['ok'] ?? true) === false) {
             return $domain;
         }

@@ -406,32 +406,16 @@ final class Application
      */
     private function netearthoneEffectiveConfig(): array
     {
-        $stored = $this->providerStoredConfig('netearthone');
-
-        $resolved = array_replace(
-            [
-                'api_base_url' => $this->config()->nullableString('NETEARTHONE_API_BASE_URL'),
-                'auth_user_id' => $this->config()->nullableString('NETEARTHONE_AUTH_USER_ID'),
-                'api_key' => $this->config()->nullableString('NETEARTHONE_API_KEY'),
-                'ip_address' => $this->config()->nullableString('NETEARTHONE_IP_ADDRESS'),
-                'timeout' => $this->config()->int('NETEARTHONE_TIMEOUT', 30),
-                'pricing_json' => $this->config()->nullableString('NETEARTHONE_PRICING_JSON'),
-                'default_customer_id' => $this->config()->nullableString('NETEARTHONE_DEFAULT_CUSTOMER_ID'),
-                'default_invoice_option' => $this->config()->string('NETEARTHONE_DEFAULT_INVOICE_OPTION', 'NoInvoice'),
-            ],
-            array_intersect_key($stored, array_flip([
-                'api_base_url',
-                'auth_user_id',
-                'api_key',
-                'ip_address',
-                'timeout',
-                'pricing_json',
-                'default_customer_id',
-                'default_invoice_option',
-            ])),
-        );
-
-        return $resolved;
+        return [
+            'api_base_url' => $this->config()->nullableString('NETEARTHONE_API_BASE_URL'),
+            'auth_user_id' => $this->config()->nullableString('NETEARTHONE_AUTH_USER_ID'),
+            'api_key' => $this->config()->nullableString('NETEARTHONE_API_KEY'),
+            'ip_address' => $this->config()->nullableString('NETEARTHONE_IP_ADDRESS'),
+            'timeout' => $this->config()->int('NETEARTHONE_TIMEOUT', 30),
+            'pricing_json' => $this->config()->nullableString('NETEARTHONE_PRICING_JSON'),
+            'default_customer_id' => $this->config()->nullableString('NETEARTHONE_DEFAULT_CUSTOMER_ID'),
+            'default_invoice_option' => $this->config()->string('NETEARTHONE_DEFAULT_INVOICE_OPTION', 'NoInvoice'),
+        ];
     }
 
     private function resolvedTenantDbConfigId(): ?string
