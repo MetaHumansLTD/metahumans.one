@@ -36,11 +36,14 @@ final class WorkerService
     {
         $pollSeconds = max(1, $this->app->config()->int('WORKER_POLL_SECONDS', 5));
         $runOnce = $this->app->config()->bool('WORKER_RUN_ONCE', false);
+        $disableScheduler = $this->app->config()->bool('WORKER_DISABLE_SCHEDULER', ! $this->app->config()->bool('ENABLE_SCHEDULER', true));
 
-        fwrite(STDOUT, sprintf("Worker started (poll=%ds)\n", $pollSeconds));
+        fwrite(STDOUT, sprintf("Worker started (poll=%ds, scheduler=%s)\n", $pollSeconds, $disableScheduler ? 'disabled' : 'enabled'));
 
         do {
-            $this->scheduleRecurringTasks();
+            if (! $disableScheduler) {
+                $this->scheduleRecurringTasks();
+            }
             $task = $this->taskQueueRepository->claimNext();
 
             if ($task === null) {
@@ -230,22 +233,149 @@ final class WorkerService
             return ['provider' => $providerCode, 'status' => 'skipped', 'message' => 'Provider does not expose portfolio sync.'];
         }
 
-        $context = new SyncContext($providerCode, 'worker', true);
-        $seen = 0;
         try {
-            foreach ($provider->listDomains($context) as $domain) {
-                unset($domain);
-                $seen++;
-            }
+            $providerAccount = $this->app->providerAccount($providerCode);
         } catch (Throwable $throwable) {
             return [
                 'provider' => $providerCode,
                 'status' => 'skipped',
-                'message' => $throwable->getMessage(),
+                'message' => 'Provider account missing: ' . $throwable->getMessage(),
+            ];
+        }
+        $providerAccountId = (string) ($providerAccount['id'] ?? '');
+        if ($providerAccountId === '') {
+            return [
+                'provider' => $providerCode,
+                'status' => 'skipped',
+                'message' => 'No provider_accounts row found for ' . $providerCode . '.',
             ];
         }
 
-        return ['provider' => $providerCode, 'domains_seen' => $seen];
+        $context = new SyncContext($providerCode, 'worker', true);
+        $seen = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+        try {
+            foreach ($provider->listDomains($context) as $row) {
+                if (! is_array($row) || ! isset($row['domain_name'])) {
+                    ++$skipped;
+                    continue;
+                }
+                ++$seen;
+                $domainName = strtolower(trim((string) $row['domain_name']));
+                if ($domainName === '') {
+                    ++$skipped;
+                    continue;
+                }
+                try {
+                    $existing = $this->domainRepository->findByName($domainName);
+                    $syncPayload = [
+                        'tenant_id' => (string) ($row['tenant_id'] ?? ('registrar:' . $providerCode)),
+                        'owner_type' => (string) ($row['owner_type'] ?? 'registrar'),
+                        'owner_id' => (string) ($row['owner_id'] ?? ('pool:' . $providerCode)),
+                        'billing_mode' => (string) ($row['billing_mode'] ?? 'registrar'),
+                        'billing_tenant_id' => (string) ($row['billing_tenant_id'] ?? ('registrar:' . $providerCode)),
+                        'provider_code' => $providerCode,
+                        'registrar_status' => (string) ($row['registrar_status'] ?? 'active'),
+                        'tld' => (string) ($row['tld'] ?? (str_contains($domainName, '.') ? substr($domainName, strpos($domainName, '.') + 1) : $domainName)),
+                        'customer_id' => (string) ($row['customer_id'] ?? ''),
+                        'registered_at' => $row['registered_at'] ?? null,
+                        'expires_at' => $row['expires_at'] ?? null,
+                        'renewal_due_at' => $row['renewal_due_at'] ?? ($row['expires_at'] ?? null),
+                        'grace_period_ends_at' => $row['grace_period_ends_at'] ?? null,
+                        'redemption_period_ends_at' => $row['redemption_period_ends_at'] ?? null,
+                        'auto_renew_enabled' => $row['auto_renew_enabled'] ?? null,
+                        'registrant' => $row['registrant'] ?? null,
+                        'autorenew' => $row['auto_renew_enabled'] ?? null,
+                        'contacts' => $row['contacts'] ?? null,
+                    ];
+                    $saved = $this->domainRepository->upsertImportedDomain(
+                        $providerAccountId,
+                        $providerCode,
+                        $domainName,
+                        $syncPayload,
+                    );
+                    if (isset($row['upstream_domain_id']) || isset($row['upstream_order_id']) || isset($row['raw']) || $existing === null) {
+                        $updates = [];
+                        $params = ['id' => (string) ($saved['id'] ?? '')];
+                        if (isset($row['upstream_domain_id']) && trim((string) $row['upstream_domain_id']) !== '') {
+                            $updates[] = 'upstream_domain_id = :upstream_domain_id';
+                            $params['upstream_domain_id'] = trim((string) $row['upstream_domain_id']);
+                        }
+                        if (isset($row['upstream_order_id']) && trim((string) $row['upstream_order_id']) !== '') {
+                            $updates[] = 'upstream_order_id = :upstream_order_id';
+                            $params['upstream_order_id'] = trim((string) $row['upstream_order_id']);
+                        }
+                        if (isset($row['raw']) || $existing === null) {
+                            $rowMeta = $existing ?? ['id' => $params['id']];
+                            $previous = [];
+                            if (isset($rowMeta['metadata_json'])) {
+                                if (is_string($rowMeta['metadata_json']) && trim((string) $rowMeta['metadata_json']) !== '') {
+                                    $decoded = json_decode((string) $rowMeta['metadata_json'], true);
+                                    if (is_array($decoded)) {
+                                        $previous = $decoded;
+                                    }
+                                } elseif (is_array($rowMeta['metadata_json'])) {
+                                    $previous = $rowMeta['metadata_json'];
+                                }
+                            }
+                            $merged = array_replace_recursive($previous, [
+                                'portfolio_sync' => [
+                                    'provider' => $providerCode,
+                                    'sync_time' => date('c'),
+                                    'raw' => $row['raw'] ?? null,
+                                ],
+                            ]);
+                            $updates[] = 'metadata_json = :metadata_json';
+                            $params['metadata_json'] = json_encode($merged, JSON_UNESCAPED_SLASHES) ?: '{}';
+                            $updates[] = 'last_synced_at = CURRENT_TIMESTAMP';
+                            $updates[] = 'last_sync_source = :last_sync_source';
+                            $params['last_sync_source'] = 'worker:' . $providerCode;
+                        }
+                        if ($updates !== [] && $params['id'] !== '') {
+                            $this->domainRepository->updateFields($params['id'], $updates, $params);
+                        }
+                    }
+                    if ($existing === null) {
+                        ++$inserted;
+                    } else {
+                        ++$updated;
+                    }
+                } catch (Throwable $t) {
+                    ++$skipped;
+                    $errors[] = sprintf('%s: %s', $domainName, $t->getMessage());
+                    if (count($errors) >= 50) {
+                        break;
+                    }
+                }
+                if ($seen >= 50000) {
+                    break;
+                }
+            }
+        } catch (Throwable $throwable) {
+            return [
+                'provider' => $providerCode,
+                'status' => 'error',
+                'domains_seen' => $seen,
+                'inserted' => $inserted,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'message' => $throwable->getMessage(),
+                'errors' => array_slice($errors, 0, 25),
+            ];
+        }
+
+        return [
+            'provider' => $providerCode,
+            'domains_seen' => $seen,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => array_slice($errors, 0, 25),
+            'error_count' => count($errors),
+        ];
     }
 
     private function scheduleRecurringTasks(): void

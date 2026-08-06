@@ -484,7 +484,9 @@ final class Application
      */
     private function netearthoneEffectiveConfig(): array
     {
-        return [
+        $stored = $this->providerStoredConfig('netearthone');
+
+        $envResolved = [
             'api_base_url' => $this->firstEnvString([
                 'NETEARTHONE_API_BASE_URL',
                 'NETEARTHONE_BASE_URL',
@@ -579,6 +581,15 @@ final class Application
                 'NEO_INVOICE_OPTION',
             ]) ?? $this->firstEnvString(['DEFAULT_INVOICE_OPTION', 'INVOICE_OPTION']) ?? 'NoInvoice',
         ];
+
+        return array_replace($envResolved, array_intersect_key($stored, array_flip([
+            'timeout',
+            'api_base_url',
+            'ip_address',
+            'pricing_json',
+            'default_customer_id',
+            'default_invoice_option',
+        ])));
     }
 
     private function resolvedTenantDbConfigId(): ?string

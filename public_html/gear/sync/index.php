@@ -444,6 +444,56 @@ function mh_sync_cron_load_cfg(): array {
                     'max' => 1,
                     'max_seconds' => 60,
                 ],
+                'domain_import_provider_domains' => [
+                    'label' => 'Domain registrar — initial or forced provider portfolio import',
+                    'type' => 'php',
+                    'enabled' => false,
+                    'cron' => 'manual',
+                    'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=import_provider_domains --provider=all',
+                    'max' => 1,
+                    'max_seconds' => 900,
+                    'notes' => 'Run manually after adding a new registrar provider to pull every domain in that account into the shared pool.',
+                ],
+                'domain_sync_portfolio' => [
+                    'label' => 'Domain registrar — portfolio refresh (list, status, nameservers, transfers)',
+                    'type' => 'php',
+                    'enabled' => true,
+                    'cron' => '0 */6 * * *',
+                    'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_domain_portfolio --provider=all',
+                    'max' => 1,
+                    'max_seconds' => 1800,
+                    'notes' => 'Every 6 hours: re-syncs the portfolio list and persists all domains from each configured registrar provider.',
+                ],
+                'domain_sync_dates' => [
+                    'label' => 'Domain registrar — refresh expiry, renewal due, grace, and redemption dates',
+                    'type' => 'php',
+                    'enabled' => true,
+                    'cron' => '15 2 * * *',
+                    'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_domain_dates --provider=all',
+                    'max' => 1,
+                    'max_seconds' => 1800,
+                    'notes' => 'Daily at 02:15 UTC: refreshes date columns for every domain already in the pool.',
+                ],
+                'domain_sync_pricing' => [
+                    'label' => 'Domain registrar — refresh upstream TLD pricing and snapshots',
+                    'type' => 'php',
+                    'enabled' => true,
+                    'cron' => '0 3 * * *',
+                    'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_pricing --provider=all',
+                    'max' => 1,
+                    'max_seconds' => 900,
+                    'notes' => 'Daily at 03:00 UTC: pulls fresh pricing from provider APIs and writes a snapshot per TLD.',
+                ],
+                'domain_retry_failed_sync_runs' => [
+                    'label' => 'Domain registrar — retry failed sync runs after backoff',
+                    'type' => 'php',
+                    'enabled' => true,
+                    'cron' => '*/30 * * * *',
+                    'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=retry_failed_sync_runs',
+                    'max' => 1,
+                    'max_seconds' => 300,
+                    'notes' => 'Every 30 minutes: re-queues task_queue rows that failed and still have retry budget.',
+                ],
             ],
         ];
         foreach (mh_sync_backup_jobs() as $jobId => $job) {
@@ -510,6 +560,66 @@ function mh_sync_cron_load_cfg(): array {
             'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/sync/index.php --meeting-pending-cleanup',
             'max' => 1,
             'max_seconds' => 60,
+        ];
+    }
+    if (!isset($cfg['jobs']['domain_import_provider_domains'])) {
+        $cfg['jobs']['domain_import_provider_domains'] = [
+            'label' => 'Domain registrar — initial or forced provider portfolio import',
+            'type' => 'php',
+            'enabled' => false,
+            'cron' => 'manual',
+            'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=import_provider_domains --provider=all',
+            'max' => 1,
+            'max_seconds' => 900,
+            'notes' => 'Run manually after adding a new registrar provider to pull every domain in that account into the shared pool.',
+        ];
+    }
+    if (!isset($cfg['jobs']['domain_sync_portfolio'])) {
+        $cfg['jobs']['domain_sync_portfolio'] = [
+            'label' => 'Domain registrar — portfolio refresh (list, status, nameservers, transfers)',
+            'type' => 'php',
+            'enabled' => true,
+            'cron' => '0 */6 * * *',
+            'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_domain_portfolio --provider=all',
+            'max' => 1,
+            'max_seconds' => 1800,
+            'notes' => 'Every 6 hours: re-syncs the portfolio list and persists all domains from each configured registrar provider.',
+        ];
+    }
+    if (!isset($cfg['jobs']['domain_sync_dates'])) {
+        $cfg['jobs']['domain_sync_dates'] = [
+            'label' => 'Domain registrar — refresh expiry, renewal due, grace, and redemption dates',
+            'type' => 'php',
+            'enabled' => true,
+            'cron' => '15 2 * * *',
+            'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_domain_dates --provider=all',
+            'max' => 1,
+            'max_seconds' => 1800,
+            'notes' => 'Daily at 02:15 UTC: refreshes date columns for every domain already in the pool.',
+        ];
+    }
+    if (!isset($cfg['jobs']['domain_sync_pricing'])) {
+        $cfg['jobs']['domain_sync_pricing'] = [
+            'label' => 'Domain registrar — refresh upstream TLD pricing and snapshots',
+            'type' => 'php',
+            'enabled' => true,
+            'cron' => '0 3 * * *',
+            'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=sync_pricing --provider=all',
+            'max' => 1,
+            'max_seconds' => 900,
+            'notes' => 'Daily at 03:00 UTC: pulls fresh pricing from provider APIs and writes a snapshot per TLD.',
+        ];
+    }
+    if (!isset($cfg['jobs']['domain_retry_failed_sync_runs'])) {
+        $cfg['jobs']['domain_retry_failed_sync_runs'] = [
+            'label' => 'Domain registrar — retry failed sync runs after backoff',
+            'type' => 'php',
+            'enabled' => true,
+            'cron' => '*/30 * * * *',
+            'cmd' => '/opt/cpanel/ea-php83/root/usr/bin/php /home/onemeta/public_html/gear/domain-registrars/bin/worker --run-once --job=retry_failed_sync_runs',
+            'max' => 1,
+            'max_seconds' => 300,
+            'notes' => 'Every 30 minutes: re-queues task_queue rows that failed and still have retry budget.',
         ];
     }
 

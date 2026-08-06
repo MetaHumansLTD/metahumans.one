@@ -1,11 +1,23 @@
-# Git-backed job/deployment service for sync, import, and retry work.
+# Git-backed queue-consumer worker for registrar sync, import, and retry work.
+#
+# NOTE: All RECURRING SCHEDULES live in the global sync portal (gear/sync/index.php).
+# This service consumes enqueued tasks only. Set ENABLE_SCHEDULER=false so the
+# in-process CronMatcher does not double-enqueue jobs that are already scheduled
+# by /gear/sync via `php bin/worker --run-once --job=... --provider=...`.
+#
+# To run a specific job immediately from the command line (gear/sync does this):
+#   php bin/worker --run-once --job=sync_domain_portfolio --provider=all
+#   php bin/worker --run-once --job=sync_domain_dates --provider=all
+#   php bin/worker --run-once --job=sync_pricing --provider=all
+#   php bin/worker --run-once --job=retry_failed_sync_runs
+#   php bin/worker --run-once --job=import_provider_domains --provider=netearthone
 
 service:
   name: registrar-worker
   serviceType: job
   projectType: github
   github:
-    repository: https://github.com/MetaHumansLTD/domain-registrars
+    repository: https://github.com/MetaHumansLTD/metahumans.one
     branch: main
   build:
     source: git
@@ -21,11 +33,12 @@ service:
     command:
       - php
       - bin/worker
+    workingDirectory: /var/www/html/gear/domain-registrars
     environment:
       APP_ROLE: worker
       APP_ENV: production
       QUEUE_CONNECTION: redis
-      ENABLE_SCHEDULER: true
+      ENABLE_SCHEDULER: "false"
     mountedSecrets:
       - app-secrets
       - database-secrets
@@ -33,16 +46,13 @@ service:
       - metahumans-coza-provider
       - metahumans-netearthone-provider
       - metahumans-coza-certificates
-  schedules:
-    - job: sync_domain_portfolio
-      cron: "0 */6 * * *"
-    - job: sync_domain_dates
-      cron: "15 2 * * *"
-    - job: sync_pricing
-      cron: "0 3 * * *"
-    - job: retry_failed_sync_runs
-      cron: "*/30 * * * *"
+  schedules: []
   notes:
     - This service owns upstream provider communication, sync jobs, and retries.
     - Keep long-running or provider-sensitive work out of hub and control.
     - Provider credentials must come from mounted secret sets, not `.env` files or app-managed settings.
+    - Scheduling of recurring jobs lives in /gear/sync (mh_sync_cron_load_cfg) and triggers
+      `php bin/worker --run-once --job=<job_code> --provider=<provider_code>` via cron. Do NOT
+      re-add native NF schedules entries here; doing so would double-enqueue.
+    - If you want a standalone long-running queue consumer with no on-demand CLI usage, keep
+      ENABLE_SCHEDULER=false and let the service poll the task_queue table.

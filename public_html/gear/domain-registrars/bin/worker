@@ -5,4 +5,115 @@ declare(strict_types=1);
 /** @var \App\Application $app */
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
+$args = $argv ?? [];
+$args = is_array($args) ? $args : [];
+
+$hasFlag = static function (string $flag) use ($args): bool {
+    return in_array($flag, $args, true);
+};
+
+$flagValue = static function (string $flag) use ($args): ?string {
+    $count = count($args);
+    for ($i = 0; $i < $count; ++$i) {
+        if (! is_string($args[$i]) || $args[$i] !== $flag) {
+            continue;
+        }
+        if (($i + 1) < $count && is_string($args[$i + 1]) && $args[$i + 1] !== '' && $args[$i + 1][0] !== '-') {
+            return $args[$i + 1];
+        }
+    }
+    $withEquals = $flag . '=';
+    foreach ($args as $arg) {
+        if (is_string($arg) && str_starts_with($arg, $withEquals)) {
+            $value = substr($arg, strlen($withEquals));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+    }
+    return null;
+};
+
+if ($hasFlag('--run-once') || $hasFlag('--once')) {
+    $_ENV['WORKER_RUN_ONCE'] = '1';
+    $_SERVER['WORKER_RUN_ONCE'] = '1';
+    putenv('WORKER_RUN_ONCE=1');
+}
+
+$enableScheduler = $app->config()->bool('ENABLE_SCHEDULER', true);
+if (! $enableScheduler) {
+    $_ENV['WORKER_DISABLE_SCHEDULER'] = '1';
+    $_SERVER['WORKER_DISABLE_SCHEDULER'] = '1';
+    putenv('WORKER_DISABLE_SCHEDULER=1');
+}
+
+$jobCode = $flagValue('--job');
+$providerCode = $flagValue('--provider');
+$enqueued = false;
+
+if (is_string($jobCode) && $jobCode !== '') {
+    $jobConfig = require $app->rootPath() . '/config/sync-jobs.php';
+    $knownJobs = $jobConfig['jobs'] ?? [];
+    $targetJob = null;
+    foreach ($knownJobs as $jobDef) {
+        if (($jobDef['code'] ?? null) === $jobCode) {
+            $targetJob = $jobDef;
+            break;
+        }
+    }
+    if ($targetJob === null) {
+        fwrite(STDERR, "Unknown job code: " . $jobCode . PHP_EOL);
+        fwrite(STDOUT, json_encode(['ok' => false, 'error' => 'Unknown job code', 'job' => $jobCode], JSON_UNESCAPED_SLASHES) . PHP_EOL);
+        exit(2);
+    }
+
+    $providers = [];
+    if (is_string($providerCode) && $providerCode !== '') {
+        $providers = $providerCode === 'all'
+            ? array_values(array_filter(
+                is_array($targetJob['providers'] ?? null) ? $targetJob['providers'] : [],
+                static fn (mixed $v): bool => is_string($v) && $v !== '',
+            ))
+            : [$providerCode];
+    } else {
+        $providers = array_slice(array_values(array_filter(
+            is_array($targetJob['providers'] ?? null) ? $targetJob['providers'] : [],
+            static fn (mixed $v): bool => is_string($v) && $v !== '',
+        )), 0, 1);
+    }
+
+    $queue = is_string($targetJob['queue'] ?? null) && $targetJob['queue'] !== '' ? $targetJob['queue'] : 'default';
+    $tenantContext = method_exists($app, 'tenantContext') ? $app->tenantContext() : [];
+    foreach ($providers as $pCode) {
+        $uniqueKey = 'cli-direct:' . $jobCode . ':' . $pCode . ':' . gmdate('YmdHis');
+        try {
+            $payload = $tenantContext;
+            if (is_array($targetJob['handler'] ?? null) || is_string($targetJob['handler'] ?? null)) {
+                $payload['job_handler'] = $targetJob['handler'];
+            }
+            $payload['provider_code'] = $pCode;
+            $payload['_job_code'] = $jobCode;
+            $app->taskQueueRepository()->enqueue(
+                $jobCode,
+                $queue,
+                $payload,
+                priority: 10,
+                maxAttempts: 3,
+                uniqueKey: $uniqueKey,
+            );
+            fwrite(STDOUT, sprintf("[enqueue] job=%s provider=%s queue=%s key=%s\n", $jobCode, $pCode, $queue, $uniqueKey));
+            $enqueued = true;
+        } catch (Throwable $throwable) {
+            fwrite(STDERR, sprintf("[enqueue-failed] job=%s provider=%s error=%s\n", $jobCode, $pCode, $throwable->getMessage()));
+            exit(1);
+        }
+    }
+}
+
+if ($enqueued) {
+    $_ENV['WORKER_RUN_ONCE'] = '1';
+    $_SERVER['WORKER_RUN_ONCE'] = '1';
+    putenv('WORKER_RUN_ONCE=1');
+}
+
 $app->workerService()->run();

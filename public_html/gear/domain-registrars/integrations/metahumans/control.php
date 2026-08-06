@@ -39,18 +39,6 @@ try {
 } catch (Throwable) {
 }
 
-$tenantId = trim((string) ($_SESSION['mh_tenant_id'] ?? ''));
-if ($tenantId === '') {
-    $tenantId = 'user:' . $username;
-}
-
-try {
-    if (function_exists('mh_apply_tenant_context')) {
-        mh_apply_tenant_context($tenantId);
-    }
-} catch (Throwable) {
-}
-
 $_SESSION['current_realm'] = 'control';
 
 $publicRoot = $_ENV['MH_PUBLIC_ROOT'] ?? $_SERVER['MH_PUBLIC_ROOT'] ?? getenv('MH_PUBLIC_ROOT');
@@ -76,6 +64,28 @@ $_SERVER['SHARED_DB_CONFIG_NAME'] = $_SERVER['SHARED_DB_CONFIG_NAME'] ?? 'db_dom
 $_ENV['SHARED_DB_DATABASE_NAME'] = $_ENV['SHARED_DB_DATABASE_NAME'] ?? 'domainname_controller';
 $_SERVER['SHARED_DB_DATABASE_NAME'] = $_SERVER['SHARED_DB_DATABASE_NAME'] ?? 'domainname_controller';
 
+$controlDbConfigId = $_ENV['TENANT_DB_CONFIG_ID'] ?? $_SERVER['TENANT_DB_CONFIG_ID'] ?? getenv('TENANT_DB_CONFIG_ID');
+if (! is_string($controlDbConfigId) || $controlDbConfigId === '') {
+    $controlDbConfigId = $_ENV['SHARED_DB_CONFIG_ID'] ?? $_SERVER['SHARED_DB_CONFIG_ID'] ?? getenv('SHARED_DB_CONFIG_ID');
+}
+if (! is_string($controlDbConfigId) || $controlDbConfigId === '') {
+    $controlDbConfigId = $_ENV['SHARED_DB_CONFIG_NAME'] ?? 'db_domain_registrars_shared';
+}
+$_ENV['TENANT_DB_CONFIG_ID'] = $controlDbConfigId;
+$_SERVER['TENANT_DB_CONFIG_ID'] = $controlDbConfigId;
+
+$controlTenantId = 'registrar:control-pool';
+$_ENV['TENANT_ID'] = $controlTenantId;
+$_SERVER['TENANT_ID'] = $controlTenantId;
+$_SESSION['mh_tenant_id'] = $controlTenantId;
+
+try {
+    if (function_exists('mh_apply_tenant_context')) {
+        mh_apply_tenant_context($controlTenantId);
+    }
+} catch (Throwable) {
+}
+
 $path = parse_url($requestUri, PHP_URL_PATH) ?: '/control/domain-registrars';
 $prefix = '/control/domain-registrars';
 if (str_starts_with($path, $prefix)) {
@@ -93,18 +103,25 @@ try {
     /** @var \App\Application $app */
     $app = require $bootstrapPath;
 
+    try {
+        $app->sharedSchemaLoader()->load();
+    } catch (Throwable) {
+    }
+    try {
+        $app->tenantSchemaLoader()->load();
+    } catch (Throwable) {
+    }
+
     $controller = new ControlController($app);
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
     while (ob_get_level() > 0) {
-        $buffer = (string) ob_get_contents();
-        if (trim($buffer) !== '') {
-            break;
-        }
         ob_end_clean();
     }
 
-    header('Content-Type: text/html; charset=UTF-8');
+    if (! headers_sent()) {
+        header('Content-Type: text/html; charset=UTF-8');
+    }
     try {
         $response = $controller->handle($path, $method, $_GET, $_POST);
     } catch (Throwable $inner) {
@@ -120,7 +137,9 @@ try {
         ob_end_clean();
     }
     error_log('[control/domain-registrars] ' . $exception->getMessage());
-    http_response_code(500);
-    header('Content-Type: text/html; charset=UTF-8');
+    if (! headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=UTF-8');
+    }
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Registrar Control Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Registrar Control Error</h1><p>The control workspace could not be loaded right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p></body></html>';
 }

@@ -63,6 +63,22 @@ RewriteRule ^ws(/.*)?$ ws://10.248.29.198:8222$1 [P,L]
 # Pass Authorization header
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+# Domain registrars: route ALL sub-paths under /control/domain-registrars or
+# /hub/companies/domains or /hub/domains through their top-level bootstrap
+# index files, so nested deep-links (sync/portfolio, edit, renew, etc.) do not
+# 404 just because there is no nested index.php for every sub-folder.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^control/domain-registrars(/.*)?$ /control/domain-registrars/index.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^hub/companies/domains(/.*)?$ /hub/companies/domains/index.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^hub/domains(/.*)?$ /hub/domains/index.php [L,QSA]
+
 <Files ".env">
   Require all denied
 </Files>

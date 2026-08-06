@@ -813,10 +813,19 @@ HTML;
             'environment' => $post['environment'] ?? 'production',
         ];
 
+        $config = [
+            'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
+            'api_base_url' => $this->normalizeProjectPathInput($post['api_base_url'] ?? null),
+            'ip_address' => $this->normalizeWhitespaceSeparated($post['ip_address'] ?? null),
+            'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
+            'default_customer_id' => $this->normalizeNumericString($post['default_customer_id'] ?? null),
+            'default_invoice_option' => $this->normalizeInvoiceOption($post['default_invoice_option'] ?? null),
+        ];
+
         $this->app->providerAccountRepository()->updateSettings(
             (string) $providerAccount['id'],
             $fields,
-            [],
+            $config,
         );
 
         header('Location: ' . $this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
@@ -2156,5 +2165,48 @@ HTML;
     private function selected(string $value, string $option): string
     {
         return $value === $option ? ' selected' : '';
+    }
+
+    private function normalizeWhitespaceSeparated(mixed $value): ?string
+    {
+        $raw = $this->nullableString($value);
+        if ($raw === null) {
+            return null;
+        }
+        $parts = preg_split('/[\s,;]+/', $raw);
+        if (! is_array($parts)) {
+            return $raw;
+        }
+        $cleaned = array_values(array_filter(array_map('trim', $parts), static fn ($v) => $v !== ''));
+        if ($cleaned === []) {
+            return null;
+        }
+        return implode(', ', $cleaned);
+    }
+
+    private function normalizeNumericString(mixed $value): ?string
+    {
+        $raw = $this->nullableString($value);
+        if ($raw === null) {
+            return null;
+        }
+        $digits = preg_replace('/[^0-9]/', '', $raw);
+        if (! is_string($digits) || trim($digits) === '') {
+            return null;
+        }
+        return $digits;
+    }
+
+    private function normalizeInvoiceOption(mixed $value): ?string
+    {
+        $raw = $this->nullableString($value);
+        if ($raw === null) {
+            return null;
+        }
+        $allowed = ['NoInvoice', 'PayInvoice', 'KeepInvoice', 'OnlyAdd'];
+        if (in_array($raw, $allowed, true)) {
+            return $raw;
+        }
+        return 'NoInvoice';
     }
 }
