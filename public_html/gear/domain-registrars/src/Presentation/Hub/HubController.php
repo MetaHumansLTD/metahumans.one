@@ -2227,7 +2227,17 @@ HTML;
 
     private function redirectNow(string $url): never
     {
-        header('Location: ' . $url, true, 303);
+        $escaped = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+        if (! headers_sent()) {
+            header('Location: ' . $url, true, 303);
+            header('Content-Type: text/html; charset=UTF-8', true);
+        }
+        $html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting…</title></head><body style="font-family:system-ui,sans-serif;margin:2rem;"><p>Redirecting to <a href="' . $escaped . '">' . $escaped . '</a>…</p></body></html>';
+        while (ob_get_level() > 0) { if (! @ob_end_clean()) { break; } }
+        if (defined('MH_HUB_OB_CLEANUP')) { @ob_end_clean(); }
+        if (defined('MH_HUB_COMPANIES_DOMAINS_OB_CLEANUP')) { @ob_end_clean(); }
+        if (defined('MH_HUB_DOMAINS_OB_CLEANUP')) { @ob_end_clean(); }
+        echo $html;
         exit;
     }
 

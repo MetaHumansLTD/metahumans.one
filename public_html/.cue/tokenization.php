@@ -183,7 +183,16 @@ function tokenization_enforce_request(): void {
         }
 
         $_SESSION['mh_token_charge_flash'] = $msg;
-        header('Location: ' . $topupUrl);
+        $escapedTopup = htmlspecialchars($topupUrl, ENT_QUOTES, 'UTF-8');
+        if (!headers_sent()) {
+            header('Location: ' . $topupUrl, true, 302);
+            header('Content-Type: text/html; charset=UTF-8', true);
+        }
+        $html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escapedTopup . '"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redirecting&hellip;</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><p>Redirecting to <a style="color:#60a5fa;" href="' . $escapedTopup . '">token top-up</a>.</p></body></html>';
+        while (ob_get_level() > 0) { if (!@ob_end_clean()) { break; } }
+        $swallowConsts = ['MH_CONTROL_DISPATCH_OB_CLEANUP','MH_CTL_OB_CLEANUP','MH_CTL_ORDERS_OB_CLEANUP','MH_CTL_PROVIDERS_OB_CLEANUP','MH_CTL_PROVIDERS_COZA_OB_CLEANUP','MH_CTL_PROVIDERS_NETEARTHONE_OB_CLEANUP','MH_CTL_TASKS_OB_CLEANUP','MH_CTL_TASKS_ENQUEUE_OB_CLEANUP','MH_HUB_COMPANIES_DOMAINS_OB_CLEANUP','MH_HUB_EDIT_OB_CLEANUP','MH_HUB_RENEW_OB_CLEANUP','MH_HUB_REGISTER_OB_CLEANUP','MH_HUB_MANAGE_OB_CLEANUP','MH_HUB_CANCEL_OB_CLEANUP','MH_HUB_ORDERS_CANCEL_OB_CLEANUP','MH_HUB_DOMAINS_OB_CLEANUP','MH_CONTROL_OB_CLEANUP','MH_HUB_OB_CLEANUP'];
+        foreach ($swallowConsts as $c) { if (defined($c)) { @ob_end_clean(); } }
+        echo $html;
         exit;
     } catch (Throwable $e) {
         return;

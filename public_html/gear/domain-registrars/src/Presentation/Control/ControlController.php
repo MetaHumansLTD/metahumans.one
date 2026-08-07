@@ -2001,7 +2001,7 @@ HTML;
         $escaped = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
         if (! headers_sent()) {
             header('Location: ' . $url, true, 302);
-            return '';
+            header('Content-Type: text/html; charset=UTF-8', true);
         }
         return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Redirecting…</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><p>Redirecting to <a style="color:#60a5fa;" href="' . $escaped . '">' . $escaped . '</a>…</p></body></html>';
     }

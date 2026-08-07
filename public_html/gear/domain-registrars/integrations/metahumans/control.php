@@ -17,7 +17,7 @@ while (ob_get_level() > 0) {
 if (ob_get_level() === 0) {
     @ob_start(function (string $buffer, int $phase): string {
         return '';
-    }, 0, PHP_OUTPUT_HANDLER_STDFLAGS ^ PHP_OUTPUT_HANDLER_REMOVABLE);
+    }, 0, PHP_OUTPUT_HANDLER_STDFLAGS);
     define('MH_CONTROL_OB_CLEANUP', true);
 }
 
@@ -53,9 +53,12 @@ if (! isset($_SESSION['mh_auth_user']) || ! is_string($_SESSION['mh_auth_user'])
     $escaped = htmlspecialchars($loginRedirect, ENT_QUOTES, 'UTF-8');
     if (! headers_sent()) {
         header('Location: ' . $loginRedirect, true, 302);
-    } else {
-        echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in required</title></head><body style="font-family:system-ui,sans-serif;margin:2rem;"><p>Please <a href="' . $escaped . '">sign in</a> to access the registrar control panel.</p></body></html>';
+        header('Content-Type: text/html; charset=UTF-8', true);
     }
+    $html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in required</title></head><body style="font-family:system-ui,sans-serif;margin:2rem;"><p>Please <a href="' . $escaped . '">sign in</a> to access the registrar control panel.</p></body></html>';
+    while (ob_get_level() > 0) { if (! @ob_end_clean()) { break; } }
+    if (defined('MH_CONTROL_OB_CLEANUP')) { @ob_end_clean(); }
+    echo $html;
     exit;
 }
 
