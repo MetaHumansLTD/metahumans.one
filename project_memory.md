@@ -66,10 +66,10 @@
 #       backup_changes folder) slated for later session.
 #
 # ---------------------------------------------------------------
-# SESSION 2  (final state — commit a0cfb457, 2026-08-07)
+# SESSION 2  (final state — commit 432d847b, 2026-08-07)
 # ---------------------------------------------------------------
 # Session #2 — 2026-08-07
-#   Commits Applied: a0cfb457 (on top of 67f70da2 from Session #1)
+#   Commits Applied: 432d847b (on top of 67f70da2 from Session #1)
 #   Fixed:
 #     - POST /control/domain-registrars/domains/sync/portfolio (Sync NetEarthOne button):
 #       was HTTP ERROR 500 blank → now 200 OK with redirect via safeRedirect() back to
@@ -146,4 +146,110 @@
 #     7. rubeus.co.za: obtain fresh ZACR auth code → save to domain metadata.auth_code
 #        in DB → re-send EPP update with ns1-ns4.clusterdns → wait 5m → re-read registry
 #        via ensureDomainSyncedForManagement() on /edit/rubeus.co.za/ → verify NS reflected.
+#
+# ---------------------------------------------------------------
+# SESSION 3  (final state — commit 3756d885, 2026-08-07)
+# ---------------------------------------------------------------
+# Session #3 — 2026-08-07
+#   Commits Applied: 3756d885 on top of 432d847b from Session #2.
+#   (Commit uploaded successfully.)
+#   Trigger for this session: user reported commit 432d847b had uploaded but both pages
+#     /control/domain-registrars/providers/netearthone/  AND
+#     /control/domain-registrars/domains/sync/portfolio
+#     were STILL HTTP ERROR 500 blank (WSOD). Git confirmed 432d847b was at both
+#     origin/main and HEAD (push had succeeded), so the issue was deeper code paths,
+#     not missing upload.
+#   Root causes identified (explains why Session #2's fixes weren't sufficient):
+#     1. NO OUTPUT BUFFER STARTED BEFORE CUE BOOTSTRAP. control.php and hub.php
+#        had their aggressive ob_end_clean() loops only at ~line 120 AFTER the
+#        require $cueBootstrapPath (line ~20) AND after session_start, tenant
+#        context apply, bootstrap/app.php require, enableRegistrarPoolMode call,
+#        ControlController construction, and the $method assignment. Between line 5
+#        (error_reporting) and line 120 there were ~100 PHP statements with NO
+#        ob_start() at all. So ANY of the following could leak BOM bytes / echo /
+#        PHP header-preamble output without any capture:
+#          a. require $cueBootstrapPath → cue.php or includes within could echo
+#             debug output, whitespace-before-<?php open tags in other modules,
+#             UTF-8 BOM from includes modified on Windows CIFS shares.
+#          b. require bootstrap/app.php → composer autoload_real → vendor files
+#             can emit whitespace bytes.
+#          c. session_start() → Set-Cookie header requires no prior output; if
+#             any BOM byte was already emitted, headers_sent=TRUE at this point.
+#          d. headers_sent()=true BEFORE we hit line 120 → then line 120's
+#             ob_end_clean had nothing to clean up because no ob was active.
+#     2. THROWS → OUTPUT-ALREADY-SENT → HTTP 500 AFTER COMMIT → BLANK WSOD.
+#        In Session #2's code, both:
+#          a. if (! cue_autoload) throw new RuntimeException('CUE bootstrap path ...')
+#          b. if (! bootstrap file exists) throw new RuntimeException('Domain registrar
+#             bootstrap file is missing.')
+#        were plain throw statements. The outer catch block would run AFTER the
+#        throw but at that point $cueBootstrapPath require had already emitted its
+#        require-once output byte to stdout → headers_sent() true → the inner
+#        if (!headers_sent()) http_response_code(500) was SKIPPED → outer catch
+#        renders its error HTML BUT since headers were already sent with 200 the
+#        Apache/mod_php handler sees "500 status attempted after headers=200"
+#        and replaces the body entirely with a blank HTTP ERROR 500 WSOD.
+#     3. AUTH REDIRECT WITH NO GUARD. Both control.php and hub.php unauthenticated
+#        path did raw header('Location: /auth/login.php?...', true, 302) with NO
+#        headers_sent guard. If BOM bytes leaked → headers_sent=true → redirect
+#        silently ignored → outer catch or 500 fallback runs again with same result.
+#     4. MID-CODE SILENTLY SWALLOWED OB LAYER. The throw at (2a) would bubble up
+#        uncaught until the very last catch. But during the unwind there was no
+#        guarantee there even WAS an ob to clean. Because Session #2 added NO
+#        ob_start at the top.
+#   Fixed in Session #3 (applied symmetrically to BOTH integrations):
+#     a. IMMEDIATELY AFTER error_reporting(0) + ini_set(), start A NEW dedicated
+#        "MH_CONTROL_OB_CLEANUP" / "MH_HUB_OB_CLEANUP" swallow-output buffer.
+#        Uses non-removable flag + callback that returns '' (the most aggressive
+#        output suppression possible in Zend). This runs BEFORE cue.php require,
+#        before session_start, before bootstrap/app.php require. Any BOM byte /
+#        whitespace / echo from includes OR vendor between lines 5 and ~145 now
+#        gets captured and silently discarded.
+#     b. Changed the two early-throw RuntimeExceptions (CUE path missing, bootstrap
+#        file missing) to plaintext 500 exits with headers_sent guards. No throw =
+#        nothing to unwind through 100 layers of potential catch pollution.
+#     c. Added headers_sent() guard + meta-refresh fallback HTML to the two login
+#        redirects (control.php line 51-59 / hub.php line 61-70). Same pattern as
+#        ControlController::safeRedirect() — if headers already leaked emit valid
+#        redirect HTML with a clickable link.
+#     d. The inner ob-clean at line 145+ now ALSO explicitly pops the MH_*_OB_CLEANUP
+#        buffer via if (defined(...)) { @ob_end_clean(); } so no leftover buffers
+#        remain before we start rendering the real response.
+#     e. Rewrote the control/hub integration to accumulate the HTML response into
+#        a single $mhFinalResponse variable (both success path AND catch path
+#        assign $mhFinalResponse instead of directly echo) then ONE SINGLE echo
+#        at the absolute END of the script. This ensures we never echo HTML inside
+#        a conditional path that later 500-catches and tries to echo alternative
+#        HTML (two echo calls back to back would double emit, which with zlib
+#        output handlers on some NF apache builds can manifest as blank WSOD).
+#   Currently known broken (still requires live deploy verification):
+#     - /control/domain-registrars/providers/netearthone/  (Session #3 fix untested)
+#     - /control/domain-registrars/domains/sync/portfolio  (Session #3 fix untested)
+#   Pending investigation:
+#     - Whether the root BOM/whitespace source was cue.php require inside CUE or
+#       vendor/ composer autoload include. If this fix resolves the WSOD we can
+#       leave it as-is (swallow buffer is the correct fix regardless of source).
+#     - rubeus.co.za fresh auth_code (unchanged from prior sessions).
+#     - Northflank 403 guarded restore (unchanged).
+#   Next actions (Session #4, in this order, BEFORE any new work):
+#     1. Deploy Session #3 commit to main → wait for Northflank build + rollout.
+#     2. Hit https://control.metahumans.one/control/domain-registrars/providers/netearthone/
+#        in a logged-out browser: confirm it redirects (302 OR meta-refresh HTML with link)
+#        to /auth/login.php?redirect=... with NO blank 500.
+#     3. Login as KripzMasters → open the same providers/netearthone/ page.
+#        Confirm: no 500, settings panel loads, invoiceOption/creditLimit/notifyEmail
+#        inputs render, credential fields are blank and NOT populated from DB.
+#     4. Save NEO provider settings → confirm round-trip (values come back saved),
+#        credentials still blank + never persisted to config_json.
+#     5. Navigate to /control/domain-registrars/domains/ → click Sync NetEarthOne
+#        button → confirm POST to /control/domain-registrars/domains/sync/portfolio
+#        → no 500, redirect to domains listing with "Queued sync_domain_portfolio"
+#        flash message.
+#     6. After worker processes → reload /control/domain-registrars/ Domains tab
+#        → confirm NEO portfolio with registration/renewal/expiry dates.
+#     7. Implement S1 safeguard: git post-commit hook (as previously planned) that
+#        writes PATCH_NOTES.md + backup_changes/ timestamped file.
+#     8. Implement S2 safeguard: backup_changes/ directory with tgz snapshots.
+#     9. rubeus.co.za ZACR fresh auth_code → EPP re-push with ns1-ns4.clusterdns.
+#
 

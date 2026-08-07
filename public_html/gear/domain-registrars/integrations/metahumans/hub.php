@@ -9,12 +9,27 @@ if (function_exists('error_reporting')) {
 @ini_set('html_errors', '0');
 @ini_set('log_errors', '1');
 
+while (ob_get_level() > 0) {
+    if (!@ob_end_clean()) {
+        break;
+    }
+}
+if (ob_get_level() === 0) {
+    @ob_start(function (string $buffer, int $phase): string {
+        return '';
+    }, 0, PHP_OUTPUT_HANDLER_STDFLAGS ^ PHP_OUTPUT_HANDLER_REMOVABLE);
+    define('MH_HUB_OB_CLEANUP', true);
+}
+
 use App\Presentation\Hub\HubController;
 
 if (! function_exists('cue_autoload')) {
     $cueBootstrapPath = $_ENV['CUE_BOOTSTRAP_PATH'] ?? $_SERVER['CUE_BOOTSTRAP_PATH'] ?? getenv('CUE_BOOTSTRAP_PATH');
     if (! is_string($cueBootstrapPath) || $cueBootstrapPath === '' || ! is_file($cueBootstrapPath)) {
-        throw new RuntimeException('CUE bootstrap path is not available for hub/domains integration.');
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8', true);
+        echo "CUE bootstrap path is not available for hub/domains integration.\n";
+        exit;
     }
 
     require_once $cueBootstrapPath;
@@ -44,7 +59,13 @@ if ($requestUri === '' || $requestUri[0] !== '/') {
 }
 
 if (! isset($_SESSION['mh_auth_user']) || ! is_string($_SESSION['mh_auth_user']) || trim((string) $_SESSION['mh_auth_user']) === '') {
-    header('Location: /auth/login.php?redirect=' . rawurlencode($requestUri), true, 302);
+    $loginRedirect = '/auth/login.php?redirect=' . rawurlencode($requestUri);
+    $escaped = htmlspecialchars($loginRedirect, ENT_QUOTES, 'UTF-8');
+    if (! headers_sent()) {
+        header('Location: ' . $loginRedirect, true, 302);
+    } else {
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' . $escaped . '"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in required</title></head><body style="font-family:system-ui,sans-serif;margin:2rem;"><p>Please <a href="' . $escaped . '">sign in</a> to access hub domain management.</p></body></html>';
+    }
     exit;
 }
 
@@ -94,9 +115,13 @@ $_SERVER['SHARED_DB_DATABASE_NAME'] = $_SERVER['SHARED_DB_DATABASE_NAME'] ?? 'do
 $appRoot = dirname(__DIR__, 2);
 $bootstrapPath = $appRoot . '/bootstrap/app.php';
 if (! is_file($bootstrapPath)) {
-    throw new RuntimeException('Domain registrar bootstrap file is missing.');
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=UTF-8', true);
+    echo "Domain registrar bootstrap file is missing.\n";
+    exit;
 }
 
+$mhFinalResponse = '';
 try {
     /** @var \App\Application $app */
     $app = require $bootstrapPath;
@@ -120,7 +145,12 @@ try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
     while (ob_get_level() > 0) {
-        ob_end_clean();
+        if (!@ob_end_clean()) {
+            break;
+        }
+    }
+    if (defined('MH_HUB_OB_CLEANUP')) {
+        @ob_end_clean();
     }
 
     if (! headers_sent()) {
@@ -135,15 +165,22 @@ try {
     if (! is_string($response) || $response === '') {
         $response = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>No content</h1><p>The server returned an empty response for this hub domain page.</p><p><a style="color:#60a5fa;" href="/hub/companies/domains/">Back to search</a></p></body></html>';
     }
-    echo $response;
+    $mhFinalResponse = $response;
 } catch (Throwable $exception) {
     while (ob_get_level() > 0) {
-        ob_end_clean();
+        if (!@ob_end_clean()) {
+            break;
+        }
+    }
+    if (defined('MH_HUB_OB_CLEANUP')) {
+        @ob_end_clean();
     }
     error_log('[hub/domains] ' . $exception->getMessage());
     if (! headers_sent()) {
         http_response_code(500);
         header('Content-Type: text/html; charset=UTF-8');
     }
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Hub Domains Error</h1><p>The domain workspace could not be loaded right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p><p><a style="color:#60a5fa;" href="/hub/companies/domains/">Back to hub</a></p></body></html>';
+    $mhFinalResponse = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hub Domains Error</title></head><body style="font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0;margin:0;padding:32px;"><h1>Hub Domains Error</h1><p>The domain workspace could not be loaded right now.</p><p style="color:#94a3b8;">' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</p><p><a style="color:#60a5fa;" href="/hub/companies/domains/">Back to hub</a></p></body></html>';
 }
+
+echo $mhFinalResponse;
