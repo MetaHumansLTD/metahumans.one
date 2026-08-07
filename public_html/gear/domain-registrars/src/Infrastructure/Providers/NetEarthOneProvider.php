@@ -384,8 +384,15 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
         ];
     }
 
-    public function updateNameservers(string $domainName, array $nameservers): array
+    /**
+     * @param list<array{hostname: string, ipv4?: string|null, ipv6?: string|null}> $nameservers
+     * @param array{auth_info?: string|null, require_host_objects?: bool} $options
+     * @return array<string, mixed>
+     */
+    public function updateNameservers(string $domainName, array $nameservers, array $options = []): array
     {
+        unset($options);
+
         $domain = $this->syncDomain($domainName, new SyncContext($this->code(), 'nameserver-update'));
         if (! ($domain['ok'] ?? false)) {
             return $domain;
@@ -430,6 +437,68 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
             'message' => (string) ($response['actionstatusdesc'] ?? 'Nameserver update submitted successfully.'),
             'upstream_order_id' => $orderId,
             'nameservers' => $hostnames,
+            'raw' => $response,
+        ];
+    }
+
+    /**
+     * $registrant is the raw registry registrant handle ID (optional for some TLDs).
+     * $contacts maps contact role => registry handle ID; allowed keys are admin, tech, billing.
+     *
+     * @param array{registrant?: string|null, admin?: string|null, tech?: string|null, billing?: string|null} $contacts
+     * @return array<string, mixed>
+     */
+    public function updateContacts(string $domainName, array $contacts): array
+    {
+        $domain = $this->syncDomain($domainName, new SyncContext($this->code(), 'contact-update'));
+        if (! ($domain['ok'] ?? false)) {
+            return $domain;
+        }
+
+        $orderId = (string) ($domain['upstream_order_id'] ?? '');
+        if ($orderId === '') {
+            throw new RuntimeException('NetEarthOne contact updates require an order ID.');
+        }
+
+        $registrantContactId = trim((string) ($contacts['registrant'] ?? ''));
+        $adminContactId = trim((string) ($contacts['admin'] ?? ''));
+        $techContactId = trim((string) ($contacts['tech'] ?? ''));
+        $billingContactId = trim((string) ($contacts['billing'] ?? ''));
+
+        if ($registrantContactId === '' && $adminContactId === '' && $techContactId === '' && $billingContactId === '') {
+            return [
+                'ok' => false,
+                'provider' => $this->code(),
+                'domain_name' => $domainName,
+                'message' => 'Provide at least one contact role (registrant, admin, tech, or billing) to update.',
+            ];
+        }
+
+        $payload = ['order-id' => $orderId];
+        if ($registrantContactId !== '') { $payload['reg-contact-id'] = $registrantContactId; }
+        if ($adminContactId !== '') { $payload['admin-contact-id'] = $adminContactId; }
+        if ($techContactId !== '') { $payload['tech-contact-id'] = $techContactId; }
+        if ($billingContactId !== '') { $payload['billing-contact-id'] = $billingContactId; }
+
+        $response = $this->client->post('domains/modify-contact.json', $payload);
+
+        if ($this->isErrorResponse($response)) {
+            return [
+                'ok' => false,
+                'provider' => $this->code(),
+                'domain_name' => $domainName,
+                'message' => (string) ($response['message'] ?? $response['error'] ?? 'NetEarthOne contact update failed.'),
+                'raw' => $response,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'provider' => $this->code(),
+            'domain_name' => $domainName,
+            'message' => (string) ($response['actionstatusdesc'] ?? 'Contact update submitted successfully.'),
+            'upstream_order_id' => $orderId,
+            'contacts' => $contacts,
             'raw' => $response,
         ];
     }

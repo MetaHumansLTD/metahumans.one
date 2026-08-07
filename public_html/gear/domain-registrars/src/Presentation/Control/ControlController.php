@@ -30,6 +30,7 @@ final class ControlController
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains($query),
             ['/domains/', 'GET'] => $this->renderDomains($query),
+            ['/domains/sync/portfolio', 'GET'] => $this->renderDomains([...$query, 'focus' => 'bulk-sync']),
             ['/domains', 'POST'] => $this->handleDomainBulkAction($post, $query),
             ['/domains/sync', 'POST'] => $this->handleDomainSync($post),
             ['/domains/renew', 'POST'] => $this->handleDomainRenew($post),
