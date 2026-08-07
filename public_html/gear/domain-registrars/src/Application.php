@@ -611,6 +611,8 @@ final class Application
         return array_replace($envResolved, array_intersect_key($stored, array_flip([
             'timeout',
             'api_base_url',
+            'auth_user_id',
+            'api_key',
             'ip_address',
             'pricing_json',
             'default_customer_id',

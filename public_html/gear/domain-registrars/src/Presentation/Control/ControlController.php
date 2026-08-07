@@ -687,7 +687,7 @@ HTML;
                 $ipAddress = $joined;
                 try {
                     $currentStored = $this->app->providerStoredConfig('netearthone');
-                    $mergedConfig = array_replace($currentStored, [
+                    $basePreserve = array_replace($currentStored, [
                         'ip_address' => $joined,
                         'timeout' => (int) (($currentStored['timeout'] ?? $effective['timeout']) ?? 30) ?: 30,
                         'api_base_url' => (string) ($currentStored['api_base_url'] ?? $apiBaseUrl),
@@ -695,6 +695,16 @@ HTML;
                         'default_customer_id' => (string) ($currentStored['default_customer_id'] ?? ($effective['default_customer_id'] ?? '')),
                         'default_invoice_option' => (string) ($currentStored['default_invoice_option'] ?? ($effective['default_invoice_option'] ?? 'NoInvoice')),
                     ]);
+                    if (! isset($basePreserve['auth_user_id']) || trim((string) $basePreserve['auth_user_id']) === '') {
+                        $basePreserve['auth_user_id'] = (string) ($resellerId !== '' ? $resellerId : ($effective['auth_user_id'] ?? ''));
+                    }
+                    if (! isset($basePreserve['api_key']) || trim((string) $basePreserve['api_key']) === '') {
+                        $candidate = (string) ($effective['api_key'] ?? '');
+                        if ($candidate !== '') {
+                            $basePreserve['api_key'] = $candidate;
+                        }
+                    }
+                    $mergedConfig = $basePreserve;
                     $this->app->providerAccountRepository()->updateSettings(
                         (string) $providerAccount['id'],
                         [
@@ -754,16 +764,104 @@ HTML;
 
         $flashMarkup = $flash === '' ? '' : '<div class="notice">' . $this->escape($flash) . '</div>';
         $probeMarkup = '';
+        $probeDiagnosticsMarkup = '';
         if (($query['probe'] ?? null) === 'health') {
+            $envBase = $this->nullableString($_ENV['NETEARTHONE_API_BASE_URL'] ?? getenv('NETEARTHONE_API_BASE_URL'));
+            $envAuthId = $this->nullableString($_ENV['NETEARTHONE_AUTH_USER_ID'] ?? getenv('NETEARTHONE_AUTH_USER_ID'));
+            $envApiKey = $this->nullableString($_ENV['NETEARTHONE_API_KEY'] ?? getenv('NETEARTHONE_API_KEY'));
+            $envIp = $this->nullableString($_ENV['NETEARTHONE_IP_ADDRESS'] ?? getenv('NETEARTHONE_IP_ADDRESS'));
+            $storedAuthId = $this->nullableString($stored['auth_user_id'] ?? null);
+            $storedApiKey = $this->nullableString($stored['api_key'] ?? null);
+            $storedIp = $this->nullableString($stored['ip_address'] ?? null);
+            $effAuthId = $this->nullableString($effective['auth_user_id'] ?? null);
+            $effApiKey = $this->nullableString($effective['api_key'] ?? null);
+
+            $prefixSuffix = function (?string $s): string {
+                if ($s === null) {
+                    return '<em>Not set</em>';
+                }
+                $n = strlen($s);
+                if ($n <= 6) {
+                    return str_repeat('•', $n);
+                }
+                return htmlspecialchars(substr($s, 0, 4), ENT_QUOTES)
+                    . str_repeat('•', max(1, $n - 8))
+                    . htmlspecialchars(substr($s, -4), ENT_QUOTES);
+            };
+
+            $chooseSource = function (?string $env, ?string $stored, ?string $eff, string $name): string {
+                $mark = match (true) {
+                    $eff === null => '<span style="color:#f87171;font-weight:600;">MISSING (no value)</span>',
+                    $stored !== null && $eff === $stored => '<span style="color:#34d399;font-weight:600;">STORED (provider_accounts.config_json)</span>',
+                    $env !== null && $eff === $env => '<span style="color:#60a5fa;font-weight:600;">ENV (Northflank secrets / mounted .env)</span>',
+                    default => '<span style="color:#fbbf24;font-weight:600;">MERGED (check effective)</span>',
+                };
+                return '<tr><td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . htmlspecialchars($name, ENT_QUOTES) . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . $mark . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;">' . $GLOBALS['__probe_ps']($env) . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;">' . $GLOBALS['__probe_ps']($stored) . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;font-weight:600;">' . $GLOBALS['__probe_ps']($eff) . '</td></tr>';
+            };
+            $GLOBALS['__probe_ps'] = $prefixSuffix;
+
+            $healthRaw = null;
+            $probeResult = null;
             try {
                 $provider = $this->app->provider('netearthone');
-                $probeResult = $provider->healthCheck();
-                $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape(
-                    json_encode($probeResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
-                ) . '</pre></article>';
+                if (method_exists($provider, 'healthCheck')) {
+                    $probeResult = $provider->healthCheck();
+                }
             } catch (Throwable $exception) {
-                $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape($exception->getMessage()) . '</pre></article>';
+                $probeResult = ['ok' => false, 'error' => $exception->getMessage(), 'status' => 'API probe failed.'];
             }
+            $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape(
+                json_encode($probeResult ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
+            ) . '</pre></article>';
+
+            $upstreamResponseBody = '';
+            if (is_array($probeResult) && isset($probeResult['raw_response']) && is_string($probeResult['raw_response']) && trim($probeResult['raw_response']) !== '') {
+                $truncated = strlen($probeResult['raw_response']) > 4000
+                    ? substr($probeResult['raw_response'], 0, 4000) . "\n\n[truncated at 4000 chars]"
+                    : $probeResult['raw_response'];
+                $upstreamResponseBody = '<p><strong>Raw LogicBoxes (NEO upstream) response body (truncated):</strong></p>'
+                    . '<pre class="code-block" style="max-height:320px;overflow:auto;">' . $this->escape($truncated) . '</pre>';
+            }
+
+            $sourceTable = $chooseSource($envBase, $this->nullableString($stored['api_base_url'] ?? null), $this->nullableString($effective['api_base_url'] ?? null), 'api_base_url')
+                . $chooseSource($envAuthId, $storedAuthId, $effAuthId, 'auth_user_id (Reseller ID)')
+                . $chooseSource($envApiKey, $storedApiKey, $effApiKey, 'api_key')
+                . $chooseSource($envIp, $storedIp, $this->nullableString($effective['ip_address'] ?? null), 'ip_address');
+            unset($GLOBALS['__probe_ps']);
+
+            $probeDiagnosticsMarkup = <<<HTML
+  <article class="info-card" style="border-color:#3b82f6;background-color:rgba(59,130,246,0.08);">
+    <h2 style="color:#93c5fd;">Secrets Resolution Diagnostics (probe=health)</h2>
+    <p class="muted">This table shows <em>which source</em> each NetEarthOne credential is currently read from at runtime — ENV (Northflank secret sets / mounted secrets), or STORED (provider_accounts.config_json). If both are set, STORED wins. Values are masked and only first/last 4 chars are exposed for correlation against your NF secrets / NEO console.</p>
+    <div style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="text-align:left;color:#93c5fd;">
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">Setting</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">Source used</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">ENV (first 4 •••• last 4)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">STORED (prefix •••• suffix)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">EFFECTIVE (runtime)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {$sourceTable}
+        </tbody>
+      </table>
+    </div>
+    {$upstreamResponseBody}
+    <p class="muted" style="margin-top:10px;"><strong>How to fix mismatches:</strong></p>
+    <ol class="muted" style="margin-top:4px;">
+      <li>If <code>api_key</code> / <code>auth_user_id</code> show a <em>different prefix/suffix</em> in ENV than the actual values you generated in NEO Console → Settings → API, then your Northflank <code>metahumans-netearthone-provider</code> secret group contains <strong>stale values</strong>. Update NF secrets with the key/reseller-id from the NEO popup and re-deploy the NF service so the new env values take effect.</li>
+      <li>If ENV shows "Not set" but STORED shows the correct value, credentials are being read from DB (this is expected when you paste a key into the settings form and click Save Settings — after this commit, save handler finally preserves <code>api_key</code> and <code>auth_user_id</code> in stored config).</li>
+      <li>To rotate: open NEO Console → Settings → API → Regenerate → paste new key into this page's API Key field → Save Settings (no NF redeploy needed if using stored override).</li>
+    </ol>
+  </article>
+HTML;
         }
 
         $ipWhitelistMarkup = '';
@@ -889,6 +987,7 @@ HTML;
   </form>
 </section>
 {$probeMarkup}
+{$probeDiagnosticsMarkup}
 HTML;
 
         return $this->layout('NetEarthOne Settings', $body);
@@ -897,6 +996,8 @@ HTML;
     private function handleNetEarthOneSettingsSave(array $post): string
     {
         $providerAccount = $this->app->providerAccount('netearthone');
+        $currentStored = $this->app->providerStoredConfig('netearthone');
+        $currentEffective = $this->app->providerEffectiveConfig('netearthone');
 
         $fields = [
             'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
@@ -906,11 +1007,23 @@ HTML;
         $config = [
             'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
             'api_base_url' => $this->normalizeProjectPathInput($post['api_base_url'] ?? null),
+            'auth_user_id' => $this->normalizeNumericString($post['auth_user_id'] ?? null),
             'ip_address' => $this->normalizeWhitespaceSeparated($post['ip_address'] ?? null),
             'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
             'default_customer_id' => $this->normalizeNumericString($post['default_customer_id'] ?? null),
             'default_invoice_option' => $this->normalizeInvoiceOption($post['default_invoice_option'] ?? null),
         ];
+
+        $apiKeyInput = $this->normalizeNullableString($post['api_key'] ?? null);
+        if ($apiKeyInput !== null) {
+            $config['api_key'] = $apiKeyInput;
+        } else {
+            $existing = $this->nullableConfigString($currentStored['api_key'] ?? null)
+                ?? $this->nullableConfigString($currentEffective['api_key'] ?? null);
+            if ($existing !== null) {
+                $config['api_key'] = $existing;
+            }
+        }
 
         $this->app->providerAccountRepository()->updateSettings(
             (string) $providerAccount['id'],
@@ -2247,6 +2360,16 @@ HTML;
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function normalizeNullableString(mixed $value): ?string
+    {
+        return $this->nullableString($value);
+    }
+
+    private function nullableConfigString(mixed $value): ?string
+    {
+        return $this->nullableString($value);
     }
 
     private function checked(bool $value): string

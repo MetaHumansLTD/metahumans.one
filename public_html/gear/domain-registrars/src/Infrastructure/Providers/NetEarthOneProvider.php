@@ -69,8 +69,10 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
                     return [
                         'ok' => true,
                         'status' => 'Connected to the NetEarthOne API successfully.',
+                        'raw_response' => json_encode($ping, JSON_UNESCAPED_SLASHES),
                     ];
                 }
+                $fail = is_array($ping) ? $ping : null;
             }
             $empty = $this->client->get('domains/available.json', [
                 'domain-name' => ['metahumans-healthcheck-invalid'],
@@ -82,12 +84,32 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
                 'status' => is_array($empty)
                     ? 'Connected to the NetEarthOne API successfully.'
                     : 'NetEarthOne API responded but without the expected payload shape.',
+                'raw_response' => json_encode(($fail ?? null) ?? $empty, JSON_UNESCAPED_SLASHES),
             ];
         } catch (Throwable $exception) {
+            $prev = $exception->getPrevious();
+            $rawBody = '';
+            if (is_object($prev) && method_exists($prev, 'getResponseBody')) {
+                $b = $prev->getResponseBody();
+                if (is_string($b) && trim($b) !== '') {
+                    $rawBody = $b;
+                }
+            } elseif (is_object($exception) && method_exists($exception, 'getResponseBody')) {
+                $b = $exception->getResponseBody();
+                if (is_string($b) && trim($b) !== '') {
+                    $rawBody = $b;
+                }
+            }
+            if ($rawBody === '' && is_string($exception->getMessage()) && trim($exception->getMessage()) !== '') {
+                $rawBody = $exception->getMessage();
+            }
+
             return [
                 'ok' => false,
                 'error' => $exception->getMessage(),
                 'status' => 'API probe failed.',
+                'raw_response' => $rawBody,
+                'exception_class' => $exception::class,
             ];
         }
     }
