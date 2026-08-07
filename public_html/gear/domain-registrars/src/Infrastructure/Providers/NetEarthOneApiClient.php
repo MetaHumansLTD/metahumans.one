@@ -9,11 +9,38 @@ use RuntimeException;
 final class NetEarthOneApiClient
 {
     public function __construct(
-        private readonly string $baseUrl,
+        string $baseUrl,
         private readonly string $authUserId,
         private readonly string $apiKey,
         private readonly int $timeoutSeconds = 30,
     ) {
+        $this->baseUrl = $this->normalizeBaseUrl($baseUrl);
+    }
+
+    private function normalizeBaseUrl(string $baseUrl): string
+    {
+        $trimmed = rtrim(trim($baseUrl), '/');
+        if ($trimmed === '') {
+            return '';
+        }
+
+        if (preg_match('#/api/?$#', $trimmed) === 1) {
+            return $trimmed;
+        }
+
+        if (str_ends_with($trimmed, '/api/')) {
+            return rtrim($trimmed, '/');
+        }
+
+        if (str_contains($trimmed, '/anacreon/') || str_contains($trimmed, '.xml')) {
+            $host = parse_url($trimmed, PHP_URL_HOST);
+            $scheme = parse_url($trimmed, PHP_URL_SCHEME);
+            if (is_string($host) && $host !== '' && is_string($scheme)) {
+                return $scheme . '://' . $host . '/api';
+            }
+        }
+
+        return $trimmed . '/api';
     }
 
     /**

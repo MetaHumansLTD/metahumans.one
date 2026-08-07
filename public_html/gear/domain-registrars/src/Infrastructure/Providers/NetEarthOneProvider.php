@@ -60,14 +60,17 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
     public function healthCheck(): array
     {
         try {
-            $ping = $this->client->get('customers/details-by-username.json', [
-                'username' => $this->authUserIdOrDefault(),
-            ]);
-            if (is_array($ping) && isset($ping['customerid']) && $ping['customerid'] !== '') {
-                return [
-                    'ok' => true,
-                    'status' => 'Connected to the NetEarthOne API successfully.',
-                ];
+            $authId = $this->authUserIdOrDefault();
+            if ($authId !== '' && ctype_digit($authId)) {
+                $ping = $this->client->get('customers/details-by-id.json', [
+                    'customer-id' => $authId,
+                ]);
+                if (is_array($ping) && (isset($ping['customerid']) || isset($ping['resellerid']))) {
+                    return [
+                        'ok' => true,
+                        'status' => 'Connected to the NetEarthOne API successfully.',
+                    ];
+                }
             }
             $empty = $this->client->get('domains/available.json', [
                 'domain-name' => ['metahumans-healthcheck-invalid'],
@@ -94,13 +97,14 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
      */
     public function listDomains(SyncContext $context): iterable
     {
+        unset($context);
+
         $noOfRecords = 500;
         $page = 1;
         do {
-            $response = $this->client->get('orders/index.json', [
-                'order-by' => 'creationtime desc',
-                'order-type' => 'DomainRegistration',
-                'show-child-orders' => 'false',
+            $response = $this->client->get('domains/search.json', [
+                'order-by' => ['creationtime desc'],
+                'show-child-orders' => false,
                 'status' => ['Active', 'Suspended', 'Pending Delete Restorable', 'Deleted', 'Archived'],
                 'page-no' => $page,
                 'no-of-records' => $noOfRecords,
@@ -110,7 +114,10 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
             }
             $count = 0;
             foreach ($response as $orderId => $row) {
-                if (! is_array($row) || ! isset($row['entitytypeid']) || (string) $row['entitytypeid'] !== '2') {
+                if (! is_array($row)) {
+                    continue;
+                }
+                if (isset($row['entitytypeid']) && (string) $row['entitytypeid'] !== '2') {
                     continue;
                 }
                 ++$count;
