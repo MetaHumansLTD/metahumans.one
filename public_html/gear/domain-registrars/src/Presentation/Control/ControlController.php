@@ -1288,10 +1288,29 @@ HTML;
             'default_customer_id' => $this->nullableConfigString($currentEffective['default_customer_id'] ?? null),
             'default_invoice_option' => $this->nullableConfigString($currentEffective['default_invoice_option'] ?? null) ?? 'NoInvoice',
         ];
+
+        $postNonEmpty = [];
+        foreach ($expectedKeys as $k) {
+            if ($k === 'timeout') {
+                if (isset($post[$k]) && (is_scalar($post[$k]) && (int) $post[$k] > 0)) {
+                    $postNonEmpty[] = $k;
+                }
+                continue;
+            }
+            $v = $post[$k] ?? null;
+            if (is_string($v) && trim($v) !== '') {
+                $postNonEmpty[] = $k;
+            } elseif (is_int($v) && $v > 0) {
+                $postNonEmpty[] = $k;
+            }
+        }
+
+        $filledFromDefaults = [];
         foreach ($defaults as $key => $fallback) {
             $hasAlready = isset($base[$key]) && (is_int($base[$key]) ? $base[$key] > 0 : $this->nullableConfigString($base[$key]) !== null);
             if (! $hasAlready && $fallback !== null) {
                 $base[$key] = $fallback;
+                $filledFromDefaults[] = $key;
             }
         }
 
@@ -1324,7 +1343,13 @@ HTML;
             ? " KEYS OK {$afterCount}/8:[" . implode(',', $afterKeys) . ']'
             : " KEYS {$afterCount}/8 — MISSING:[" . implode(',', $afterMissing) . '] (before save had ' . $beforeCount . ' missing:[' . implode(',', $beforeMissing) . '])';
 
+        $postDiag = ' POST non-empty: ' . count($postNonEmpty) . '/8:[' . implode(',', $postNonEmpty) . ']';
+        $defaultsDiag = count($filledFromDefaults) === 0
+            ? ' (no fallbacks used)'
+            : ' filled-from-effective:[' . implode(',', $filledFromDefaults) . ']';
+
         $flash = 'NetEarthOne settings saved.' . $rowUpdatedAt . $keyStatus
+            . $postDiag . $defaultsDiag
             . ' Stored: auth_user_id=' . $savedAuthIdMasked
             . ', api_key=' . $savedApiKeyMasked
             . ', ip_address=' . $savedIpMasked . '.';

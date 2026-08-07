@@ -154,22 +154,30 @@ final class NetEarthOneApiClient
             'api-key' => $this->apiKey,
         ] + $extraParams;
 
-        $masked = [];
+        $secretsMasked = [];
         foreach ($payload as $k => $v) {
             $s = is_scalar($v) ? (string) $v : '';
             if ($s === '') {
-                $masked[$k] = '';
+                $secretsMasked[$k] = '';
                 continue;
             }
-            if (stripos((string) $k, 'key') !== false || stripos((string) $k, 'secret') !== false || stripos((string) $k, 'password') !== false || stripos((string) $k, 'auth') !== false) {
-                $masked[$k] = self::maskedValue($s);
+            $isSensitive = stripos((string) $k, 'key') !== false || stripos((string) $k, 'secret') !== false || stripos((string) $k, 'password') !== false || stripos((string) $k, 'auth') !== false;
+            if (! $isSensitive) {
+                $secretsMasked[$k] = $s;
+                continue;
+            }
+            $n = strlen($s);
+            if ($n <= 4) {
+                $secretsMasked[$k] = str_repeat('X', $n);
+            } elseif ($n <= 8) {
+                $secretsMasked[$k] = substr($s, 0, 1) . str_repeat('X', max(1, $n - 2)) . substr($s, -1);
             } else {
-                $masked[$k] = $s;
+                $secretsMasked[$k] = substr($s, 0, 4) . str_repeat('X', max(1, $n - 8)) . substr($s, -4);
             }
         }
 
         $url = rtrim($this->baseUrl ?? '', '/') . '/' . ltrim($path, '/');
-        $query = $this->buildQuery($masked);
+        $query = $this->buildQuery($secretsMasked);
         if ($query !== '') {
             $url .= '?' . $query;
         }
