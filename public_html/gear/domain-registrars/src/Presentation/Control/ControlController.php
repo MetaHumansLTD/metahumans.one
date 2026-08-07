@@ -39,6 +39,7 @@ final class ControlController
             ['/domains/assign', 'GET'] => $this->renderDomainAssignPage($query),
             ['/domains/assign', 'POST'] => $this->handleDomainAssign($post),
             ['/domains/sync/portfolio', 'POST'] => $this->handleDomainPortfolioSync($post),
+            ['/domains/import', 'POST'] => $this->handleDomainsImport($post),
             ['/tasks', 'GET'] => $this->renderTasks(),
             ['/providers', 'GET'] => $this->renderProvidersIndex($query),
             ['/providers/', 'GET'] => $this->renderProvidersIndex($query),
@@ -468,17 +469,21 @@ HTML;
         $updated = 0;
         $skipped = 0;
         $errors = [];
+        $providerStats = [];
         foreach ($providerCodes as $code) {
+            $providerStats[$code] = ['seen' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'status' => 'ok'];
             try {
                 $providerAccount = $this->app->providerAccount($code);
                 $providerAccountId = (string) ($providerAccount['id'] ?? '');
                 if ($providerAccountId === '') {
                     $errors[] = sprintf('No provider_accounts row found for %s. Create one or visit /control/domain-registrars/providers/%s first.', $code, $code);
+                    $providerStats[$code]['status'] = 'no-account';
                     continue;
                 }
                 $provider = $this->app->provider($code);
                 if (! $provider instanceof \App\Domain\Provider\Contracts\DomainPortfolioSyncInterface) {
                     $errors[] = sprintf('Provider %s does not implement DomainPortfolioSyncInterface.', $code);
+                    $providerStats[$code]['status'] = 'no-sync';
                     continue;
                 }
                 $ctx = new \App\Domain\Sync\SyncContext($code, 'control-portfolio-sync');
@@ -486,12 +491,15 @@ HTML;
                 foreach ($provider->listDomains($ctx) as $row) {
                     if (! is_array($row) || ! isset($row['domain_name'])) {
                         ++$skipped;
+                        ++$providerStats[$code]['skipped'];
                         continue;
                     }
                     ++$idx;
+                    ++$providerStats[$code]['seen'];
                     $domainName = strtolower(trim((string) $row['domain_name']));
                     if ($domainName === '') {
                         ++$skipped;
+                        ++$providerStats[$code]['skipped'];
                         continue;
                     }
                     try {
@@ -549,11 +557,14 @@ HTML;
                         }
                         if ($existing === null) {
                             ++$inserted;
+                            ++$providerStats[$code]['inserted'];
                         } else {
                             ++$updated;
+                            ++$providerStats[$code]['updated'];
                         }
                     } catch (\Throwable $t) {
                         ++$skipped;
+                        ++$providerStats[$code]['skipped'];
                         $errors[] = sprintf('%s: %s', $domainName, $t->getMessage());
                     }
                     if ($idx >= 10000) {
@@ -561,7 +572,17 @@ HTML;
                     }
                 }
             } catch (\Throwable $t) {
+                $providerStats[$code]['status'] = 'error';
+                $providerStats[$code]['error'] = $t->getMessage();
                 $errors[] = sprintf('Provider %s sync failed: %s', $code, $t->getMessage());
+            }
+        }
+        $statLines = [];
+        foreach ($providerStats as $code => $s) {
+            if (($s['status'] ?? '') === 'error') {
+                $statLines[] = sprintf('%s: ERROR %s (seen=%d, inserted=%d, updated=%d, skipped=%d)', $code, $s['error'] ?? 'unknown', $s['seen'], $s['inserted'], $s['updated'], $s['skipped']);
+            } else {
+                $statLines[] = sprintf('%s: seen=%d, inserted=%d, updated=%d, skipped=%d (%s)', $code, $s['seen'], $s['inserted'], $s['updated'], $s['skipped'], $s['status']);
             }
         }
         $parts = [];
@@ -574,7 +595,13 @@ HTML;
         if ($skipped > 0) {
             $parts[] = sprintf('%d skipped', $skipped);
         }
-        $message = $parts === [] ? 'Sync complete.' : implode(', ', $parts) . '.';
+        $message = 'Sync complete.';
+        if ($statLines !== []) {
+            $message .= ' Provider stats: ' . implode(' | ', $statLines) . '.';
+        }
+        if ($parts !== []) {
+            $message .= ' ' . implode(', ', $parts) . '.';
+        }
         if ($errors !== []) {
             $message .= ' Errors: ' . implode(' | ', array_slice($errors, 0, 10));
             if (count($errors) > 10) {
@@ -1251,6 +1278,17 @@ HTML;
         $defaultInvoiceOptionInput = $this->normalizeInvoiceOption($post['default_invoice_option'] ?? null);
         $apiKeyInputRaw = $this->normalizeNullableString($post['api_key'] ?? null);
 
+        $rawPostAuth = '';
+        if (isset($post['auth_user_id']) && is_scalar($post['auth_user_id'])) {
+            $rawPostAuth = trim((string) $post['auth_user_id']);
+        }
+        $rawPostApiKey = '';
+        if (isset($post['api_key']) && is_scalar($post['api_key'])) {
+            $rawPostApiKey = trim((string) $post['api_key']);
+        }
+        $effectiveAuthLen = strlen((string) ($currentEffective['auth_user_id'] ?? ''));
+        $effectiveApiKeyLen = strlen((string) ($currentEffective['api_key'] ?? ''));
+
         $base = $currentStored;
         if ($timeoutInput > 0) {
             $base['timeout'] = max(5, min(300, $timeoutInput));
@@ -1258,7 +1296,9 @@ HTML;
         if ($apiBaseUrlInput !== null) {
             $base['api_base_url'] = $apiBaseUrlInput;
         }
-        if ($authUserIdInput !== null) {
+        if ($rawPostAuth !== '') {
+            $base['auth_user_id'] = $rawPostAuth;
+        } elseif ($authUserIdInput !== null) {
             $base['auth_user_id'] = $authUserIdInput;
         }
         if ($ipAddressInput !== null) {
@@ -1273,7 +1313,9 @@ HTML;
         if ($defaultInvoiceOptionInput !== null) {
             $base['default_invoice_option'] = $defaultInvoiceOptionInput;
         }
-        if ($apiKeyInputRaw !== null) {
+        if ($rawPostApiKey !== '') {
+            $base['api_key'] = $rawPostApiKey;
+        } elseif ($apiKeyInputRaw !== null) {
             $base['api_key'] = $apiKeyInputRaw;
         }
 
@@ -1347,9 +1389,20 @@ HTML;
         $defaultsDiag = count($filledFromDefaults) === 0
             ? ' (no fallbacks used)'
             : ' filled-from-effective:[' . implode(',', $filledFromDefaults) . ']';
+        $lenDiag = sprintf(
+            ' raw_post:auth=%s/api=%s chars; effective_resolve:auth=%s/api=%s chars; normalize->null? authUserIdInput=%s apiKeyInputRaw=%s; raw->stored auth=%s api=%s',
+            strlen($rawPostAuth),
+            strlen($rawPostApiKey),
+            $effectiveAuthLen,
+            $effectiveApiKeyLen,
+            $authUserIdInput === null ? 'YES-null' : 'OK-' . strlen((string) $authUserIdInput),
+            $apiKeyInputRaw === null ? 'YES-null' : 'OK-' . strlen((string) $apiKeyInputRaw),
+            isset($base['auth_user_id']) && is_string($base['auth_user_id']) ? strlen($base['auth_user_id']) : 'no',
+            isset($base['api_key']) && is_string($base['api_key']) ? strlen($base['api_key']) : 'no',
+        );
 
         $flash = 'NetEarthOne settings saved.' . $rowUpdatedAt . $keyStatus
-            . $postDiag . $defaultsDiag
+            . $postDiag . $defaultsDiag . $lenDiag
             . ' Stored: auth_user_id=' . $savedAuthIdMasked
             . ', api_key=' . $savedApiKeyMasked
             . ', ip_address=' . $savedIpMasked . '.';
@@ -1436,6 +1489,13 @@ HTML;
             }
         }
 
+        $domainsImportPath = $this->escape($this->domainsPath() . '/import');
+        $cozaDomainsCsvPlaceholder = $this->escape(implode("\n", [
+            'domain_name,expires_at,registered_at,registrar_status,customer_id,nameservers,registrant_name,registrant_email',
+            'example.co.za,2027-05-14,2022-05-14,active,,ns1.example.com;ns2.example.com,Example Co Pty Ltd,admin@example.co.za',
+            'test.org.za,2026-12-31,2021-12-31,active,,,Test Person,test@example.org',
+        ]));
+
         $body = <<<HTML
 {$flashMarkup}
 <section class="panel">
@@ -1496,6 +1556,37 @@ HTML;
     </div>
     <div class="form-actions">
       <button type="submit">Save Non-Sensitive Settings</button>
+    </div>
+  </form>
+</section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Registrar Pool Seeding</p>
+      <h2>Seed .co.za domains from CSV</h2>
+      <p class="muted">The ZACR registry does not expose a domain-list command over EPP, so populate your known portfolio from a registry export or registrar CSV. Paste CSV rows below (first line may be a header with columns <code>domain_name</code>, <code>expires_at</code>, <code>registered_at</code>, <code>registrar_status</code>, <code>customer_id</code>, <code>nameservers</code>, <code>registrant_name</code>, <code>registrant_email</code>). Without a header, line format is: <code>domain, owner_type, owner_id, tenant_id, billing_tenant_id, provider_code</code>.</p>
+    </div>
+    <a href="{$this->escape($this->domainsPath())}">Open domains list</a>
+  </div>
+  <form method="post" action="{$domainsImportPath}" enctype="multipart/form-data" class="settings-form">
+    <input type="hidden" name="provider_code" value="coza">
+    <input type="hidden" name="billing_mode" value="registrar">
+    <input type="hidden" name="owner_type" value="registrar">
+    <input type="hidden" name="owner_id" value="pool:coza">
+    <input type="hidden" name="tenant_id" value="registrar:coza">
+    <input type="hidden" name="billing_tenant_id" value="registrar:coza">
+    <div class="form-grid">
+      <label style="grid-column: 1 / -1;">
+        <span>Paste CSV (one domain per line, header optional)</span>
+        <textarea name="import_text" rows="12" spellcheck="false" placeholder="{$cozaDomainsCsvPlaceholder}"></textarea>
+      </label>
+      <label style="grid-column: 1 / -1;">
+        <span>Or upload a CSV file</span>
+        <input type="file" name="import_file" accept=".csv,text/csv,text/plain">
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="button button-primary">Import / Seed .co.za Domains</button>
     </div>
   </form>
 </section>
@@ -1581,6 +1672,12 @@ HTML;
         }
 
         $defaultProvider = trim((string) ($post['provider_code'] ?? 'coza'));
+        $defaultOwnerType = trim((string) ($post['owner_type'] ?? 'user'));
+        $defaultOwnerId = trim((string) ($post['owner_id'] ?? ''));
+        $defaultTenantId = trim((string) ($post['tenant_id'] ?? ''));
+        $defaultBillingTenantId = trim((string) ($post['billing_tenant_id'] ?? $defaultTenantId));
+        $defaultBillingMode = trim((string) ($post['billing_mode'] ?? 'user'));
+
         $providerAccount = $this->app->providerAccount($defaultProvider);
         $providerAccountId = trim((string) ($providerAccount['id'] ?? ''));
         if ($providerAccountId === '') {
@@ -1606,10 +1703,13 @@ HTML;
                 continue;
             }
 
-            $tenantId = trim((string) ($entry['tenant_id'] ?? ''));
-            $ownerType = trim((string) ($entry['owner_type'] ?? 'user'));
-            $ownerId = trim((string) ($entry['owner_id'] ?? ''));
-            $billingTenantId = trim((string) ($entry['billing_tenant_id'] ?? $tenantId));
+            $tenantId = trim((string) ($entry['tenant_id'] ?? $defaultTenantId));
+            $ownerType = trim((string) ($entry['owner_type'] ?? $defaultOwnerType));
+            $ownerId = trim((string) ($entry['owner_id'] ?? $defaultOwnerId));
+            $billingTenantId = trim((string) ($entry['billing_tenant_id'] ?? $defaultBillingTenantId));
+            if ($billingTenantId === '' && $tenantId !== '') {
+                $billingTenantId = $tenantId;
+            }
 
             $this->app->domainRepository()->upsertImportedDomain(
                 $accountId,
@@ -1619,7 +1719,7 @@ HTML;
                     'tenant_id' => $tenantId,
                     'owner_type' => $ownerType,
                     'owner_id' => $ownerId,
-                    'billing_mode' => trim((string) ($entry['billing_mode'] ?? 'user')),
+                    'billing_mode' => trim((string) ($entry['billing_mode'] ?? $defaultBillingMode)),
                     'billing_tenant_id' => $billingTenantId,
                     'registered_at' => $entry['registered_at'] ?? $entry['cdate'] ?? null,
                     'expires_at' => $entry['expires_at'] ?? $entry['expiry'] ?? null,

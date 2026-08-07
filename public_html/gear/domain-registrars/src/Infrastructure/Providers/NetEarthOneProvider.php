@@ -190,16 +190,23 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
     {
         unset($context);
 
+        $authId = (string) $this->client->getAuthUserId();
+
         $noOfRecords = 500;
         $page = 1;
         do {
-            $response = $this->client->get('domains/search.json', [
+            $query = [
                 'order-by' => ['creationtime desc'],
                 'show-child-orders' => false,
                 'status' => ['Active', 'Suspended', 'Pending Delete Restorable', 'Deleted', 'Archived'],
                 'page-no' => $page,
                 'no-of-records' => $noOfRecords,
-            ]);
+            ];
+            if ($authId !== '' && ctype_digit($authId)) {
+                $query['reseller-id'] = [(int) $authId];
+            }
+
+            $response = $this->client->get('domains/search.json', $query);
             if (! is_array($response) || $response === []) {
                 return;
             }
