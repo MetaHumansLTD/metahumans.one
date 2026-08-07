@@ -828,6 +828,70 @@ HTML;
             $hasApiKeyText = $configJsonHasApiKey ? 'YES' : 'NO';
             $displayKeysPresent = $this->escape($configJsonKeys === [] ? '(empty)' : implode(', ', $configJsonKeys));
 
+            $envLookup = function (array $candidates): array {
+                $readOne = function (string $key): ?string {
+                    $v = getenv($key);
+                    if (is_string($v) && $v !== '') {
+                        return $v;
+                    }
+                    if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+                        return $_ENV[$key];
+                    }
+                    if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+                        return $_SERVER[$key];
+                    }
+                    return null;
+                };
+                foreach ($candidates as $c) {
+                    if (! is_string($c) || trim($c) === '') {
+                        continue;
+                    }
+                    $v = $readOne($c);
+                    if ($v !== null) {
+                        return ['key' => $c, 'value' => $v];
+                    }
+                }
+                return ['key' => null, 'value' => null];
+            };
+
+            $envAuthCandidates = ['NETEARTHONE_AUTH_USER_ID','NETEARTHONE_USER_ID','NETEARTHONE_RESELLER_ID','NETEARTHONE_RESELLERID','NETEARTHONE_RESSELLER_ID','NETEARTHONE_RESSELLERID','NEO_RESELLER_ID','NEO_AUTH_USER_ID','NEO_USER_ID','RESELLER_ID','RESELLERID','RESSELLER_ID','RESSELLERID','AUTH_USER_ID','USER_ID'];
+            $envKeyCandidates = ['NETEARTHONE_API_KEY','NETEARTHONE_APIKEY','NETEARTHONE_PASSWORD','NETEARTHONE_AUTH_KEY','NEO_API_KEY','NEO_APIKEY','NEO_PASSWORD','API_KEY','APIKEY','PASSWORD','AUTH_KEY','SECRET'];
+            $envBaseCandidates = ['NETEARTHONE_API_BASE_URL','NETEARTHONE_BASE_URL','NETEARTHONE_ENDPOINT','NEO_API_BASE_URL','NEO_BASE_URL','HTTPAPI_BASE_URL','API_BASE_URL','BASE_URL','ENDPOINT'];
+            $envIpCandidates = ['NETEARTHONE_IP_ADDRESS','NETEARTHONE_IP','NETEARTHONE_WHITELIST_IP','NETEARTHONE_WHITELIST_IPS','NETEARTHONE_ALLOWED_IPS','NETEARTHONE_ALLOWED_IP','NETEARTHONE_ACL_IP','NETEARTHONE_ACL_IPS','NETEARTHONE_OUTBOUND_IP','NETEARTHONE_OUTBOUND_IPS','NETEARTHONE_EGRESS_IP','NETEARTHONE_EGRESS_IPS','NETEARTHONE_CLIENT_IPS','NEO_IP_ADDRESS','NEO_IP','NEO_WHITELIST_IP','NEO_WHITELIST_IPS','NEO_ALLOWED_IPS','NEO_ALLOWED_IP','NEO_ACL_IP','NEO_ACL_IPS','NEO_OUTBOUND_IP','NEO_OUTBOUND_IPS','NEO_EGRESS_IP','NEO_EGRESS_IPS','IP_ADDRESS','IP','IP_ADDRESSES','WHITELIST_IP','WHITELIST_IPS','ALLOWED_IP','ALLOWED_IPS','ACL_IP','ACL_IPS','CLIENT_IP','CLIENT_IPS','OUTBOUND_IP','OUTBOUND_IPS','EGRESS_IP','EGRESS_IPS'];
+
+            $envAuthResolved = $envLookup($envAuthCandidates);
+            $envKeyResolved = $envLookup($envKeyCandidates);
+            $envBaseResolved = $envLookup($envBaseCandidates);
+            $envIpResolved = $envLookup($envIpCandidates);
+
+            $maskedEnvFn = static function (?string $s): string {
+                if ($s === null) {
+                    return '<em style="color:#94a3b8;">Not set</em>';
+                }
+                $n = strlen($s);
+                if ($n <= 8) {
+                    return '<span style="font-family:ui-monospace,monospace;">' . str_repeat('•', $n) . '</span>';
+                }
+                return '<span style="font-family:ui-monospace,monospace;">'
+                    . htmlspecialchars(substr($s, 0, 4), ENT_QUOTES)
+                    . '<span style="color:#64748b;">' . str_repeat('•', max(1, $n - 8)) . '</span>'
+                    . htmlspecialchars(substr($s, -4), ENT_QUOTES)
+                    . '</span>';
+            };
+
+            $envAuthKeyBadge = $envAuthResolved['key'] !== null
+                ? '<span style="color:#34d399;font-weight:600;">✅ via getenv(' . htmlspecialchars($envAuthResolved['key'], ENT_QUOTES) . ')</span> → ' . $maskedEnvFn($envAuthResolved['value'])
+                : '<span style="color:#f87171;font-weight:600;">❌ No env var found (checked: NETEARTHONE_AUTH_USER_ID, NEO_AUTH_USER_ID, RESELLER_ID, AUTH_USER_ID + 11 aliases)</span>';
+            $envKeyKeyBadge = $envKeyResolved['key'] !== null
+                ? '<span style="color:#34d399;font-weight:600;">✅ via getenv(' . htmlspecialchars($envKeyResolved['key'], ENT_QUOTES) . ')</span> → ' . $maskedEnvFn($envKeyResolved['value'])
+                : '<span style="color:#f87171;font-weight:600;">❌ No env var found (checked: NETEARTHONE_API_KEY, NEO_API_KEY, API_KEY + 9 aliases)</span>';
+            $envBaseKeyBadge = $envBaseResolved['key'] !== null
+                ? '<span style="color:#34d399;font-weight:600;">✅ via getenv(' . htmlspecialchars($envBaseResolved['key'], ENT_QUOTES) . ')</span> → ' . $maskedEnvFn($envBaseResolved['value'])
+                : '<span style="color:#fbbf24;font-weight:600;">⚠️ No env var found (will use default https://httpapi.com/api)</span>';
+            $envIpKeyBadge = $envIpResolved['key'] !== null
+                ? '<span style="color:#34d399;font-weight:600;">✅ via getenv(' . htmlspecialchars($envIpResolved['key'], ENT_QUOTES) . ')</span> → ' . $maskedEnvFn($envIpResolved['value'])
+                : '<em style="color:#94a3b8;">No env var set (IP will be auto-detected and/or saved via form)</em>';
+
             $probeResult = null;
             try {
                 $provider = $this->app->provider('netearthone');
@@ -900,6 +964,16 @@ HTML;
          &nbsp;·&nbsp; has api_key key: <code style="color:{$hasApiKeyColor};">{$hasApiKeyText}</code></p>
       <p style="margin:4px 0;font-size:12px;">keys present in config_json: <code style="word-break:break-all;">{$displayKeysPresent}</code></p>
       <p class="muted" style="margin:8px 0 4px 0;font-size:11px;">If has auth_user_id / has api_key above show ❌NO, click <strong>Save Settings</strong> ONCE with the API Key password field populated (paste DS8D..mltf) and Reseller ID field showing 400454 — the post-save flash will show either <code>KEYS OK 8/8</code> or list missing keys (before/after counts). This confirms save handler actually wrote credentials into DB.</p>
+    </div>
+
+    <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
+      <p style="margin:4px 0;font-size:13px;"><strong style="color:#f59e0b;">ENV VAR KEY NAME resolution (exactly which Northflank secret key populated each field):</strong></p>
+      <p class="muted" style="margin:2px 0 6px 0;font-size:11px;">If a Northflank secret group uses a KEY NAME not in the alias list below, the value will be silently missed and credentials will appear to be "missing" even though NF shows the secret is set. Green badges show the EXACT key name that was matched by the getenv() / $_ENV reader.</p>
+      <p style="margin:4px 0;font-size:12px;"><strong>auth_user_id (Reseller ID):</strong> {$envAuthKeyBadge}</p>
+      <p style="margin:4px 0;font-size:12px;"><strong>api_key:</strong> {$envKeyKeyBadge}</p>
+      <p style="margin:4px 0;font-size:12px;"><strong>api_base_url:</strong> {$envBaseKeyBadge}</p>
+      <p style="margin:4px 0;font-size:12px;"><strong>ip_address:</strong> {$envIpKeyBadge}</p>
+      <p class="muted" style="margin:6px 0 0 0;font-size:11px;">Full alias list checked: auth_user_id → NETEARTHONE_AUTH_USER_ID, NETEARTHONE_USER_ID, NETEARTHONE_RESELLER_ID, NETEARTHONE_RESELLERID, NETEARTHONE_RESSELLER_ID, NETEARTHONE_RESSELLERID, NEO_RESELLER_ID, NEO_AUTH_USER_ID, NEO_USER_ID, RESELLER_ID, RESELLERID, RESSELLER_ID, RESSELLERID, AUTH_USER_ID, USER_ID. api_key → NETEARTHONE_API_KEY, NETEARTHONE_APIKEY, NETEARTHONE_PASSWORD, NETEARTHONE_AUTH_KEY, NEO_API_KEY, NEO_APIKEY, NEO_PASSWORD, API_KEY, APIKEY, PASSWORD, AUTH_KEY, SECRET. If the badge shows ❌NO, add the secret under one of these key names in NF or use the form + Save to write a STORED override.</p>
     </div>
 
     <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
@@ -1100,19 +1174,12 @@ HTML;
         $base = $currentStored;
         if ($timeoutInput > 0) {
             $base['timeout'] = max(5, min(300, $timeoutInput));
-        } elseif (! isset($base['timeout']) || (int) $base['timeout'] <= 0) {
-            $base['timeout'] = 30;
         }
         if ($apiBaseUrlInput !== null) {
             $base['api_base_url'] = $apiBaseUrlInput;
         }
         if ($authUserIdInput !== null) {
             $base['auth_user_id'] = $authUserIdInput;
-        } elseif (! isset($base['auth_user_id']) || trim((string) $base['auth_user_id']) === '') {
-            $fallbackAuth = $this->nullableConfigString($currentEffective['auth_user_id'] ?? null);
-            if ($fallbackAuth !== null) {
-                $base['auth_user_id'] = $fallbackAuth;
-            }
         }
         if ($ipAddressInput !== null) {
             $base['ip_address'] = $ipAddressInput;
@@ -1122,30 +1189,34 @@ HTML;
         }
         if ($defaultCustomerIdInput !== null) {
             $base['default_customer_id'] = $defaultCustomerIdInput;
-        } elseif (! isset($base['default_customer_id']) || trim((string) $base['default_customer_id']) === '') {
-            $fallbackCust = $this->nullableConfigString($currentEffective['default_customer_id'] ?? null);
-            if ($fallbackCust !== null) {
-                $base['default_customer_id'] = $fallbackCust;
-            }
         }
         if ($defaultInvoiceOptionInput !== null) {
             $base['default_invoice_option'] = $defaultInvoiceOptionInput;
-        } elseif (! isset($base['default_invoice_option']) || trim((string) $base['default_invoice_option']) === '') {
-            $base['default_invoice_option'] = $this->nullableConfigString($currentEffective['default_invoice_option'] ?? null) ?? 'NoInvoice';
         }
-
         if ($apiKeyInputRaw !== null) {
             $base['api_key'] = $apiKeyInputRaw;
-        } elseif (! isset($base['api_key']) || trim((string) $base['api_key']) === '') {
-            $fallbackKey = $this->nullableConfigString($currentEffective['api_key'] ?? null);
-            if ($fallbackKey !== null) {
-                $base['api_key'] = $fallbackKey;
+        }
+
+        $expectedKeys = ['timeout', 'api_base_url', 'auth_user_id', 'api_key', 'ip_address', 'pricing_json', 'default_customer_id', 'default_invoice_option'];
+        $defaults = [
+            'timeout' => 30,
+            'api_base_url' => $this->nullableConfigString($currentEffective['api_base_url'] ?? null) ?? 'https://httpapi.com/api',
+            'auth_user_id' => $this->nullableConfigString($currentEffective['auth_user_id'] ?? null),
+            'api_key' => $this->nullableConfigString($currentEffective['api_key'] ?? null),
+            'ip_address' => $this->nullableConfigString($currentEffective['ip_address'] ?? null),
+            'pricing_json' => $this->nullableConfigString($currentEffective['pricing_json'] ?? null) ?? 'config/pricing/netearthone.custom.json',
+            'default_customer_id' => $this->nullableConfigString($currentEffective['default_customer_id'] ?? null),
+            'default_invoice_option' => $this->nullableConfigString($currentEffective['default_invoice_option'] ?? null) ?? 'NoInvoice',
+        ];
+        foreach ($defaults as $key => $fallback) {
+            $hasAlready = isset($base[$key]) && (is_int($base[$key]) ? $base[$key] > 0 : $this->nullableConfigString($base[$key]) !== null);
+            if (! $hasAlready && $fallback !== null) {
+                $base[$key] = $fallback;
             }
         }
 
         $config = $base;
 
-        $expectedKeys = ['timeout', 'api_base_url', 'auth_user_id', 'api_key', 'ip_address', 'pricing_json', 'default_customer_id', 'default_invoice_option'];
         $beforeKeys = array_values(array_keys($currentStored));
         $beforeMissing = array_values(array_diff($expectedKeys, $beforeKeys));
         $beforeCount = count($beforeKeys);
