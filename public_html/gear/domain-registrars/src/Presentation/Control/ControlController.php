@@ -864,6 +864,27 @@ HTML;
                 . $chooseSource($envApiKey, $storedApiKey, $effApiKey, 'api_key')
                 . $chooseSource($envIp, $storedIp, $this->nullableString($effective['ip_address'] ?? null), 'ip_address');
 
+            $neoStackIps = $this->detectApiOutboundIps();
+            $neoStackIpHtml = '<em style="color:#94a3b8;">None detected (check cURL / outbound network)</em>';
+            if ($neoStackIps !== []) {
+                $neoStackIpHtml = implode('<br>', array_map(
+                    fn (string $ip): string => '<code style="font-size:12px;">' . htmlspecialchars($ip, ENT_QUOTES) . '</code>',
+                    array_values(array_unique($neoStackIps)),
+                ));
+            }
+            $normalDetectIps = $this->detectPublicOutboundIps();
+            $normalDiff = [];
+            foreach ($neoStackIps as $ip) {
+                if (! in_array($ip, $normalDetectIps, true)) {
+                    $normalDiff[] = $ip;
+                }
+            }
+            $ipMatchBadge = ($neoStackIps === [] || $normalDetectIps === [])
+                ? '<span style="color:#94a3b8;">(no comparison data)</span>'
+                : (($normalDiff === [])
+                    ? '<span style="color:#34d399;font-weight:600;">✅ MATCH — Neo stack outbound IP equals detected public IP. NEO whitelist of this IP should work.</span>'
+                    : '<span style="color:#f87171;font-weight:600;">⚠️ MISMATCH — Neo cURL stack sees different IPs (above) vs generic detection: <code>' . htmlspecialchars(implode(',', $normalDetectIps), ENT_QUOTES) . '</code>. Add ALL listed IPs to NEO Allowed IPs.</span>');
+
             $probeDiagnosticsMarkup = <<<HTML
   <article class="info-card" style="border-color:#3b82f6;background-color:rgba(59,130,246,0.08);">
     <h2 style="color:#93c5fd;">Secrets Resolution Diagnostics (probe=health)</h2>
@@ -878,6 +899,14 @@ HTML;
       <p style="margin:4px 0;font-size:12px;">config_json has auth_user_id key: <code style="color:{$hasAuthColor};">{$hasAuthText}</code>
          &nbsp;·&nbsp; has api_key key: <code style="color:{$hasApiKeyColor};">{$hasApiKeyText}</code></p>
       <p style="margin:4px 0;font-size:12px;">keys present in config_json: <code style="word-break:break-all;">{$displayKeysPresent}</code></p>
+      <p class="muted" style="margin:8px 0 4px 0;font-size:11px;">If has auth_user_id / has api_key above show ❌NO, click <strong>Save Settings</strong> ONCE with the API Key password field populated (paste DS8D..mltf) and Reseller ID field showing 400454 — the post-save flash will show either <code>KEYS OK 8/8</code> or list missing keys (before/after counts). This confirms save handler actually wrote credentials into DB.</p>
+    </div>
+
+    <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
+      <p style="margin:4px 0;font-size:13px;"><strong style="color:#c084fc;">Outbound SOURCE IP used for NetEarthOne cURL calls (CURLOPT_IPRESOLVE forced to IPv4):</strong></p>
+      <p style="margin:4px 0;font-size:12px;">These are the EXACT IPs LogicBoxes/NEO will see when <code>customers/details-by-id.json</code> is called:<br>{$neoStackIpHtml}</p>
+      <p style="margin:6px 0 2px 0;font-size:12px;">{$ipMatchBadge}</p>
+      <p class="muted" style="margin:6px 0 0 0;font-size:11px;">Force-IPv4 is now <strong>always enabled</strong> for NetEarthOne API client cURL requests (since this commit). Previously the cURL could prefer AAAA (IPv6) and egress from a different IP that wasn't whitelisted → "You are not allowed to perform this action" even though 35.225.15.93 was in the whitelist.</p>
     </div>
 
     <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
@@ -906,13 +935,14 @@ HTML;
 
     {$upstreamResponseBody}
 
-    <p style="margin-top:14px;" class="muted"><strong>How to fix mismatches / Invalid credentials:</strong></p>
+    <p style="margin-top:14px;" class="muted"><strong>How to fix mismatches / "not allowed" / "invalid credentials":</strong></p>
     <ol class="muted" style="margin-top:4px;">
-      <li>If the <strong>Wire values</strong> above show <code>KGt8••••WpFP</code> (OLD) but you saved/pasted a new key like <code>DS8D••••mltf</code>, then either: (a) save handler didn't persist (check above: <em>config_json has api_key key: YES/NO</em> must show YES after save, with correct prefix), or (b) provider was cached with old credentials → after a confirmed saved, <strong>reload the page (hard refresh)</strong> or redeploy to clear cached instances.</li>
+      <li><strong>IP WHITELIST FIRST:</strong> Copy every IP from <em>"Outbound SOURCE IP used for NetEarthOne cURL calls"</em> panel above → go to NEO Console → Settings → API → Security → Allowed IPs → paste each IP (NEO only allows single IPs, not CIDR) → <strong>Save whitelisted IP addresses</strong>. If the panel shows ✅MATCH, whitelisting 35.225.15.93 alone is sufficient.</li>
+      <li>If the <strong>Wire values</strong> above show <code>KGt8••••WpFP</code> (OLD) but you saved/pasted a new key like <code>DS8D••••mltf</code>, then either: (a) save handler didn't persist (check DB row panel: <em>config_json has api_key key: YES/NO</em> must show YES after save, with correct prefix), or (b) provider was cached with old credentials → after a confirmed saved, <strong>reload the page (hard refresh)</strong> or redeploy to clear cached instances.</li>
       <li>If ENV column shows OLD stale credentials but you want the new key: update <code>NETEARTHONE_API_KEY</code> + <code>NETEARTHONE_AUTH_USER_ID</code> in Northflank <code>metahumans-netearthone-provider</code> secret group to match NEO popup, then redeploy the NF service (env only changes on new container instances).</li>
-      <li>If STORED column should contain the newly-saved key but shows Not set: click Save Settings <em>once</em> and look for the green flash banner, which now explicitly lists <code>"Stored: auth_user_id=… api_key=…"</code> masked strings as confirmation. If flash shows the correct masked key, the DB write succeeded; if it still shows old values, inspect config_json keys section above.</li>
-      <li>After you confirm Wire === EFFECTIVE === the new key from your NEO popup, re-run health probe. If it still says "Invalid credentials", that means NEO has the key still pending propagation (wait up to 2 minutes and retry), or the auth_user_id and api_key belong to different accounts — double-check the Reseller ID shown in the top of NEO Console.</li>
-      <li>To rotate without touching NF: paste the new key into the API Key password field → <strong>Save Settings</strong> (STORED override wins — no redeploy needed).</li>
+      <li>If STORED column should contain the newly-saved key but shows Not set: click Save Settings <em>once</em> and look for the green flash banner, which now explicitly lists <code>"KEYS OK 8/8 [...] Stored: auth_user_id=… api_key=…"</code> masked strings as confirmation. If flash shows the correct masked key, the DB write succeeded; if it still shows old values, inspect config_json keys section above.</li>
+      <li>After you confirm <em>Outbound SOURCE IP</em> panel has ✅MATCH, Wire === EFFECTIVE === the new key from your NEO popup, re-run health probe. If it still says "Invalid credentials", NEO key propagation may still be pending (wait up to 2 minutes and retry), or the auth_user_id and api_key belong to different accounts — double-check the Reseller ID shown at the very top of the NEO Console header.</li>
+      <li>To rotate without touching NF: paste the new key into the API Key password field → <strong>Save Settings</strong> (STORED override wins — no redeploy needed). Post-save flash confirms stored masked key matches paste.</li>
     </ol>
   </article>
 HTML;
@@ -1115,6 +1145,11 @@ HTML;
 
         $config = $base;
 
+        $expectedKeys = ['timeout', 'api_base_url', 'auth_user_id', 'api_key', 'ip_address', 'pricing_json', 'default_customer_id', 'default_invoice_option'];
+        $beforeKeys = array_values(array_keys($currentStored));
+        $beforeMissing = array_values(array_diff($expectedKeys, $beforeKeys));
+        $beforeCount = count($beforeKeys);
+
         $this->app->providerAccountRepository()->updateSettings(
             (string) $providerAccount['id'],
             $fields,
@@ -1123,6 +1158,9 @@ HTML;
 
         $reload = $this->app->providerAccountRepository()->findByCode('netearthone');
         $reloadStored = $this->app->providerAccountRepository()->decodeConfig($reload);
+        $afterKeys = array_values(array_keys($reloadStored));
+        $afterMissing = array_values(array_diff($expectedKeys, $afterKeys));
+        $afterCount = count($afterKeys);
         $savedAuthIdMasked = $this->maskedSecret((string) ($reloadStored['auth_user_id'] ?? ''));
         $savedApiKeyMasked = $this->maskedSecret((string) ($reloadStored['api_key'] ?? ''));
         $savedIpMasked = $this->escape((string) ($reloadStored['ip_address'] ?? 'Not configured'));
@@ -1131,7 +1169,11 @@ HTML;
             $rowUpdatedAt = ' (updated_at=' . $this->escape((string) $reload['updated_at']) . ')';
         }
 
-        $flash = 'NetEarthOne settings saved.' . $rowUpdatedAt
+        $keyStatus = count($afterMissing) === 0
+            ? " KEYS OK {$afterCount}/8:[" . implode(',', $afterKeys) . ']'
+            : " KEYS {$afterCount}/8 — MISSING:[" . implode(',', $afterMissing) . '] (before save had ' . $beforeCount . ' missing:[' . implode(',', $beforeMissing) . '])';
+
+        $flash = 'NetEarthOne settings saved.' . $rowUpdatedAt . $keyStatus
             . ' Stored: auth_user_id=' . $savedAuthIdMasked
             . ', api_key=' . $savedApiKeyMasked
             . ', ip_address=' . $savedIpMasked . '.';
@@ -2540,6 +2582,7 @@ HTML;
             return $cached;
         }
 
+        $ips = [];
         $urls = [
             'https://api.ipify.org' => 3,
             'https://checkip.amazonaws.com' => 3,
@@ -2548,54 +2591,115 @@ HTML;
             'https://ipinfo.io/ip' => 3,
             'https://ident.me' => 3,
         ];
-
-        $ips = [];
         foreach ($urls as $url => $timeout) {
-            try {
-                $ch = curl_init($url);
-                if ($ch === false) {
-                    continue;
-                }
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_CONNECTTIMEOUT => $timeout,
-                    CURLOPT_TIMEOUT => $timeout + 2,
-                    CURLOPT_SSL_VERIFYPEER => true,
-                    CURLOPT_SSL_VERIFYHOST => 2,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 3,
-                    CURLOPT_USERAGENT => 'metahumans-registrar/1.0',
-                ]);
-                $response = curl_exec($ch);
-                $code = 0;
-                if (is_string($response)) {
-                    $info = curl_getinfo($ch);
-                    $code = (int) (is_array($info) && isset($info['http_code']) ? $info['http_code'] : 0);
-                }
-                curl_close($ch);
-                if (! is_string($response) || $code < 200 || $code >= 300) {
-                    continue;
-                }
-                $candidate = trim((string) $response);
-                if ($candidate === '') {
-                    continue;
-                }
-                $ip = @inet_pton($candidate);
-                if ($ip === false || $ip === '') {
-                    continue;
-                }
-                if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-                    continue;
-                }
-                $ips[] = $candidate;
-            } catch (\Throwable) {
+            $candidate = $this->fetchExternalIpWithNeoCurlStack($url, $timeout + 2);
+            if ($candidate === null) {
                 continue;
             }
+            $ip = @inet_pton($candidate);
+            if ($ip === false || $ip === '') {
+                continue;
+            }
+            if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                continue;
+            }
+            $ips[] = $candidate;
         }
 
         $unique = array_values(array_unique(array_filter($ips, static fn (string $i): bool => $i !== '')));
         $cached = $unique;
 
         return $unique;
+    }
+
+    /**
+     * Fetches an external IP check URL using EXACTLY the same cURL options (including
+     * CURLOPT_IPRESOLVE_V4) that NetEarthOneApiClient uses for outbound API calls.
+     * This ensures the returned IP is what LogicBoxes/NetEarthOne actually sees as the
+     * source IP of our request (so we can detect IPv6-vs-IPv4 routing issues).
+     */
+    private function fetchExternalIpWithNeoCurlStack(string $url, int $timeoutSeconds): ?string
+    {
+        $curl = curl_init();
+        if ($curl === false) {
+            return null;
+        }
+
+        curl_setopt_array(
+            $curl,
+            [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 3,
+                CURLOPT_TIMEOUT => max(2, $timeoutSeconds),
+                CURLOPT_CONNECTTIMEOUT => min(3, max(1, $timeoutSeconds)),
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_USERAGENT => 'metahumans-registrar/1.0',
+                CURLOPT_HTTPHEADER => ['Accept: text/plain'],
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            ],
+        );
+
+        $body = curl_exec($curl);
+        $httpCode = 0;
+        if (is_string($body)) {
+            $info = curl_getinfo($curl);
+            $httpCode = (int) (is_array($info) && isset($info['http_code']) ? $info['http_code'] : 0);
+        }
+        curl_close($curl);
+
+        if (! is_string($body)) {
+            return null;
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            return null;
+        }
+
+        $trimmed = trim($body);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * Detects the server's outbound SOURCE IP as seen by external check services — but
+     * FORCES the same cURL stack and IPv4-only resolution used for NetEarthOne API calls.
+     * If all NEO-stack checks fail, falls back to detectPublicOutboundIps().
+     *
+     * @return list<string>
+     */
+    private function detectApiOutboundIps(): array
+    {
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $ips = [];
+        $urls = [
+            'https://api.ipify.org' => 3,
+            'https://checkip.amazonaws.com' => 3,
+            'https://ifconfig.me/ip' => 3,
+            'https://icanhazip.com' => 3,
+        ];
+        foreach ($urls as $url => $timeout) {
+            $candidate = $this->fetchExternalIpWithNeoCurlStack($url, $timeout);
+            if ($candidate === null) {
+                continue;
+            }
+            if (@inet_pton($candidate) === false || @inet_pton($candidate) === '') {
+                continue;
+            }
+            if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                continue;
+            }
+            $ips[] = $candidate;
+        }
+
+        $unique = array_values(array_unique(array_filter($ips, static fn (string $i): bool => $i !== '')));
+        $cached = $unique === [] ? $this->detectPublicOutboundIps() : $unique;
+
+        return $cached;
     }
 }

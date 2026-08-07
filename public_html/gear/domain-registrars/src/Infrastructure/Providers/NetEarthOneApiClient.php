@@ -94,6 +94,7 @@ final class NetEarthOneApiClient
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_HTTPHEADER => ['Accept: application/json'],
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
             ],
         );
 
