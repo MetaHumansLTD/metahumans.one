@@ -134,6 +134,48 @@ final class NetEarthOneApiClient
         return $this->authUserId;
     }
 
+    public function getApiKey(): string
+    {
+        return $this->apiKey;
+    }
+
+    public function getBaseUrl(): string
+    {
+        return $this->baseUrl ?? '';
+    }
+
+    /**
+     * @param array<string, mixed> $extraParams
+     */
+    public function buildFullUrlForDiagnostics(string $path, array $extraParams = []): string
+    {
+        $payload = [
+            'auth-userid' => $this->authUserId,
+            'api-key' => $this->apiKey,
+        ] + $extraParams;
+
+        $masked = [];
+        foreach ($payload as $k => $v) {
+            $s = is_scalar($v) ? (string) $v : '';
+            if ($s === '') {
+                $masked[$k] = '';
+                continue;
+            }
+            if (stripos((string) $k, 'key') !== false || stripos((string) $k, 'secret') !== false || stripos((string) $k, 'password') !== false || stripos((string) $k, 'auth') !== false) {
+                $masked[$k] = self::maskedValue($s);
+            } else {
+                $masked[$k] = $s;
+            }
+        }
+
+        $url = rtrim($this->baseUrl ?? '', '/') . '/' . ltrim($path, '/');
+        $query = $this->buildQuery($masked);
+        if ($query !== '') {
+            $url .= '?' . $query;
+        }
+        return $url;
+    }
+
     public function maskedAuthUserId(): string
     {
         return self::maskedValue($this->authUserId);

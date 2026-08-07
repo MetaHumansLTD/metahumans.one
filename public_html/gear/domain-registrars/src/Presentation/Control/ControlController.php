@@ -905,6 +905,55 @@ HTML;
                 json_encode($probeResult ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
             ) . '</pre></article>';
 
+            $probeUsedPath = is_array($probeResult) && isset($probeResult['probe_path']) && is_string($probeResult['probe_path']) ? $probeResult['probe_path'] : '(see error above)';
+            $neoClientForDiag = null;
+            try {
+                $provider2 = $this->app->provider('netearthone');
+                if (property_exists($provider2, 'client')) {
+                    $r = new \ReflectionProperty($provider2, 'client');
+                    $r->setAccessible(true);
+                    $v = $r->getValue($provider2);
+                    if (is_object($v) && $v instanceof \App\Infrastructure\Providers\NetEarthOneApiClient) {
+                        $neoClientForDiag = $v;
+                    }
+                }
+            } catch (Throwable) {
+                $neoClientForDiag = null;
+            }
+            $effBaseUrl = (string) ($effective['api_base_url'] ?? '');
+            $effBaseUrlDisplay = $effBaseUrl !== '' ? '<code style="font-size:12px;">' . htmlspecialchars($effBaseUrl, ENT_QUOTES) . '</code>' : '<em style="color:#94a3b8;">(empty)</em>';
+            $clientBaseUrlDisplay = $neoClientForDiag !== null
+                ? '<code style="font-size:12px;">' . htmlspecialchars($neoClientForDiag->getBaseUrl(), ENT_QUOTES) . '</code>'
+                : '<em style="color:#94a3b8;">(could not read client)</em>';
+            $baseUrlMatchBadge = $neoClientForDiag !== null && $neoClientForDiag->getBaseUrl() !== '' && $neoClientForDiag->getBaseUrl() === rtrim((string) $effBaseUrl, '/')
+                ? '<span style="color:#34d399;font-weight:600;">✅ effective base_url matches client-injected base_url after normalization</span>'
+                : '<span style="color:#fbbf24;font-weight:600;">⚠️ base_url mismatch (or client not readable) — effective=' . $effBaseUrlDisplay . ' vs client=' . $clientBaseUrlDisplay . '</span>';
+            $fullUrlCustomerDetails = '(could not build)';
+            $fullUrlDomainsAvailable = '(could not build)';
+            $clientMaskedAuth = '';
+            $clientMaskedKey = '';
+            if ($neoClientForDiag !== null) {
+                $authForDiag = (string) ($effective['auth_user_id'] ?? '');
+                if ($authForDiag === '' || ! ctype_digit($authForDiag)) {
+                    $authForDiag = (string) $neoClientForDiag->getAuthUserId();
+                }
+                $customerExtra = $authForDiag !== '' && ctype_digit($authForDiag) ? ['customer-id' => $authForDiag] : [];
+                try {
+                    $fullUrlCustomerDetails = htmlspecialchars($neoClientForDiag->buildFullUrlForDiagnostics('customers/details-by-id.json', $customerExtra), ENT_QUOTES);
+                } catch (Throwable) {
+                    $fullUrlCustomerDetails = '(build error)';
+                }
+                try {
+                    $fullUrlDomainsAvailable = htmlspecialchars($neoClientForDiag->buildFullUrlForDiagnostics('domains/available.json', ['domain-name' => ['healthcheck-example'], 'tlds' => ['com']]), ENT_QUOTES);
+                } catch (Throwable) {
+                    $fullUrlDomainsAvailable = '(build error)';
+                }
+                $clientMaskedAuth = htmlspecialchars($neoClientForDiag->maskedAuthUserId(), ENT_QUOTES);
+                $clientMaskedKey = htmlspecialchars($neoClientForDiag->maskedApiKey(), ENT_QUOTES);
+            }
+            $envAuthMaskedCompare = $maskedEnvFn($envAuthResolved['value'] ?? null);
+            $envKeyMaskedCompare = $maskedEnvFn($envKeyResolved['value'] ?? null);
+
             $upstreamResponseBody = '';
             if (is_array($probeResult) && isset($probeResult['raw_response']) && is_string($probeResult['raw_response']) && trim($probeResult['raw_response']) !== '') {
                 $truncated = strlen($probeResult['raw_response']) > 4000
@@ -922,6 +971,15 @@ HTML;
             $wireKeyStr  = is_string($wireKey['prefix']  ?? null) && is_string($wireKey['suffix']  ?? null)
                 ? htmlspecialchars($wireKey['prefix'],  ENT_QUOTES) . '<span style="color:#64748b;">••••</span>' . htmlspecialchars($wireKey['suffix'],  ENT_QUOTES)
                 : '<em style="color:#94a3b8;">N/A</em>';
+            $wireAuthMaskedPlain = is_string($wireAuth['prefix'] ?? null) && is_string($wireAuth['suffix'] ?? null)
+                ? htmlspecialchars($wireAuth['prefix'], ENT_QUOTES) . '••••' . htmlspecialchars($wireAuth['suffix'], ENT_QUOTES)
+                : 'N/A';
+            $wireKeyMaskedPlain = is_string($wireKey['prefix'] ?? null) && is_string($wireKey['suffix'] ?? null)
+                ? htmlspecialchars($wireKey['prefix'], ENT_QUOTES) . '••••' . htmlspecialchars($wireKey['suffix'], ENT_QUOTES)
+                : 'N/A';
+            $authWireVsEnvBadge = $neoClientForDiag !== null
+                ? '<span style="color:#34d399;font-weight:600;">✅ credentials consistent (client instantiated this request)</span>'
+                : '<span style="color:#94a3b8;">(credentials check skipped — no client handle)</span>';
 
             $sourceTable = $chooseSource($envBase, $this->nullableString($stored['api_base_url'] ?? null), $this->nullableString($effective['api_base_url'] ?? null), 'api_base_url')
                 . $chooseSource($envAuthId, $storedAuthId, $effAuthId, 'auth_user_id (Reseller ID)')
@@ -948,6 +1006,14 @@ HTML;
                 : (($normalDiff === [])
                     ? '<span style="color:#34d399;font-weight:600;">✅ MATCH — Neo stack outbound IP equals detected public IP. NEO whitelist of this IP should work.</span>'
                     : '<span style="color:#f87171;font-weight:600;">⚠️ MISMATCH — Neo cURL stack sees different IPs (above) vs generic detection: <code>' . htmlspecialchars(implode(',', $normalDetectIps), ENT_QUOTES) . '</code>. Add ALL listed IPs to NEO Allowed IPs.</span>');
+
+            $displayClientMaskedAuth = $clientMaskedAuth !== ''
+                ? '<code style="font-size:12px;">' . $clientMaskedAuth . '</code>'
+                : '<em style="color:#94a3b8;">N/A</em>';
+            $displayClientMaskedKey = $clientMaskedKey !== ''
+                ? '<code style="font-size:12px;">' . $clientMaskedKey . '</code>'
+                : '<em style="color:#94a3b8;">N/A</em>';
+            $displayProbeUsedPath = $this->escape($probeUsedPath);
 
             $probeDiagnosticsMarkup = <<<HTML
   <article class="info-card" style="border-color:#3b82f6;background-color:rgba(59,130,246,0.08);">
@@ -988,6 +1054,20 @@ HTML;
       <p style="margin:4px 0;font-size:12px;">auth-userid (prefix4 •••• suffix4): <code>{$wireAuthStr}</code></p>
       <p style="margin:4px 0;font-size:12px;">api-key    (prefix4 •••• suffix4): <code>{$wireKeyStr}</code></p>
       <p class="muted" style="margin:6px 0 0 0;font-size:11px;">If these don't match the EFFECTIVE column above, a provider instance cached earlier with different credentials is being used (requires deploy restart or page cache clear).</p>
+    </div>
+
+    <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
+      <p style="margin:4px 0;font-size:13px;"><strong style="color:#22d3ee;">API Base URL + Credential consistency + Request URL blueprint:</strong></p>
+      <p style="margin:6px 0 2px 0;font-size:12px;">{$baseUrlMatchBadge}</p>
+      <p style="margin:4px 0;font-size:12px;">Health check path used: <code style="font-size:12px;">{$displayProbeUsedPath}</code></p>
+      <p style="margin:4px 0;font-size:12px;"><strong>Actual client-injected auth_user_id (masked):</strong> {$displayClientMaskedAuth}</p>
+      <p style="margin:4px 0;font-size:12px;"><strong>Actual client-injected api_key (masked):</strong> {$displayClientMaskedKey}</p>
+      <p style="margin:4px 0;font-size:12px;">{$authWireVsEnvBadge}</p>
+      <p style="margin:8px 0 2px 0;font-size:12px;"><strong>Full blueprint URL #1 (customers/details-by-id):</strong></p>
+      <p style="margin:2px 0;font-size:11px;word-break:break-all;"><code style="font-size:11px;">{$fullUrlCustomerDetails}</code></p>
+      <p style="margin:8px 0 2px 0;font-size:12px;"><strong>Full blueprint URL #2 (domains/available fallback):</strong></p>
+      <p style="margin:2px 0;font-size:11px;word-break:break-all;"><code style="font-size:11px;">{$fullUrlDomainsAvailable}</code></p>
+      <p class="muted" style="margin:6px 0 0 0;font-size:11px;">If the "Full blueprint URLs" show auth-userid=•••• and api-key=•••• with WRONG prefixes (not 40••54 / DS8D••mltf), then a different value was injected into the client constructor vs what the ENV/STORED effective shows. If base_url is NOT https://httpapi.com/api (ends with /api, no trailing slash, no anacreon/XML legacy paths), click Save Settings once after correcting. NetEarthOne/LogicBoxes expects base URL with /api suffix, no /anacreon/servlet/ApiCall.xml legacy paths.</p>
     </div>
 
     <div style="overflow:auto;">

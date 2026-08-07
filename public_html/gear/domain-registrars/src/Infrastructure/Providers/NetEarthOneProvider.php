@@ -65,35 +65,94 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
             if ($authId === '' && $altAuthId !== '') {
                 $authId = $altAuthId;
             }
-            if ($authId !== '' && ctype_digit($authId)) {
-                $ping = $this->client->get('customers/details-by-id.json', [
-                    'customer-id' => $authId,
-                ]);
-                if (is_array($ping) && (isset($ping['customerid']) || isset($ping['resellerid']) || isset($ping['loginUserName']) || isset($ping['customercontactid']))) {
-                    return [
-                        'ok' => true,
-                        'status' => 'Connected to the NetEarthOne API successfully.',
-                        'raw_response' => json_encode($ping, JSON_UNESCAPED_SLASHES),
-                        'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
-                        'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
-                    ];
-                }
-                $fail = is_array($ping) ? $ping : null;
-            }
-            $empty = $this->client->get('domains/available.json', [
-                'domain-name' => ['metahumans-healthcheck-invalid'],
-                'tlds' => ['com'],
-            ]);
 
-            return [
-                'ok' => is_array($empty),
-                'status' => is_array($empty)
-                    ? 'Connected to the NetEarthOne API successfully.'
-                    : 'NetEarthOne API responded but without the expected payload shape.',
-                'raw_response' => json_encode(($fail ?? null) ?? $empty, JSON_UNESCAPED_SLASHES),
-                'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
-                'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
-            ];
+            $selfPingSuccess = false;
+            $selfPingPayload = null;
+            $selfPingError = '';
+
+            if ($authId !== '' && ctype_digit($authId)) {
+                try {
+                    $ping = $this->client->get('customers/details-by-id.json', [
+                        'customer-id' => $authId,
+                    ]);
+                    if (is_array($ping) && (isset($ping['customerid']) || isset($ping['resellerid']) || isset($ping['loginUserName']) || isset($ping['customercontactid']))) {
+                        return [
+                            'ok' => true,
+                            'status' => 'Connected to the NetEarthOne API successfully.',
+                            'probe_path' => 'customers/details-by-id.json',
+                            'raw_response' => json_encode($ping, JSON_UNESCAPED_SLASHES),
+                            'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                            'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
+                        ];
+                    }
+                    $selfPingSuccess = true;
+                    $selfPingPayload = is_array($ping) ? $ping : null;
+                } catch (Throwable $firstException) {
+                    $selfPingError = is_string($firstException->getMessage()) ? $firstException->getMessage() : '';
+                    if ($selfPingError === '' && is_string($firstException::class)) {
+                        $selfPingError = $firstException::class;
+                    }
+                }
+            }
+
+            try {
+                $empty = $this->client->get('domains/available.json', [
+                    'domain-name' => ['metahumans-healthcheck-invalid'],
+                    'tlds' => ['com'],
+                ]);
+
+                $probeNote = '';
+                if ($selfPingError !== '') {
+                    $probeNote = ' Note: customers/details-by-id.json returned: "' . $selfPingError . '", authentication verified via domains/available fallback.';
+                } elseif ($selfPingPayload !== null) {
+                    $probeNote = ' Note: customers/details-by-id.json returned (no resellerid field present), authentication verified via domains/available fallback.';
+                }
+
+                return [
+                    'ok' => is_array($empty),
+                    'status' => is_array($empty)
+                        ? 'Connected to the NetEarthOne API successfully.' . $probeNote
+                        : 'NetEarthOne API responded but without the expected payload shape.' . $probeNote,
+                    'probe_path' => 'domains/available.json',
+                    'raw_response' => json_encode(($selfPingPayload ?? null) ?? $empty, JSON_UNESCAPED_SLASHES),
+                    'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                    'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
+                ];
+            } catch (Throwable $fallbackException) {
+                $combined = '';
+                if ($selfPingError !== '') {
+                    $combined = 'First probe (customers/details-by-id.json): ' . $selfPingError . ' | Second probe (domains/available.json): ';
+                }
+                $combined .= is_string($fallbackException->getMessage()) ? $fallbackException->getMessage() : '';
+
+                $prev = $fallbackException->getPrevious();
+                $rawBody = '';
+                if (is_object($prev) && method_exists($prev, 'getResponseBody')) {
+                    $b = $prev->getResponseBody();
+                    if (is_string($b) && trim($b) !== '') {
+                        $rawBody = $b;
+                    }
+                } elseif (is_object($fallbackException) && method_exists($fallbackException, 'getResponseBody')) {
+                    $b = $fallbackException->getResponseBody();
+                    if (is_string($b) && trim($b) !== '') {
+                        $rawBody = $b;
+                    }
+                }
+                if ($rawBody === '' && $combined !== '') {
+                    $rawBody = $combined;
+                }
+
+                return [
+                    'ok' => false,
+                    'error' => $combined !== '' ? $combined : 'Both probe endpoints failed.',
+                    'status' => 'API probe failed.',
+                    'probe_path' => 'customers/details-by-id.json + domains/available.json (both failed)',
+                    'raw_response' => $rawBody,
+                    'exception_class' => $fallbackException::class,
+                    'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                    'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
+                ];
+            }
         } catch (Throwable $exception) {
             $prev = $exception->getPrevious();
             $rawBody = '';
