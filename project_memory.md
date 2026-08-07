@@ -253,10 +253,11 @@
 #     9. rubeus.co.za ZACR fresh auth_code → EPP re-push with ns1-ns4.clusterdns.
 #
 # ---------------------------------------------------------------
-# SESSION 4  (final state — commit TBD, 2026-08-07)
+# SESSION 4  (final state — commit abda0301, 2026-08-07)
 # ---------------------------------------------------------------
 # Session #4 — 2026-08-07
-#   Commits Applied: (commit SHA TBD; on top of b3546a13 from Session #3)
+#   Commits Applied: abda0301 on top of b3546a13 from Session #3.
+#   (Commit uploaded successfully to origin/main → b3546a13..abda0301.)
 #   Trigger for this session: user pushed Session #3 commit b3546a13 to origin/main,
 #     then loaded metahumans.one/control/domain-registrars/providers/netearthone/
 #     in Chrome and reported: "There is absolutely no change at all. The pages are
