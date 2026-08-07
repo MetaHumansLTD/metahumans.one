@@ -148,11 +148,11 @@
 #        via ensureDomainSyncedForManagement() on /edit/rubeus.co.za/ → verify NS reflected.
 #
 # ---------------------------------------------------------------
-# SESSION 3  (final state — commit 3756d885, 2026-08-07)
+# SESSION 3  (final state — commit b3546a13, 2026-08-07)
 # ---------------------------------------------------------------
 # Session #3 — 2026-08-07
-#   Commits Applied: 3756d885 on top of 432d847b from Session #2.
-#   (Commit uploaded successfully.)
+#   Commits Applied: b3546a13 on top of 432d847b from Session #2.
+#   (Commit uploaded successfully to origin/main → 432d847b..b3546a13.)
 #   Trigger for this session: user reported commit 432d847b had uploaded but both pages
 #     /control/domain-registrars/providers/netearthone/  AND
 #     /control/domain-registrars/domains/sync/portfolio
@@ -251,5 +251,179 @@
 #        writes PATCH_NOTES.md + backup_changes/ timestamped file.
 #     8. Implement S2 safeguard: backup_changes/ directory with tgz snapshots.
 #     9. rubeus.co.za ZACR fresh auth_code → EPP re-push with ns1-ns4.clusterdns.
+#
+# ---------------------------------------------------------------
+# SESSION 4  (final state — commit TBD, 2026-08-07)
+# ---------------------------------------------------------------
+# Session #4 — 2026-08-07
+#   Commits Applied: (commit SHA TBD; on top of b3546a13 from Session #3)
+#   Trigger for this session: user pushed Session #3 commit b3546a13 to origin/main,
+#     then loaded metahumans.one/control/domain-registrars/providers/netearthone/
+#     in Chrome and reported: "There is absolutely no change at all. The pages are
+#     still broken. The pages updated has no CHANGE AT ALL." — same Chrome stock
+#     HTTP ERROR 500 blank WSOD as before Session #3. Git rev-parse confirmed
+#     origin/main == HEAD == b3546a13 so upload was correct.
+#   ACTUAL ROOT CAUSE FOUND (why Sessions 2 + 3 fixes had ZERO visible effect):
+#     THE OUTER-DISPATCH vs INNER-INTEGRATION ROUTING GAP.
+#
+#     The deployed site is the ROOT domain metahumans.one (NOT control. subdomain)
+#     so all routing is via public_html/.htaccess RewriteRules. The rewrites at
+#     lines 72 / 76 / 80 fire ONLY when no real FILE or DIR exists for the path
+#     (RewriteCond %{REQUEST_FILENAME} !-f !-d). So for any URL tree that has a
+#     real leaf index.php on disk, Apache serves that leaf file DIRECTLY, never
+#     reaching the catch-all /control/domain-registrars/index.php.
+#
+#     The repository had a total of 22 outer-dispatch leaf index.php files under
+#     three htaccess routing trees:
+#       • 8 under public_html/control/domain-registrars/**/index.php
+#         (domains/, orders/, providers/, providers/coza/, providers/netearthone/,
+#          tasks/, tasks/enqueue/, plus the catch-all index.php)
+#       • 7 under public_html/hub/companies/domains/**/index.php
+#         (edit/, renew/, register/, manage/, cancel/, orders/cancel/, catch-all)
+#       • 7 under public_html/hub/domains/**/index.php  (same 7 sub-routes)
+#
+#     Every one of the 22 files was a 27-line boilerplate with TWO FATAL bugs the
+#     prior sessions were BLIND to (because Sessions 2+3 only touched the two
+#     INNER integration files integrations/metahumans/control.php and hub.php):
+#
+#     FATAL BUG 1 — OUTER DISPATCH REQUIRES CUE.PHP BEFORE INNER INTEGRATION RUNS.
+#     The 27-line outer boilerplate runs `require_once $cueBootstrapPath;` at line
+#     13 BEFORE EVER including the inner integrations/metahumans/*.php file that
+#     contains the Session #3 OB swallow + ini silence. So any BOM byte, require
+#     whitespace, vendor autoload preamble byte, or PHP warning leaks to stdout
+#     AT OUTER LINE 13 (~100 PHP source lines BEFORE the inner integration file
+#     even reaches its <?php). By the time the inner file runs its own OB guard,
+#     headers_sent() is already TRUE → headers already emitted with status=200.
+#     The inner file's safeRedirect / ob_clean / single-echo $mhFinalResponse all
+#     become no-ops (no OB was active in the outer frame to clean). This is why
+#     commit 432d847b → b3546a13 had ZERO VISIBLE CHANGE on the live site.
+#
+#     FATAL BUG 2 — OUTER BOILERPLATE USES BARE `ROOT_PATH` CONSTANT BEFORE IT IS
+#     DEFINED. The candidate array line `ROOT_PATH . '/apps/domain-registrars/...'`
+#     references ROOT_PATH without a defined() guard, but ROOT_PATH is defined by
+#     cue.php INSIDE the require_once at line 13. If cue.php's bootstrap has any
+#     early return or if ZEND optimizer optimises the constant lookup order, this
+#     evaluates as bareword-string "ROOT_PATH" and raises Warning: Undefined
+#     constant → the warning message itself is emitted to stdout → which is the
+#     1-byte header-preamble pollution that flicks headers_sent=true.
+#
+#     FATAL BUG 3 — OUTER "INTEGRATION MISSING" PATH DOES `throw new RuntimeException`.
+#     After FATAL BUGS 1+2 have already committed headers=200, hitting the throw
+#     means: outer Zend catch block tries to emit HTTP 500 + HTML error page AFTER
+#     Apache's mod_php has already flushed headers=200 → handler sees status race
+#     and REPLACES the entire response body with the stock Chrome HTTP ERROR 500
+#     blank WSOD (exactly the screenshot user provided from providers/netearthone/).
+#
+#   Fixed in Session #4:
+#     a. Wrote automated bulk-transformer script scripts/transform_dispatch_guards.php
+#        using RecursiveDirectoryIterator over the 3 routing roots. The transformer
+#        (V2 — V1 glob(**/index.php) silently returned 0 files on Windows because
+#        ** in glob() needs GLOB_BRACE on PHP 8.1-Windows and was joining path seps
+#        incorrectly). Fix was to skip glob entirely and use RecursiveDirectoryIterator
+#        + explicit 3-root list.
+#     b. Identical 76-line hardened pattern applied to ALL 22 outer dispatch
+#        index.php files, PLACED DIRECTLY IN THE OUTER FILE BEFORE THE CUE.PHP
+#        REQUIRE_ONCE. The pattern per-file:
+#          1. <?php declare(strict_types=1); (ZEND compile directive kept FIRST)
+#          2. declare-ordered ini silence: error_reporting(0) + @ini_set(
+#             display_errors=0, html_errors=0, log_errors=1) — same pattern
+#             already used inside the two inner integrations, but NOW moved to
+#             the TRUE TOP of the true outer entry frame.
+#          3. Drain any pre-existing buffers with while(ob_get_level()>0)ob_end_clean,
+#             then start a NON-REMOVABLE swallow-OB buffer:
+#               ob_start(fn($b,$p)=>'', 0, PHP_OUTPUT_HANDLER_STDFLAGS ^ REMOVABLE)
+#             Unique MH_<STEM>_OB_CLEANUP constant defined per file so later
+#             error paths can pop it explicitly. Stems:
+#               control catch-all         → MH_CONTROL_DISPATCH_OB_CLEANUP
+#               control/domains           → MH_CTL_OB_CLEANUP
+#               control/orders            → MH_CTL_ORDERS_OB_CLEANUP
+#               control/providers         → MH_CTL_PROVIDERS_OB_CLEANUP
+#               control/providers/coza    → MH_CTL_PROVIDERS_COZA_OB_CLEANUP
+#               control/providers/netearthone → MH_CTL_PROVIDERS_NETEARTHONE_OB_CLEANUP
+#               control/tasks             → MH_CTL_TASKS_OB_CLEANUP
+#               control/tasks/enqueue     → MH_CTL_TASKS_ENQUEUE_OB_CLEANUP
+#               hub/companies/domains/*   → MH_HUB_COMPANIES_DOMAINS_OB_CLEANUP
+#                   (edit/renew/register/manage/cancel/orders-cancel have their own
+#                    MH_HUB_EDIT/RENEW/REGISTER/MANAGE/CANCEL/ORDERS_CANCEL suffixes)
+#               hub/domains/*             → MH_HUB_DOMAINS_OB_CLEANUP (same suffixes)
+#          4. After $cueBootstrapPath assignment but BEFORE require_once:
+#             explicit is_file() guard. If cue.php itself missing → drain ALL
+#             buffers + pop MH_*_OB_CLEANUP → headers_sent()-guarded 500 Content-Type
+#             text/plain → echo message → exit. NO throw.
+#          5. `require_once $cueBootstrapPath;` now runs with ini silence + swallow
+#             OB already active, so any BOM byte / whitespace / vendor autoload echo
+#             gets captured silently into the swallow buffer and discarded.
+#          6. $integrationCandidates second candidate rewrote from bare
+#             `ROOT_PATH . '/apps/...'` →
+#             `(defined('ROOT_PATH') ? (string)ROOT_PATH : '') . '/apps/...'`
+#             to eliminate the Undefined constant Warning pollution vector.
+#          7. foreach integration path loop now has $foundIntegration boolean +
+#             explicit break on first hit, so we KNOW if no candidate matched.
+#          8. if (!$foundIntegration) instead of `throw new RuntimeException(X)`:
+#             same drain-all-buffers → pop MH_*_OB_CLEANUP → headers_sent-guarded
+#             500 text/plain → echo message → exit pattern. No Zend catch unwind.
+#     c. Transform results: Files enumerated: 22. Tried: 22. Rewrote: 19.
+#        Skipped (already manually guarded from earlier in this session): 3 —
+#          public_html/control/domain-registrars/index.php
+#          public_html/hub/companies/domains/index.php
+#          public_html/hub/domains/index.php
+#        Failures: 0.
+#     d. All 22 outer dispatch files passed php -l lint (0 failed / 22 total).
+#     e. Transformer script scripts/transform_dispatch_guards.php kept in repo so
+#        the exact 76-line pattern can be re-run against newly-added dispatch
+#        folders (e.g., future providers, future hub sub-routes) without manual
+#        re-copying. Temp lint helper script scripts/_lint_dispatch.php deleted.
+#
+#   This session's fix pattern closes the OUTER→INNER gap that made both prior
+#   500-fix sessions (2 and 3) invisible to the deployed site. With 22/22 outer
+#   dispatch files now starting their OB swallow BEFORE cue.php, any BOM/
+#   whitespace/warning byte emitted during cue require/composer autoload/session
+#   start is captured before it can commit headers=200. Headers_sent() now stays
+#   FALSE far enough into the inner integration's ControlController::safeRedirect
+#   call for native 302 redirects (or meta-refresh fallback, whichever applies)
+#   to actually fire instead of silently being ignored.
+#
+#   Currently known broken (still requires live deploy verification):
+#     - Every page now depends on NF rolling out Session #4 commit.
+#     - /control/domain-registrars/providers/netearthone/  (this URL specifically
+#       the one the user posted the Chrome HTTP ERROR 500 screenshot of; must be
+#       first URL smoke-tested post-deploy)
+#     - /control/domain-registrars/domains/sync/portfolio POST button
+#     - /hub/companies/domains/manage/  user-scoped domain list
+#     - /hub/domains/edit/ renew/ register/ manage/ cancel/ orders/cancel/
+#   Pending investigation:
+#     - Whether cue.php require's BOM source was inside .cue folder itself or
+#       vendor/ autoload. If outer swallow buffer resolves WSOD (which it should)
+#       we don't need to dig further.
+#     - rubeus.co.za ZACR fresh auth_code (unchanged from prior sessions).
+#     - Northflank 403 guarded restore (unchanged).
+#     - S1 / S2 safeguards still pending (git post-commit hook PATCH_NOTES +
+#       backup_changes/ tgz snapshots); they were last on every prior "Next
+#       actions" list and keep getting deprioritized by new WSOD reports.
+#   Next actions (Session #5, execute IN THIS ORDER before any new work):
+#     1. Deploy Session #4 commit → wait for NF build + rollout.
+#     2. Smoke test the EXACT URL from user's screenshot FIRST:
+#        https://metahumans.one/control/domain-registrars/providers/netearthone/
+#        Expected (one of the two is acceptable; NO blank 500):
+#          a. NOT logged in → 302 Location: /auth/login.php?redirect=...  OR
+#             HTML page with <meta refresh to login + clickable <a> link
+#             (headers_sent fallback from login-redirect guard we added).
+#          b. Logged in as KripzMasters → NEO settings page with 3 inputs:
+#             invoiceOption, creditLimit, notifyEmail; credential fields blank.
+#     3. If providers/netearthone/ still WSOD after Session #4 deploy → stop,
+#        IMMEDIATELY add `var_dump(headers_sent($file,$line)); echo $file; exit;`
+#        as the VERY FIRST thing after swallow OB define in that outer file to
+#        find the EXACT file:line that leaked bytes. But with 76-line outer
+#        guard that should no longer be possible.
+#     4. Login (if needed) and save NEO settings → confirm round-trip.
+#     5. Click Sync NetEarthOne button on domains/ → confirm POST redirects
+#        with flash, no 500.
+#     6. Navigate the 14 hub dispatch routes (/hub/companies/domains/** and
+#        /hub/domains/**) for edit/renew/register/manage/cancel/orders-cancel/
+#        — none should be HTTP ERROR 500 blank.
+#     7. FINALLY implement S1 (git post-commit hook → PATCH_NOTES.md) +
+#        S2 (backup_changes/ folder tgz snapshots per commit). They've been
+#        deprioritized 3 sessions in a row; stop deferring after smoke pass.
+#     8. rubeus.co.za ZACR fresh auth_code → EPP re-push.
 #
 
