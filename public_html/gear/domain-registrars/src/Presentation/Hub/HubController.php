@@ -236,9 +236,28 @@ HTML;
         $orders = $this->app->orderRepository()->listForAccount($tenantId, $ownerType, $ownerId, 100);
         $contextMarkup = $this->renderTenantContextSummary($tenantContext);
 
+        $pooledCount = 0;
+        try {
+            $pooledDomainsAll = $this->app->domainRepository()->listAll(5000);
+            $poolOwnerTypes = ['tenant', 'reseller', 'registrar', 'system'];
+            foreach ($pooledDomainsAll as $pd) {
+                $pdOwnerType = (string) ($pd['owner_type'] ?? '');
+                if (in_array($pdOwnerType, $poolOwnerTypes, true)) {
+                    ++$pooledCount;
+                }
+            }
+        } catch (\Throwable) {
+            $pooledCount = -1;
+        }
+
         $domainCards = '';
         if ($domains === []) {
-            $domainCards = '<article class="domain-card"><div><p class="status status-pending">No Domains Yet</p><h3>Your account has no saved domains yet</h3><p class="muted">Once a registration order is saved or a registrar domain is synchronized into this tenant, it will appear here.</p></div><div class="domain-card__aside"><a class="button button-primary" href="' . $this->escape($this->basePath()) . '">Search Domains</a></div></article>';
+            $poolCta = '';
+            if ($pooledCount > 0) {
+                $controlDomainsPath = $this->app->config()->nullableString('MH_CONTROL_DOMAINS_URL') ?? '/control/domain-registrars/domains/';
+                $poolCta = '<p class="muted" style="margin-top:12px;"><strong>Registrar Pool:</strong> There ' . ($pooledCount === 1 ? 'is' : 'are') . ' currently ' . $pooledCount . ' registrar-pool domain' . ($pooledCount === 1 ? '' : 's') . ' available. Open <a style="color:#60a5fa;" href="' . $this->escape($controlDomainsPath) . '">Control → Domains</a> and use <strong>Assign / Move to tenant</strong> on any pool row to allocate domains into this account, or click the Allocate button on any domain card below if the tenant has visibility to pool rows.</p>';
+            }
+            $domainCards = '<article class="domain-card"><div><p class="status status-pending">No Domains Yet</p><h3>Your account has no saved domains yet</h3><p class="muted">Once a registration order is saved or a registrar domain is synchronized into this tenant, it will appear here.</p>' . $poolCta . '</div><div class="domain-card__aside"><a class="button button-primary" href="' . $this->escape($this->basePath()) . '">Search Domains</a></div></article>';
         } else {
             $items = [];
             foreach ($domains as $domain) {

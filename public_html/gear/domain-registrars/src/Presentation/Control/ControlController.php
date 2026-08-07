@@ -30,6 +30,8 @@ final class ControlController
             ['/orders', 'GET'] => $this->renderOrders(),
             ['/domains', 'GET'] => $this->renderDomains($query),
             ['/domains/', 'GET'] => $this->renderDomains($query),
+            ['/domains/manage', 'GET'] => $this->renderDomains($query),
+            ['/domains/manage/', 'GET'] => $this->renderDomains($query),
             ['/domains/sync/portfolio', 'GET'] => $this->renderDomains([...$query, 'focus' => 'bulk-sync']),
             ['/domains', 'POST'] => $this->handleDomainBulkAction($post, $query),
             ['/domains/sync', 'POST'] => $this->handleDomainSync($post),
@@ -670,6 +672,7 @@ HTML;
     {
         $flash = trim((string) ($query['flash'] ?? ''));
         $providerAccount = $this->app->providerAccount('netearthone');
+        $stored = $this->app->providerStoredConfig('netearthone');
         $effective = $this->app->providerEffectiveConfig('netearthone');
         $environment = trim((string) ($providerAccount['environment'] ?? 'production'));
         $isActiveDb = (bool) ($providerAccount['is_active'] ?? true);
@@ -677,6 +680,35 @@ HTML;
         $apiBaseUrl = (string) ($effective['api_base_url'] ?? '');
         $resellerId = (string) ($effective['auth_user_id'] ?? '');
         $ipAddress = (string) ($effective['ip_address'] ?? '');
+        if ($ipAddress === '') {
+            $detectedIps = $this->detectPublicOutboundIps();
+            if ($detectedIps !== []) {
+                $joined = implode(', ', $detectedIps);
+                $ipAddress = $joined;
+                try {
+                    $currentStored = $this->app->providerStoredConfig('netearthone');
+                    $mergedConfig = array_replace($currentStored, [
+                        'ip_address' => $joined,
+                        'timeout' => (int) (($currentStored['timeout'] ?? $effective['timeout']) ?? 30) ?: 30,
+                        'api_base_url' => (string) ($currentStored['api_base_url'] ?? $apiBaseUrl),
+                        'pricing_json' => (string) ($currentStored['pricing_json'] ?? ($effective['pricing_json'] ?? '')),
+                        'default_customer_id' => (string) ($currentStored['default_customer_id'] ?? ($effective['default_customer_id'] ?? '')),
+                        'default_invoice_option' => (string) ($currentStored['default_invoice_option'] ?? ($effective['default_invoice_option'] ?? 'NoInvoice')),
+                    ]);
+                    $this->app->providerAccountRepository()->updateSettings(
+                        (string) $providerAccount['id'],
+                        [
+                            'is_active' => ! empty($providerAccount['is_active']),
+                            'environment' => $environment,
+                        ],
+                        $mergedConfig,
+                    );
+                } catch (\Throwable) {
+                }
+            }
+        } else {
+            $detectedIps = $this->detectPublicOutboundIps();
+        }
         $apiKeyMasked = $this->maskedSecret((string) ($effective['api_key'] ?? ''));
         $apiKeyPlaceholder = $apiKeyMasked === 'Not configured' ? '' : '•••••••••••• (leave blank to keep current)';
         $timeout = (string) (($effective['timeout'] ?? null) ?: '30');
@@ -734,6 +766,40 @@ HTML;
             }
         }
 
+        $ipWhitelistMarkup = '';
+        if (($detectedIps ?? []) !== []) {
+            $ipItems = implode('', array_map(
+                fn (string $ip): string => '<li><code>' . $this->escape($ip) . '</code></li>',
+                array_values(array_unique($detectedIps)),
+            ));
+            $ipWhitelistMarkup = <<<HTML
+  <article class="info-card">
+    <h2>Detected Public Outbound IPs (Add These To NetEarthOne Whitelist)</h2>
+    <p class="muted">NetEarthOne's LogicBoxes platform rejects API requests unless the <strong>originating server IP</strong> is in your reseller account's allowed IP list. Copy the IP(s) below and paste them into NetEarthOne Reseller Console → <strong>Settings → API → Security → Allowed IPs</strong>.</p>
+    <ul class="info-list">
+      {$ipItems}
+    </ul>
+    <p class="muted">Some cloud providers (including Northflank) use a dynamic egress pool. If the IP changes or you continue to see permission errors, add the full egress CIDR range or contact your host to request a static outbound IP.</p>
+  </article>
+HTML;
+        }
+
+        $authErrorMarkup = '';
+        $errorLower = is_string($liveStatusNote) ? strtolower($liveStatusNote) : '';
+        if ($liveStatusLabel === 'Provider Account Inactive' && (stripos($errorLower, 'not allowed') !== false || stripos($errorLower, 'permission') !== false || stripos($errorLower, 'unauthorized') !== false)) {
+            $authErrorMarkup = <<<HTML
+  <article class="info-card" style="border-color:#f59e0b;background-color:rgba(245,158,11,0.08);">
+    <h2 style="color:#fbbf24;">API Permission Denied</h2>
+    <p><strong>"You are not allowed to perform this action"</strong> from NetEarthOne almost always means one of two settings issues in your NetEarthOne / LogicBoxes reseller account:</p>
+    <ol>
+      <li><strong>Outbound IP not whitelisted.</strong> In the NetEarthOne reseller console go to <strong>Settings → API → Security → Allowed IPs</strong> and add the <em>Detected Public Outbound IPs</em> listed above. LB/NEO silently drops (returns "not allowed") any API request from a non-whitelisted IP even if credentials are correct.</li>
+      <li><strong>Reseller ID and API key don't match.</strong> Double-check that the Reseller ID (<code>{$this->escape($resellerId !== '' ? $resellerId : 'Not set')}</code>) and the currently stored API key belong to the <em>same</em> reseller account. Regenerate the API key from NetEarthOne Reseller Console → Settings → API if you suspect a mismatch.</li>
+    </ol>
+    <p class="muted">After you save changes to the whitelist or credentials, re-run <a href="{$this->escape($this->providersNetEarthOnePath())}?probe=health">Live API health probe</a> to confirm.</p>
+  </article>
+HTML;
+        }
+
         $body = <<<HTML
 {$flashMarkup}
 <section class="panel">
@@ -759,6 +825,8 @@ HTML;
     <p class="muted">Default invoice option: <code>{$this->escape($defaultInvoiceOption)}</code></p>
     <p><a href="{$this->escape($this->providersNetEarthOnePath())}?probe=health">Run live API health probe</a></p>
   </article>
+  {$authErrorMarkup}
+  {$ipWhitelistMarkup}
   <form method="post" action="{$this->escape($this->providersNetEarthOnePath())}" class="settings-form">
     <div class="form-grid">
       <label>
@@ -2232,5 +2300,74 @@ HTML;
             return $raw;
         }
         return 'NoInvoice';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function detectPublicOutboundIps(): array
+    {
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $urls = [
+            'https://api.ipify.org' => 3,
+            'https://checkip.amazonaws.com' => 3,
+            'https://ifconfig.me/ip' => 3,
+            'https://icanhazip.com' => 3,
+            'https://ipinfo.io/ip' => 3,
+            'https://ident.me' => 3,
+        ];
+
+        $ips = [];
+        foreach ($urls as $url => $timeout) {
+            try {
+                $ch = curl_init($url);
+                if ($ch === false) {
+                    continue;
+                }
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CONNECTTIMEOUT => $timeout,
+                    CURLOPT_TIMEOUT => $timeout + 2,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 3,
+                    CURLOPT_USERAGENT => 'metahumans-registrar/1.0',
+                ]);
+                $response = curl_exec($ch);
+                $code = 0;
+                if (is_string($response)) {
+                    $info = curl_getinfo($ch);
+                    $code = (int) (is_array($info) && isset($info['http_code']) ? $info['http_code'] : 0);
+                }
+                curl_close($ch);
+                if (! is_string($response) || $code < 200 || $code >= 300) {
+                    continue;
+                }
+                $candidate = trim((string) $response);
+                if ($candidate === '') {
+                    continue;
+                }
+                $ip = @inet_pton($candidate);
+                if ($ip === false || $ip === '') {
+                    continue;
+                }
+                if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                    continue;
+                }
+                $ips[] = $candidate;
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        $unique = array_values(array_unique(array_filter($ips, static fn (string $i): bool => $i !== '')));
+        $cached = $unique;
+
+        return $unique;
     }
 }
