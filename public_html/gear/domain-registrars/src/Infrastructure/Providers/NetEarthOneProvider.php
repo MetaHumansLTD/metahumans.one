@@ -60,16 +60,22 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
     public function healthCheck(): array
     {
         try {
-            $authId = $this->authUserIdOrDefault();
+            $authId = trim((string) $this->client->getAuthUserId());
+            $altAuthId = $this->authUserIdOrDefault();
+            if ($authId === '' && $altAuthId !== '') {
+                $authId = $altAuthId;
+            }
             if ($authId !== '' && ctype_digit($authId)) {
                 $ping = $this->client->get('customers/details-by-id.json', [
                     'customer-id' => $authId,
                 ]);
-                if (is_array($ping) && (isset($ping['customerid']) || isset($ping['resellerid']))) {
+                if (is_array($ping) && (isset($ping['customerid']) || isset($ping['resellerid']) || isset($ping['loginUserName']) || isset($ping['customercontactid']))) {
                     return [
                         'ok' => true,
                         'status' => 'Connected to the NetEarthOne API successfully.',
                         'raw_response' => json_encode($ping, JSON_UNESCAPED_SLASHES),
+                        'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                        'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
                     ];
                 }
                 $fail = is_array($ping) ? $ping : null;
@@ -85,6 +91,8 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
                     ? 'Connected to the NetEarthOne API successfully.'
                     : 'NetEarthOne API responded but without the expected payload shape.',
                 'raw_response' => json_encode(($fail ?? null) ?? $empty, JSON_UNESCAPED_SLASHES),
+                'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
             ];
         } catch (Throwable $exception) {
             $prev = $exception->getPrevious();
@@ -110,6 +118,8 @@ final class NetEarthOneProvider implements RegistrarProviderInterface, DomainPor
                 'status' => 'API probe failed.',
                 'raw_response' => $rawBody,
                 'exception_class' => $exception::class,
+                'used_auth_id_prefix_suffix' => $this->client->authUserIdPrefixSuffix(),
+                'used_api_key_prefix_suffix' => $this->client->apiKeyPrefixSuffix(),
             ];
         }
     }

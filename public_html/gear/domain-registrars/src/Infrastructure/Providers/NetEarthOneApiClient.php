@@ -128,6 +128,63 @@ final class NetEarthOneApiClient
         return $decoded;
     }
 
+    public function getAuthUserId(): string
+    {
+        return $this->authUserId;
+    }
+
+    public function maskedAuthUserId(): string
+    {
+        return self::maskedValue($this->authUserId);
+    }
+
+    public function maskedApiKey(): string
+    {
+        return self::maskedValue($this->apiKey);
+    }
+
+    /** @return array{prefix: non-empty-string, suffix: non-empty-string}|array{prefix: null, suffix: null} */
+    public function apiKeyPrefixSuffix(): array
+    {
+        return self::prefixSuffix($this->apiKey);
+    }
+
+    /** @return array{prefix: non-empty-string, suffix: non-empty-string}|array{prefix: null, suffix: null} */
+    public function authUserIdPrefixSuffix(): array
+    {
+        return self::prefixSuffix($this->authUserId);
+    }
+
+    /**
+     * @return array{prefix: non-empty-string, suffix: non-empty-string}|array{prefix: null, suffix: null}
+     */
+    private static function prefixSuffix(string $value): array
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return ['prefix' => null, 'suffix' => null];
+        }
+        $n = strlen($trimmed);
+        if ($n <= 8) {
+            return ['prefix' => $trimmed, 'suffix' => $trimmed];
+        }
+        return ['prefix' => substr($trimmed, 0, 4), 'suffix' => substr($trimmed, -4)];
+    }
+
+    private static function maskedValue(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return 'Not configured';
+        }
+        $n = strlen($trimmed);
+        if ($n <= 4) {
+            return str_repeat('•', $n);
+        }
+
+        return substr($trimmed, 0, 2) . str_repeat('•', max(1, $n - 4)) . substr($trimmed, -2);
+    }
+
     /**
      * @param array<string, mixed> $params
      */

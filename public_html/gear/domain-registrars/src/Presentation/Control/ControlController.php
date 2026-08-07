@@ -778,33 +778,56 @@ HTML;
 
             $prefixSuffix = function (?string $s): string {
                 if ($s === null) {
-                    return '<em>Not set</em>';
+                    return '<em style="color:#94a3b8;">Not set</em>';
                 }
                 $n = strlen($s);
-                if ($n <= 6) {
+                if ($n <= 8) {
                     return str_repeat('•', $n);
                 }
-                return htmlspecialchars(substr($s, 0, 4), ENT_QUOTES)
-                    . str_repeat('•', max(1, $n - 8))
-                    . htmlspecialchars(substr($s, -4), ENT_QUOTES);
+                return '<span style="font-family:ui-monospace,monospace;">'
+                    . htmlspecialchars(substr($s, 0, 4), ENT_QUOTES)
+                    . '<span style="color:#64748b;">' . str_repeat('•', max(1, $n - 8)) . '</span>'
+                    . htmlspecialchars(substr($s, -4), ENT_QUOTES)
+                    . '</span>';
             };
 
-            $chooseSource = function (?string $env, ?string $stored, ?string $eff, string $name): string {
+            $chooseSource = function (?string $env, ?string $storedV, ?string $eff, string $name) use ($prefixSuffix): string {
                 $mark = match (true) {
                     $eff === null => '<span style="color:#f87171;font-weight:600;">MISSING (no value)</span>',
-                    $stored !== null && $eff === $stored => '<span style="color:#34d399;font-weight:600;">STORED (provider_accounts.config_json)</span>',
+                    $storedV !== null && $eff === $storedV => '<span style="color:#34d399;font-weight:600;">STORED (provider_accounts.config_json)</span>',
                     $env !== null && $eff === $env => '<span style="color:#60a5fa;font-weight:600;">ENV (Northflank secrets / mounted .env)</span>',
                     default => '<span style="color:#fbbf24;font-weight:600;">MERGED (check effective)</span>',
                 };
-                return '<tr><td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . htmlspecialchars($name, ENT_QUOTES) . '</td>'
+                return '<tr><td style="padding:6px 10px;border-bottom:1px solid #1e293b;"><code style="font-size:12px;">' . htmlspecialchars($name, ENT_QUOTES) . '</code></td>'
                     . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . $mark . '</td>'
-                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;">' . $GLOBALS['__probe_ps']($env) . '</td>'
-                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;">' . $GLOBALS['__probe_ps']($stored) . '</td>'
-                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-family:ui-monospace,monospace;font-weight:600;">' . $GLOBALS['__probe_ps']($eff) . '</td></tr>';
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . $prefixSuffix($env) . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;">' . $prefixSuffix($storedV) . '</td>'
+                    . '<td style="padding:6px 10px;border-bottom:1px solid #1e293b;font-weight:600;">' . $prefixSuffix($eff) . '</td></tr>';
             };
-            $GLOBALS['__probe_ps'] = $prefixSuffix;
 
-            $healthRaw = null;
+            $rawProviderRow = $this->app->providerAccount('netearthone');
+            $rawConfigJson = is_array($rawProviderRow) && isset($rawProviderRow['config_json']) && is_string($rawProviderRow['config_json']) ? $rawProviderRow['config_json'] : '';
+            $rawRowId = is_array($rawProviderRow) && isset($rawProviderRow['id']) && is_string($rawProviderRow['id']) ? $rawProviderRow['id'] : '';
+            $rawRowUpdatedAt = is_array($rawProviderRow) && isset($rawProviderRow['updated_at']) ? (string) $rawProviderRow['updated_at'] : '';
+            $rawRowIsActive = is_array($rawProviderRow) && isset($rawProviderRow['is_active']) ? (int) $rawProviderRow['is_active'] : 0;
+            $jsonDecodeAttempt = json_decode($rawConfigJson, true);
+            $jsonError = json_last_error();
+            $jsonErrorMsg = $jsonError !== JSON_ERROR_NONE ? json_last_error_msg() : '';
+            $configJsonKeys = is_array($jsonDecodeAttempt) ? array_values(array_keys($jsonDecodeAttempt)) : [];
+            $configJsonHasAuthKey = in_array('auth_user_id', $configJsonKeys, true);
+            $configJsonHasApiKey = in_array('api_key', $configJsonKeys, true);
+
+            $displayRowId = $this->escape($rawRowId !== '' ? $rawRowId : 'N/A');
+            $displayUpdatedAt = $this->escape($rawRowUpdatedAt !== '' ? $rawRowUpdatedAt : 'N/A');
+            $displayConfigJsonLength = $this->escape((string) strlen($rawConfigJson));
+            $jsonDecodeColor = $jsonError === JSON_ERROR_NONE ? '#34d399' : '#f87171';
+            $jsonDecodeText = $this->escape($jsonError === JSON_ERROR_NONE ? 'OK' : 'ERROR: ' . $jsonErrorMsg);
+            $hasAuthColor = $configJsonHasAuthKey ? '#34d399' : '#f87171';
+            $hasAuthText = $configJsonHasAuthKey ? 'YES' : 'NO';
+            $hasApiKeyColor = $configJsonHasApiKey ? '#34d399' : '#f87171';
+            $hasApiKeyText = $configJsonHasApiKey ? 'YES' : 'NO';
+            $displayKeysPresent = $this->escape($configJsonKeys === [] ? '(empty)' : implode(', ', $configJsonKeys));
+
             $probeResult = null;
             try {
                 $provider = $this->app->provider('netearthone');
@@ -812,7 +835,7 @@ HTML;
                     $probeResult = $provider->healthCheck();
                 }
             } catch (Throwable $exception) {
-                $probeResult = ['ok' => false, 'error' => $exception->getMessage(), 'status' => 'API probe failed.'];
+                $probeResult = ['ok' => false, 'error' => $exception->getMessage(), 'status' => 'API probe failed.', 'exception_class' => $exception::class];
             }
             $probeMarkup = '<article class="info-card"><h2>Live API Health Probe</h2><pre class="code-block">' . $this->escape(
                 json_encode($probeResult ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '{}',
@@ -823,20 +846,47 @@ HTML;
                 $truncated = strlen($probeResult['raw_response']) > 4000
                     ? substr($probeResult['raw_response'], 0, 4000) . "\n\n[truncated at 4000 chars]"
                     : $probeResult['raw_response'];
-                $upstreamResponseBody = '<p><strong>Raw LogicBoxes (NEO upstream) response body (truncated):</strong></p>'
+                $upstreamResponseBody = '<p style="margin-top:14px;"><strong style="color:#93c5fd;">Raw LogicBoxes (NEO upstream) response body (truncated):</strong></p>'
                     . '<pre class="code-block" style="max-height:320px;overflow:auto;">' . $this->escape($truncated) . '</pre>';
             }
+
+            $wireAuth = is_array($probeResult) && isset($probeResult['used_auth_id_prefix_suffix']) && is_array($probeResult['used_auth_id_prefix_suffix']) ? $probeResult['used_auth_id_prefix_suffix'] : ['prefix' => null, 'suffix' => null];
+            $wireKey  = is_array($probeResult) && isset($probeResult['used_api_key_prefix_suffix'])  && is_array($probeResult['used_api_key_prefix_suffix'])  ? $probeResult['used_api_key_prefix_suffix']  : ['prefix' => null, 'suffix' => null];
+            $wireAuthStr = is_string($wireAuth['prefix'] ?? null) && is_string($wireAuth['suffix'] ?? null)
+                ? htmlspecialchars($wireAuth['prefix'], ENT_QUOTES) . '<span style="color:#64748b;">••••</span>' . htmlspecialchars($wireAuth['suffix'], ENT_QUOTES)
+                : '<em style="color:#94a3b8;">N/A</em>';
+            $wireKeyStr  = is_string($wireKey['prefix']  ?? null) && is_string($wireKey['suffix']  ?? null)
+                ? htmlspecialchars($wireKey['prefix'],  ENT_QUOTES) . '<span style="color:#64748b;">••••</span>' . htmlspecialchars($wireKey['suffix'],  ENT_QUOTES)
+                : '<em style="color:#94a3b8;">N/A</em>';
 
             $sourceTable = $chooseSource($envBase, $this->nullableString($stored['api_base_url'] ?? null), $this->nullableString($effective['api_base_url'] ?? null), 'api_base_url')
                 . $chooseSource($envAuthId, $storedAuthId, $effAuthId, 'auth_user_id (Reseller ID)')
                 . $chooseSource($envApiKey, $storedApiKey, $effApiKey, 'api_key')
                 . $chooseSource($envIp, $storedIp, $this->nullableString($effective['ip_address'] ?? null), 'ip_address');
-            unset($GLOBALS['__probe_ps']);
 
             $probeDiagnosticsMarkup = <<<HTML
   <article class="info-card" style="border-color:#3b82f6;background-color:rgba(59,130,246,0.08);">
     <h2 style="color:#93c5fd;">Secrets Resolution Diagnostics (probe=health)</h2>
-    <p class="muted">This table shows <em>which source</em> each NetEarthOne credential is currently read from at runtime — ENV (Northflank secret sets / mounted secrets), or STORED (provider_accounts.config_json). If both are set, STORED wins. Values are masked and only first/last 4 chars are exposed for correlation against your NF secrets / NEO console.</p>
+    <p class="muted">This table shows <em>which source</em> each NetEarthOne credential is currently read from at runtime — ENV (Northflank secret sets / mounted secrets), or STORED (provider_accounts.config_json). If both are set, <strong>STORED wins</strong>. Values are masked: only first 4 + last 4 chars exposed for correlation against your NF secrets / NEO console.</p>
+
+    <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
+      <p style="margin:4px 0;font-size:13px;"><strong style="color:#a78bfa;">provider_accounts DB row (absolute truth from shared DB):</strong></p>
+      <p style="margin:4px 0;font-size:12px;">id: <code>{$displayRowId}</code></p>
+      <p style="margin:4px 0;font-size:12px;">is_active: <code>{$rawRowIsActive}</code> &nbsp;·&nbsp; updated_at: <code>{$displayUpdatedAt}</code></p>
+      <p style="margin:4px 0;font-size:12px;">config_json length: <code>{$displayConfigJsonLength} bytes</code>
+         &nbsp;·&nbsp; json_decode: <code style="color:{$jsonDecodeColor};">{$jsonDecodeText}</code></p>
+      <p style="margin:4px 0;font-size:12px;">config_json has auth_user_id key: <code style="color:{$hasAuthColor};">{$hasAuthText}</code>
+         &nbsp;·&nbsp; has api_key key: <code style="color:{$hasApiKeyColor};">{$hasApiKeyText}</code></p>
+      <p style="margin:4px 0;font-size:12px;">keys present in config_json: <code style="word-break:break-all;">{$displayKeysPresent}</code></p>
+    </div>
+
+    <div style="padding:10px 14px;margin:10px 0 14px;border:1px solid #1e293b;border-radius:8px;background:rgba(15,23,42,0.5);">
+      <p style="margin:4px 0;font-size:13px;"><strong style="color:#c084fc;">What was actually SENT ON THE WIRE to LogicBoxes/NEO in this ?probe=health call:</strong></p>
+      <p style="margin:4px 0;font-size:12px;">auth-userid (prefix4 •••• suffix4): <code>{$wireAuthStr}</code></p>
+      <p style="margin:4px 0;font-size:12px;">api-key    (prefix4 •••• suffix4): <code>{$wireKeyStr}</code></p>
+      <p class="muted" style="margin:6px 0 0 0;font-size:11px;">If these don't match the EFFECTIVE column above, a provider instance cached earlier with different credentials is being used (requires deploy restart or page cache clear).</p>
+    </div>
+
     <div style="overflow:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
@@ -844,7 +894,7 @@ HTML;
             <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">Setting</th>
             <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">Source used</th>
             <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">ENV (first 4 •••• last 4)</th>
-            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">STORED (prefix •••• suffix)</th>
+            <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">STORED (prefix4 •••• suffix4)</th>
             <th style="padding:8px 10px;border-bottom:2px solid #1e293b;">EFFECTIVE (runtime)</th>
           </tr>
         </thead>
@@ -853,12 +903,16 @@ HTML;
         </tbody>
       </table>
     </div>
+
     {$upstreamResponseBody}
-    <p class="muted" style="margin-top:10px;"><strong>How to fix mismatches:</strong></p>
+
+    <p style="margin-top:14px;" class="muted"><strong>How to fix mismatches / Invalid credentials:</strong></p>
     <ol class="muted" style="margin-top:4px;">
-      <li>If <code>api_key</code> / <code>auth_user_id</code> show a <em>different prefix/suffix</em> in ENV than the actual values you generated in NEO Console → Settings → API, then your Northflank <code>metahumans-netearthone-provider</code> secret group contains <strong>stale values</strong>. Update NF secrets with the key/reseller-id from the NEO popup and re-deploy the NF service so the new env values take effect.</li>
-      <li>If ENV shows "Not set" but STORED shows the correct value, credentials are being read from DB (this is expected when you paste a key into the settings form and click Save Settings — after this commit, save handler finally preserves <code>api_key</code> and <code>auth_user_id</code> in stored config).</li>
-      <li>To rotate: open NEO Console → Settings → API → Regenerate → paste new key into this page's API Key field → Save Settings (no NF redeploy needed if using stored override).</li>
+      <li>If the <strong>Wire values</strong> above show <code>KGt8••••WpFP</code> (OLD) but you saved/pasted a new key like <code>DS8D••••mltf</code>, then either: (a) save handler didn't persist (check above: <em>config_json has api_key key: YES/NO</em> must show YES after save, with correct prefix), or (b) provider was cached with old credentials → after a confirmed saved, <strong>reload the page (hard refresh)</strong> or redeploy to clear cached instances.</li>
+      <li>If ENV column shows OLD stale credentials but you want the new key: update <code>NETEARTHONE_API_KEY</code> + <code>NETEARTHONE_AUTH_USER_ID</code> in Northflank <code>metahumans-netearthone-provider</code> secret group to match NEO popup, then redeploy the NF service (env only changes on new container instances).</li>
+      <li>If STORED column should contain the newly-saved key but shows Not set: click Save Settings <em>once</em> and look for the green flash banner, which now explicitly lists <code>"Stored: auth_user_id=… api_key=…"</code> masked strings as confirmation. If flash shows the correct masked key, the DB write succeeded; if it still shows old values, inspect config_json keys section above.</li>
+      <li>After you confirm Wire === EFFECTIVE === the new key from your NEO popup, re-run health probe. If it still says "Invalid credentials", that means NEO has the key still pending propagation (wait up to 2 minutes and retry), or the auth_user_id and api_key belong to different accounts — double-check the Reseller ID shown in the top of NEO Console.</li>
+      <li>To rotate without touching NF: paste the new key into the API Key password field → <strong>Save Settings</strong> (STORED override wins — no redeploy needed).</li>
     </ol>
   </article>
 HTML;
@@ -1001,29 +1055,65 @@ HTML;
 
         $fields = [
             'is_active' => isset($post['is_active']) && (string) $post['is_active'] === '1',
-            'environment' => $post['environment'] ?? 'production',
+            'environment' => $this->normalizeNullableString($post['environment'] ?? null) ?? 'production',
         ];
 
-        $config = [
-            'timeout' => max(5, min(300, (int) ($post['timeout'] ?? 30))),
-            'api_base_url' => $this->normalizeProjectPathInput($post['api_base_url'] ?? null),
-            'auth_user_id' => $this->normalizeNumericString($post['auth_user_id'] ?? null),
-            'ip_address' => $this->normalizeWhitespaceSeparated($post['ip_address'] ?? null),
-            'pricing_json' => $this->normalizeProjectPathInput($post['pricing_json'] ?? null),
-            'default_customer_id' => $this->normalizeNumericString($post['default_customer_id'] ?? null),
-            'default_invoice_option' => $this->normalizeInvoiceOption($post['default_invoice_option'] ?? null),
-        ];
+        $timeoutInput = (int) ($post['timeout'] ?? 0);
+        $apiBaseUrlInput = $this->normalizeProjectPathInput($post['api_base_url'] ?? null);
+        $authUserIdInput = $this->normalizeNumericString($post['auth_user_id'] ?? null);
+        $ipAddressInput = $this->normalizeWhitespaceSeparated($post['ip_address'] ?? null);
+        $pricingJsonInput = $this->normalizeProjectPathInput($post['pricing_json'] ?? null);
+        $defaultCustomerIdInput = $this->normalizeNumericString($post['default_customer_id'] ?? null);
+        $defaultInvoiceOptionInput = $this->normalizeInvoiceOption($post['default_invoice_option'] ?? null);
+        $apiKeyInputRaw = $this->normalizeNullableString($post['api_key'] ?? null);
 
-        $apiKeyInput = $this->normalizeNullableString($post['api_key'] ?? null);
-        if ($apiKeyInput !== null) {
-            $config['api_key'] = $apiKeyInput;
-        } else {
-            $existing = $this->nullableConfigString($currentStored['api_key'] ?? null)
-                ?? $this->nullableConfigString($currentEffective['api_key'] ?? null);
-            if ($existing !== null) {
-                $config['api_key'] = $existing;
+        $base = $currentStored;
+        if ($timeoutInput > 0) {
+            $base['timeout'] = max(5, min(300, $timeoutInput));
+        } elseif (! isset($base['timeout']) || (int) $base['timeout'] <= 0) {
+            $base['timeout'] = 30;
+        }
+        if ($apiBaseUrlInput !== null) {
+            $base['api_base_url'] = $apiBaseUrlInput;
+        }
+        if ($authUserIdInput !== null) {
+            $base['auth_user_id'] = $authUserIdInput;
+        } elseif (! isset($base['auth_user_id']) || trim((string) $base['auth_user_id']) === '') {
+            $fallbackAuth = $this->nullableConfigString($currentEffective['auth_user_id'] ?? null);
+            if ($fallbackAuth !== null) {
+                $base['auth_user_id'] = $fallbackAuth;
             }
         }
+        if ($ipAddressInput !== null) {
+            $base['ip_address'] = $ipAddressInput;
+        }
+        if ($pricingJsonInput !== null) {
+            $base['pricing_json'] = $pricingJsonInput;
+        }
+        if ($defaultCustomerIdInput !== null) {
+            $base['default_customer_id'] = $defaultCustomerIdInput;
+        } elseif (! isset($base['default_customer_id']) || trim((string) $base['default_customer_id']) === '') {
+            $fallbackCust = $this->nullableConfigString($currentEffective['default_customer_id'] ?? null);
+            if ($fallbackCust !== null) {
+                $base['default_customer_id'] = $fallbackCust;
+            }
+        }
+        if ($defaultInvoiceOptionInput !== null) {
+            $base['default_invoice_option'] = $defaultInvoiceOptionInput;
+        } elseif (! isset($base['default_invoice_option']) || trim((string) $base['default_invoice_option']) === '') {
+            $base['default_invoice_option'] = $this->nullableConfigString($currentEffective['default_invoice_option'] ?? null) ?? 'NoInvoice';
+        }
+
+        if ($apiKeyInputRaw !== null) {
+            $base['api_key'] = $apiKeyInputRaw;
+        } elseif (! isset($base['api_key']) || trim((string) $base['api_key']) === '') {
+            $fallbackKey = $this->nullableConfigString($currentEffective['api_key'] ?? null);
+            if ($fallbackKey !== null) {
+                $base['api_key'] = $fallbackKey;
+            }
+        }
+
+        $config = $base;
 
         $this->app->providerAccountRepository()->updateSettings(
             (string) $providerAccount['id'],
@@ -1031,7 +1121,22 @@ HTML;
             $config,
         );
 
-        return $this->safeRedirect($this->providersNetEarthOnePath() . '?flash=' . rawurlencode('NetEarthOne settings saved.'));
+        $reload = $this->app->providerAccountRepository()->findByCode('netearthone');
+        $reloadStored = $this->app->providerAccountRepository()->decodeConfig($reload);
+        $savedAuthIdMasked = $this->maskedSecret((string) ($reloadStored['auth_user_id'] ?? ''));
+        $savedApiKeyMasked = $this->maskedSecret((string) ($reloadStored['api_key'] ?? ''));
+        $savedIpMasked = $this->escape((string) ($reloadStored['ip_address'] ?? 'Not configured'));
+        $rowUpdatedAt = '';
+        if (is_array($reload) && isset($reload['updated_at'])) {
+            $rowUpdatedAt = ' (updated_at=' . $this->escape((string) $reload['updated_at']) . ')';
+        }
+
+        $flash = 'NetEarthOne settings saved.' . $rowUpdatedAt
+            . ' Stored: auth_user_id=' . $savedAuthIdMasked
+            . ', api_key=' . $savedApiKeyMasked
+            . ', ip_address=' . $savedIpMasked . '.';
+
+        return $this->safeRedirect($this->providersNetEarthOnePath() . '?flash=' . rawurlencode($flash));
     }
 
     private function renderCozaSettings(array $query): string
